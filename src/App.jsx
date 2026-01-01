@@ -266,7 +266,12 @@ Provide pricing analysis in this exact JSON structure:
       contentParts.push({ type: 'text', text: prompt });
 
       // Call our backend server instead of Anthropic directly
-      const response = await fetch('http://localhost:3001/api/analyze', {
+      // Use relative URL for production, localhost for development
+      const apiUrl = import.meta.env.DEV
+        ? 'http://localhost:3001/api/analyze'
+        : '/api/analyze';
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -13,9 +13,14 @@ dotenv.config();
 const app = express();
 const PORT = 3001;
 
-// Enable CORS for your frontend (allow both ports)
+// Enable CORS for your frontend (allow local dev and production)
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://www.precisionprices.com',
+    'https://precisionprices.com'
+  ],
   credentials: true
 }));
 
