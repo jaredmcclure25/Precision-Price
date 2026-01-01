@@ -4,7 +4,7 @@
  * All Rights Reserved.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Bug, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, FileText, TestTube } from 'lucide-react';
 import TestRunner from './TestRunner';
 import { InputValidation } from './fuzz-tests';
@@ -29,6 +29,7 @@ export default function MarketplacePricer() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [showBugReport, setShowBugReport] = useState(false);
   const [shippingEstimate, setShippingEstimate] = useState(null);
+  const resultsRef = useRef(null);
 
   const tips = [
     "📸 Pro Tip: Upload photos from multiple angles for 23% more accurate pricing!",
@@ -344,7 +345,12 @@ Provide pricing analysis in this exact JSON structure:
 
         setResult(parsedResult);
         setShowFeedback(true);
-        
+
+        // Scroll to results after a brief delay to ensure render
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+
         // Update user profile
         await updateUserProfile({
           analysisCount: (userProfile?.analysisCount || 0) + 1
@@ -820,7 +826,7 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-xl p-8">
+      <div ref={resultsRef} className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Item Analysis</h2>
           <button onClick={shareSuccess} className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
