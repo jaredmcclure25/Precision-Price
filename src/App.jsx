@@ -744,24 +744,34 @@ Provide pricing analysis in this exact JSON structure:
 
       {/* Support Button */}
       <button
-        onClick={() => setShowBugReport(true)}
-        className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition z-50"
-        style={{ pointerEvents: 'auto' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log('Bug button clicked!');
+          addDebugLog('info', 'Bug report button clicked');
+          setShowBugReport(true);
+        }}
+        className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition z-[9999]"
+        style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+        type="button"
       >
-        <Bug className="w-6 h-6" />
+        <Bug className="w-6 h-6" style={{ pointerEvents: 'none' }} />
       </button>
 
       {/* Debug Console Toggle (hidden by default, only for troubleshooting) */}
       {debugLogs.length > 0 && (
         <button
-          onClick={() => setShowDebugConsole(!showDebugConsole)}
-          className="fixed bottom-24 right-6 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition z-50"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDebugConsole(!showDebugConsole);
+          }}
+          className="fixed bottom-24 right-6 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition z-[9999]"
           title="Debug Console (for troubleshooting)"
-          style={{ pointerEvents: 'auto' }}
+          style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+          type="button"
         >
-          <FileText className="w-6 h-6" />
+          <FileText className="w-6 h-6" style={{ pointerEvents: 'none' }} />
           {debugLogs.filter(l => l.type === 'error').length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style={{ pointerEvents: 'none' }}>
               {debugLogs.filter(l => l.type === 'error').length}
             </span>
           )}
