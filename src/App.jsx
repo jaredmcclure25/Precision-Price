@@ -1819,7 +1819,7 @@ function BugReportModal({error, onClose, onSubmit}) {
   const [description, setDescription] = useState('');
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-6">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8">
         <div className="flex items-center gap-3 mb-4">
           <div className="bg-red-100 p-3 rounded-lg">
