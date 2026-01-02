@@ -258,6 +258,7 @@ export default function MarketplacePricer() {
 
       // Parse location for regional pricing intelligence
       const locationData = parseLocation(location);
+      console.log('📍 Parsed location data:', locationData);
       const locationDesc = getLocationDescription(locationData);
       const locationInsight = getLocationPricingInsight(locationData);
 

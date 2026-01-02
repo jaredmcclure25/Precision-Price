@@ -24,6 +24,8 @@ export async function getComparableItems(itemName, category, locationData) {
     // Query 1: Same category in same metro area (most relevant)
     let comparables = [];
 
+    // Note: If no data exists yet or user isn't authenticated, queries will fail gracefully
+
     if (locationData.metro) {
       const metroQuery = query(
         soldPricesRef,
@@ -39,7 +41,7 @@ export async function getComparableItems(itemName, category, locationData) {
           comparables.push(doc.data());
         });
       } catch (e) {
-        console.log('Metro query failed, trying state-level');
+        // Silent fail - no metro data available or permission denied
       }
     }
 
@@ -63,7 +65,7 @@ export async function getComparableItems(itemName, category, locationData) {
           }
         });
       } catch (e) {
-        console.log('State query failed, trying category-only');
+        // Silent fail - no state data available or permission denied
       }
     }
 
@@ -85,7 +87,8 @@ export async function getComparableItems(itemName, category, locationData) {
           }
         });
       } catch (e) {
-        console.error('All queries failed:', e);
+        // Silent fail - no category data available or permission denied
+        // This is expected when database is empty or user not authenticated
       }
     }
 
