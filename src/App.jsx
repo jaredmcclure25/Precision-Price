@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Bug, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, FileText, TestTube, LogOut } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Bug, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, TestTube, LogOut } from 'lucide-react';
 import TestRunner from './TestRunner';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
@@ -37,8 +37,6 @@ export default function MarketplacePricer() {
   const [showBugReport, setShowBugReport] = useState(false);
   const [shippingEstimate, setShippingEstimate] = useState(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [showDebugConsole, setShowDebugConsole] = useState(false);
   const resultsRef = useRef(null);
 
   const tips = [
@@ -49,23 +47,6 @@ export default function MarketplacePricer() {
     "📊 Adding 3+ photos increases sale probability by 60%"
   ];
 
-  // Debug logging helper
-  const addDebugLog = (type, message) => {
-    const time = new Date().toLocaleTimeString();
-    setDebugLogs(prev => [...prev, { type, message: String(message), time }].slice(-50)); // Keep last 50 logs
-  };
-
-  // Capture console errors
-  useEffect(() => {
-    const originalError = console.error;
-    console.error = (...args) => {
-      addDebugLog('error', args.join(' '));
-      originalError.apply(console, args);
-    };
-    return () => {
-      console.error = originalError;
-    };
-  }, []);
 
   useEffect(() => {
     loadUserProfile();
@@ -742,62 +723,20 @@ Provide pricing analysis in this exact JSON structure:
       {/* Bug Report Modal */}
       {showBugReport && <BugReportModal error={error} onClose={() => setShowBugReport(false)} onSubmit={submitBugReport} />}
 
-      {/* Support Button */}
+      {/* Bug Report Button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
-          console.log('Bug button clicked!');
-          addDebugLog('info', 'Bug report button clicked');
+          console.log('Bug report button clicked');
           setShowBugReport(true);
         }}
         className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition z-[9999]"
         style={{ pointerEvents: 'auto', cursor: 'pointer' }}
         type="button"
+        title="Report a Bug"
       >
         <Bug className="w-6 h-6" style={{ pointerEvents: 'none' }} />
       </button>
-
-      {/* Debug Console Toggle (hidden by default, only for troubleshooting) */}
-      {debugLogs.length > 0 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDebugConsole(!showDebugConsole);
-          }}
-          className="fixed bottom-24 right-6 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition z-[9999]"
-          title="Debug Console (for troubleshooting)"
-          style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-          type="button"
-        >
-          <FileText className="w-6 h-6" style={{ pointerEvents: 'none' }} />
-          {debugLogs.filter(l => l.type === 'error').length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style={{ pointerEvents: 'none' }}>
-              {debugLogs.filter(l => l.type === 'error').length}
-            </span>
-          )}
-        </button>
-      )}
-
-      {/* Debug Console */}
-      {showDebugConsole && (
-        <div className="fixed bottom-24 right-6 bg-black text-green-400 p-4 rounded-lg shadow-2xl w-96 max-h-96 overflow-y-auto font-mono text-xs z-50">
-          <div className="flex justify-between items-center mb-2 border-b border-green-600 pb-2">
-            <span className="font-bold">Debug Console</span>
-            <button onClick={() => { setDebugLogs([]); setShowDebugConsole(false); }} className="text-red-400 hover:text-red-300">Clear</button>
-          </div>
-          {debugLogs.length === 0 ? (
-            <p className="text-gray-500">No logs yet...</p>
-          ) : (
-            debugLogs.map((log, i) => (
-              <div key={i} className="mb-2 border-b border-gray-800 pb-1">
-                <span className="text-blue-400">[{log.time}]</span>
-                <span className={log.type === 'error' ? 'text-red-400' : 'text-green-400'}> {log.type}:</span>
-                <div className="ml-2 whitespace-pre-wrap break-words">{log.message}</div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </div>
   );
 }
