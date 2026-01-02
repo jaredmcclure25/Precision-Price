@@ -322,14 +322,24 @@ Provide pricing analysis in this exact JSON structure:
 
       // Try to extract JSON from the response
       // Remove markdown code blocks if present
-      let cleanText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      
-      // Try to find JSON object
+      let cleanText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+      // Try to find JSON object - use greedy match to get the full object
       const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-      
+
       if (!jsonMatch) {
-        console.error('Raw API response:', textContent);
-        throw new Error('Could not find JSON in API response. The AI may have returned plain text instead of structured data.');
+        console.error('Failed to parse API response');
+        console.error('Raw response length:', textContent.length);
+        console.error('First 500 chars:', textContent.substring(0, 500));
+
+        // Save error details for debugging
+        const errorDetails = {
+          message: 'JSON parsing failed',
+          responsePreview: textContent.substring(0, 500),
+          timestamp: new Date().toISOString()
+        };
+
+        throw new Error('Could not parse the pricing analysis. Please try again or report this issue.');
       }
 
       try {
