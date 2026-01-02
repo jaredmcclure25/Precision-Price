@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Bug, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, TestTube, LogOut } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, TestTube, LogOut } from 'lucide-react';
 import TestRunner from './TestRunner';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
@@ -34,7 +34,6 @@ export default function MarketplacePricer() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showTip, setShowTip] = useState(true);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
-  const [showBugReport, setShowBugReport] = useState(false);
   const [shippingEstimate, setShippingEstimate] = useState(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const resultsRef = useRef(null);
@@ -414,9 +413,43 @@ Provide pricing analysis in this exact JSON structure:
       }
     } catch (err) {
       setError(err.message || 'Failed to analyze pricing');
-      // Auto-show bug report for errors
-      if (err.message.includes('match') || err.message.includes('pattern')) {
-        setShowBugReport(true);
+
+      // Automatically log error to Firebase (no user interaction needed)
+      const autoBugReport = {
+        description: 'Automatic error report from analyzePricing function',
+        error: err.message || 'Unknown error',
+        errorStack: err.stack || 'No stack trace',
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        userId: currentUser?.uid || 'guest',
+        userEmail: currentUser?.email || 'guest',
+        isGuestMode: isGuestMode,
+        resolved: false,
+        url: window.location.href,
+        viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+        itemContext: {
+          itemName: itemName || 'none',
+          location: location || 'none',
+          hasImages: images.length > 0
+        }
+      };
+
+      // Send to Firebase silently in background
+      try {
+        await addDoc(collection(db, 'bugReports'), autoBugReport);
+        console.log('Error automatically logged to Firebase');
+      } catch (firebaseError) {
+        console.warn('Failed to auto-log error to Firebase:', firebaseError);
+        // Fallback to localStorage
+        try {
+          let bugs = [];
+          const stored = await window.storage.get('bugreports', true);
+          if (stored && stored.value) bugs = JSON.parse(stored.value);
+          bugs.push(autoBugReport);
+          await window.storage.set('bugreports', JSON.stringify(bugs), true);
+        } catch (e) {
+          console.error('Failed to save bug report:', e);
+        }
       }
     } finally {
       setLoading(false);
@@ -518,48 +551,6 @@ Provide pricing analysis in this exact JSON structure:
     } catch (err) {
       console.error('Update error:', err);
       alert('Failed to update item');
-    }
-  };
-
-  const submitBugReport = async (bugDescription, errorMessage) => {
-    try {
-      // Save bug report to Firebase Firestore
-      const bugReport = {
-        description: bugDescription,
-        error: errorMessage || error,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        userId: currentUser?.uid || 'guest',
-        userEmail: currentUser?.email || 'guest',
-        isGuestMode: isGuestMode,
-        resolved: false,
-        // Add context for debugging
-        url: window.location.href,
-        viewportSize: `${window.innerWidth}x${window.innerHeight}`
-      };
-
-      try {
-        // Try Firebase first
-        await addDoc(collection(db, 'bugReports'), bugReport);
-        console.log('Bug report saved to Firebase');
-      } catch (firebaseError) {
-        // Fallback to localStorage if Firebase fails (e.g., rules not deployed yet)
-        console.warn('Firebase failed, saving to localStorage:', firebaseError);
-        let bugs = [];
-        try {
-          const stored = await window.storage.get('bugreports', true);
-          if (stored && stored.value) bugs = JSON.parse(stored.value);
-        } catch (e) {}
-        bugs.push(bugReport);
-        await window.storage.set('bugreports', JSON.stringify(bugs), true);
-        console.log('Bug report saved to localStorage');
-      }
-
-      alert('Bug report submitted! Our team will investigate. Thank you!');
-      setShowBugReport(false);
-    } catch (e) {
-      console.error('Failed to submit bug report:', e);
-      alert('Failed to submit bug report: ' + e.message);
     }
   };
 
@@ -720,23 +711,6 @@ Provide pricing analysis in this exact JSON structure:
         }} />}
       </div>
 
-      {/* Bug Report Modal */}
-      {showBugReport && <BugReportModal error={error} onClose={() => setShowBugReport(false)} onSubmit={submitBugReport} />}
-
-      {/* Bug Report Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          console.log('Bug report button clicked');
-          setShowBugReport(true);
-        }}
-        className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition z-[9999]"
-        style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-        type="button"
-        title="Report a Bug"
-      >
-        <Bug className="w-6 h-6" style={{ pointerEvents: 'none' }} />
-      </button>
     </div>
   );
 }
