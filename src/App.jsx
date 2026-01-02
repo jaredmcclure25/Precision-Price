@@ -8,9 +8,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Bug, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, FileText, TestTube } from 'lucide-react';
 import TestRunner from './TestRunner';
 import { InputValidation } from './fuzz-tests';
+import { useAuth } from './AuthContext';
 import './storage'; // Cross-browser storage wrapper
 
 export default function MarketplacePricer() {
+  const { saveItemToHistory } = useAuth();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
   const [stats, setStats] = useState(null);
@@ -45,7 +47,7 @@ export default function MarketplacePricer() {
 
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
-    else if (['dashboard', 'achievements', 'leaderboard'].includes(view)) setMainTab('dashboard');
+    else if (['dashboard', 'history', 'achievements', 'leaderboard'].includes(view)) setMainTab('dashboard');
     else if (['shipping', 'referral', 'testing'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
 
@@ -351,6 +353,21 @@ Provide pricing analysis in this exact JSON structure:
           resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
 
+        // Save to item history
+        await saveItemToHistory({
+          itemName: parsedResult.itemIdentification?.name || itemName,
+          condition,
+          location,
+          suggestedPrice: parsedResult.suggestedPriceRange?.optimal,
+          priceRange: {
+            min: parsedResult.suggestedPriceRange?.min,
+            max: parsedResult.suggestedPriceRange?.max
+          },
+          category: parsedResult.itemIdentification?.category,
+          brand: parsedResult.itemIdentification?.brand,
+          marketInsights: parsedResult.marketInsights
+        });
+
         // Update user profile
         await updateUserProfile({
           analysisCount: (userProfile?.analysisCount || 0) + 1
@@ -550,6 +567,7 @@ Provide pricing analysis in this exact JSON structure:
             <div className="flex gap-2 flex-wrap">
               {[
                 { id: 'dashboard', icon: BarChart3, label: 'Stats' },
+                { id: 'history', icon: History, label: 'History' },
                 { id: 'achievements', icon: Trophy, label: 'Badges' },
                 { id: 'leaderboard', icon: Star, label: 'Leaderboard' }
               ].map(tab => (
@@ -615,10 +633,11 @@ Provide pricing analysis in this exact JSON structure:
 
       <div className="p-6">
         {view === 'pricing' && (
-          <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile}} />
+          <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef}} />
         )}
         {view === 'shipping' && <ShippingCalculator />}
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
+        {view === 'history' && <ItemHistory />}
         {view === 'achievements' && <Achievements userProfile={userProfile} />}
         {view === 'leaderboard' && <Leaderboard />}
         {view === 'referral' && <ReferralProgram userProfile={userProfile} />}
@@ -643,7 +662,7 @@ Provide pricing analysis in this exact JSON structure:
   );
 }
 
-function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile}) {
+function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef}) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
@@ -806,12 +825,22 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         </div>
       </div>
 
-      {result && <ResultsDisplay result={result} showFeedback={showFeedback} feedbackSubmitted={feedbackSubmitted} submitFeedback={submitFeedback} />}
+      {result && <ResultsDisplay result={result} showFeedback={showFeedback} feedbackSubmitted={feedbackSubmitted} submitFeedback={submitFeedback} resultsRef={resultsRef} onNewAnalysis={() => {
+        setResult(null);
+        setItemName('');
+        setCondition('good');
+        setLocation('');
+        setAdditionalDetails('');
+        setImages([]);
+        setError(null);
+        setShowFeedback(false);
+        setFeedbackSubmitted(false);
+      }} />}
     </div>
   );
 }
 
-function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback}) {
+function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis}) {
   const [showShare, setShowShare] = useState(false);
 
   const shareSuccess = () => {
@@ -829,9 +858,14 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
       <div ref={resultsRef} className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Item Analysis</h2>
-          <button onClick={shareSuccess} className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
-            <Share2 className="w-4 h-4" />Share
-          </button>
+          <div className="flex gap-2">
+            <button onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg">
+              <Search className="w-4 h-4" />New Analysis
+            </button>
+            <button onClick={shareSuccess} className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
+              <Share2 className="w-4 h-4" />Share
+            </button>
+          </div>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div><p className="text-sm text-gray-600">Identified As</p><p className="text-lg font-semibold">{result.itemIdentification.name}</p></div>
@@ -1366,6 +1400,135 @@ function Community() {
             <p className="text-sm">- Mike T.</p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ItemHistory() {
+  const { getItemHistory } = useAuth();
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    setLoading(true);
+    try {
+      const items = await getItemHistory();
+      setHistory(items);
+    } catch (error) {
+      console.error('Error loading history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+        <div className="text-center py-12">
+          <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Analysis History</h3>
+          <p className="text-gray-500">Your analyzed items will appear here.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <div className="flex items-center gap-3 mb-6">
+          <History className="w-8 h-8 text-indigo-600" />
+          <h2 className="text-3xl font-bold">Analysis History</h2>
+        </div>
+        <p className="text-gray-600 mb-6">View all your previously analyzed items and their pricing recommendations.</p>
+      </div>
+
+      <div className="space-y-4">
+        {history.map((item, index) => (
+          <div key={item.id || index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-800">{item.itemName}</h3>
+                <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                  {item.category && (
+                    <span className="flex items-center gap-1">
+                      <Package className="w-4 h-4" />
+                      {item.category}
+                    </span>
+                  )}
+                  {item.brand && (
+                    <span className="flex items-center gap-1">
+                      <Award className="w-4 h-4" />
+                      {item.brand}
+                    </span>
+                  )}
+                  {item.condition && (
+                    <span className="capitalize">{item.condition} condition</span>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-500">
+                  {new Date(item.analyzedAt).toLocaleDateString()}
+                </div>
+                <div className="text-sm text-gray-400">
+                  {new Date(item.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-600">Minimum</div>
+                <div className="text-2xl font-bold">${item.priceRange?.min || 'N/A'}</div>
+              </div>
+              <div className="bg-indigo-50 p-4 rounded-lg border-2 border-indigo-200">
+                <div className="text-sm text-indigo-600">Suggested Price</div>
+                <div className="text-3xl font-bold text-indigo-600">${item.suggestedPrice}</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-600">Maximum</div>
+                <div className="text-2xl font-bold">${item.priceRange?.max || 'N/A'}</div>
+              </div>
+            </div>
+
+            {item.marketInsights && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                {item.marketInsights.demandLevel && (
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <span className="text-gray-600">Demand: <span className="font-medium capitalize">{item.marketInsights.demandLevel}</span></span>
+                  </div>
+                )}
+                {item.marketInsights.competitionLevel && (
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-orange-600" />
+                    <span className="text-gray-600">Competition: <span className="font-medium capitalize">{item.marketInsights.competitionLevel}</span></span>
+                  </div>
+                )}
+                {item.location && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                    <span className="text-gray-600">{item.location}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
