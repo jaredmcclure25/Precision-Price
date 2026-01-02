@@ -534,13 +534,28 @@ Provide pricing analysis in this exact JSON structure:
         viewportSize: `${window.innerWidth}x${window.innerHeight}`
       };
 
-      await addDoc(collection(db, 'bugReports'), bugReport);
+      try {
+        // Try Firebase first
+        await addDoc(collection(db, 'bugReports'), bugReport);
+        console.log('Bug report saved to Firebase');
+      } catch (firebaseError) {
+        // Fallback to localStorage if Firebase fails (e.g., rules not deployed yet)
+        console.warn('Firebase failed, saving to localStorage:', firebaseError);
+        let bugs = [];
+        try {
+          const stored = await window.storage.get('bugreports', true);
+          if (stored && stored.value) bugs = JSON.parse(stored.value);
+        } catch (e) {}
+        bugs.push(bugReport);
+        await window.storage.set('bugreports', JSON.stringify(bugs), true);
+        console.log('Bug report saved to localStorage');
+      }
 
       alert('Bug report submitted! Our team will investigate. Thank you!');
       setShowBugReport(false);
     } catch (e) {
       console.error('Failed to submit bug report:', e);
-      alert('Failed to submit bug report. Please try again.');
+      alert('Failed to submit bug report: ' + e.message);
     }
   };
 
