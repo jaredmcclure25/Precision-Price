@@ -57,14 +57,20 @@ export function AuthProvider({ children }) {
   }
 
   // Log out user
-  function logout() {
+  async function logout() {
     setIsGuestMode(false);
+    await window.storage.remove('isGuestMode');
+    await window.storage.remove('guestProfile');
+    await window.storage.remove('itemHistory');
     return signOut(auth);
   }
 
   // Enable guest mode
   async function enableGuestMode() {
     setIsGuestMode(true);
+
+    // Persist guest mode status
+    await window.storage.set('isGuestMode', 'true');
 
     // Load or create guest profile from localStorage
     try {
@@ -213,10 +219,22 @@ export function AuthProvider({ children }) {
       setCurrentUser(user);
       if (user) {
         await loadUserProfile(user.uid);
+        setLoading(false);
       } else {
-        setUserProfile(null);
+        // Check if user was in guest mode
+        try {
+          const stored = await window.storage.get('isGuestMode');
+          if (stored && stored.value === 'true') {
+            await enableGuestMode();
+          } else {
+            setUserProfile(null);
+            setLoading(false);
+          }
+        } catch (e) {
+          setUserProfile(null);
+          setLoading(false);
+        }
       }
-      setLoading(false);
     });
 
     return unsubscribe;

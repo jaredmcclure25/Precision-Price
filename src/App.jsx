@@ -5,14 +5,17 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Bug, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, FileText, TestTube } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Bug, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, FileText, TestTube, LogOut } from 'lucide-react';
 import TestRunner from './TestRunner';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
+import { useSiteAuth } from './PasswordProtection';
+import AuthPage from './AuthPage';
 import './storage'; // Cross-browser storage wrapper
 
 export default function MarketplacePricer() {
-  const { saveItemToHistory } = useAuth();
+  const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
+  const { logoutSite } = useSiteAuth();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
   const [stats, setStats] = useState(null);
@@ -31,6 +34,7 @@ export default function MarketplacePricer() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [showBugReport, setShowBugReport] = useState(false);
   const [shippingEstimate, setShippingEstimate] = useState(null);
+  const [formKey, setFormKey] = useState(0); // Key to force form reset
   const resultsRef = useRef(null);
 
   const tips = [
@@ -44,6 +48,9 @@ export default function MarketplacePricer() {
   useEffect(() => {
     loadUserProfile();
     if (view === 'dashboard') loadStats();
+    if (view === 'pricing') {
+      loadStats(); // Refresh stats when returning to home
+    }
 
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
@@ -169,6 +176,18 @@ export default function MarketplacePricer() {
   };
 
   const analyzePricing = async () => {
+    // Check if guest user has exceeded trial limit
+    if (isGuestMode && userProfile) {
+      const analysisCount = userProfile.analysisCount || 0;
+      const TRIAL_LIMIT = 5;
+
+      if (analysisCount >= TRIAL_LIMIT) {
+        setError(`Trial limit reached (${TRIAL_LIMIT} free analyses). Please create an account to continue.`);
+        setView('subscription'); // Redirect to subscription/signup page
+        return;
+      }
+    }
+
     // Validate inputs before API call
     if (images.length === 0 && !itemName.trim()) {
       setError('Please provide either an image or item name');
@@ -529,7 +548,7 @@ Provide pricing analysis in this exact JSON structure:
                 )}
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               {[
                 { id: 'home', icon: Home, label: 'Home' },
                 { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -555,6 +574,22 @@ Provide pricing analysis in this exact JSON structure:
                   <span className="hidden md:inline">{tab.label}</span>
                 </button>
               ))}
+
+              {/* Logout Button */}
+              <button
+                onClick={async () => {
+                  // Logout from both Firebase/guest AND site password
+                  await logout();
+                  logoutSite();
+                  // Reload to show site password screen
+                  window.location.reload();
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-semibold"
+                title={isGuestMode ? "Logout (Guest)" : currentUser?.email || "Logout"}
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden md:inline">Logout</span>
+              </button>
             </div>
           </div>
         </div>
@@ -633,7 +668,7 @@ Provide pricing analysis in this exact JSON structure:
 
       <div className="p-6">
         {view === 'pricing' && (
-          <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef}} />
+          <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey}} />
         )}
         {view === 'shipping' && <ShippingCalculator />}
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
@@ -662,7 +697,7 @@ Provide pricing analysis in this exact JSON structure:
   );
 }
 
-function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef}) {
+function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey}) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
@@ -694,7 +729,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
                 {images.length < 5 && (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-400 transition cursor-pointer">
-                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" id="image-upload" />
+                    <input key={formKey} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" id="image-upload" />
                     <label htmlFor="image-upload" className="cursor-pointer">
                       <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-600 mb-1">Click to upload images</p>
@@ -825,17 +860,38 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         </div>
       </div>
 
-      {result && <ResultsDisplay result={result} showFeedback={showFeedback} feedbackSubmitted={feedbackSubmitted} submitFeedback={submitFeedback} resultsRef={resultsRef} onNewAnalysis={() => {
-        setResult(null);
-        setItemName('');
-        setCondition('good');
-        setLocation('');
-        setAdditionalDetails('');
-        setImages([]);
-        setError(null);
-        setShowFeedback(false);
-        setFeedbackSubmitted(false);
-      }} />}
+      {result && <ResultsDisplay
+        result={result}
+        showFeedback={showFeedback}
+        feedbackSubmitted={feedbackSubmitted}
+        submitFeedback={submitFeedback}
+        resultsRef={resultsRef}
+        onNewAnalysis={(e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+
+          console.log('New Analysis clicked - clearing form');
+
+          // Scroll to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          // Clear all state immediately
+          setResult(null);
+          setItemName('');
+          setCondition('good');
+          setLocation('');
+          setAdditionalDetails('');
+          setImages([]);
+          setError(null);
+          setShowFeedback(false);
+          setFeedbackSubmitted(false);
+          setFormKey(prev => prev + 1); // Force form reset
+
+          console.log('Form cleared');
+        }}
+      />}
     </div>
   );
 }
@@ -859,10 +915,10 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Item Analysis</h2>
           <div className="flex gap-2">
-            <button onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg">
+            <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg">
               <Search className="w-4 h-4" />New Analysis
             </button>
-            <button onClick={shareSuccess} className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
+            <button type="button" onClick={shareSuccess} className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
               <Share2 className="w-4 h-4" />Share
             </button>
           </div>
@@ -1136,75 +1192,141 @@ function RecentActivityItem({ item, index, onUpdate }) {
 }
 
 function Subscription() {
+  const { isGuestMode, userProfile, currentUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const plans = [
     {
-      id: 'monthly',
-      name: 'Monthly',
-      price: '$1.99',
+      id: 'basic',
+      name: 'Basic',
+      price: '$4.99',
       period: '/month',
       savings: null,
-      bestValue: false,
-      features: [
-        'Unlimited item analyses',
-        'Priority customer support',
-        'Export detailed reports',
-        'Early access to new features',
-        'Advanced market insights',
-        'Price tracking alerts'
-      ]
-    },
-    {
-      id: 'quarterly',
-      name: 'Quarterly',
-      price: '$4.99',
-      period: '/3 months',
-      pricePerMonth: '$1.66/mo',
-      savings: 'Save 17%',
-      bestValue: false,
-      features: [
-        'Everything in Monthly',
-        'Bulk pricing analysis',
-        'Competitor tracking',
-        'Custom price alerts',
-        'Extended analytics history',
-        'Priority feature requests'
-      ]
-    },
-    {
-      id: 'yearly',
-      name: 'Yearly',
-      price: '$14.99',
-      period: '/year',
-      pricePerMonth: '$1.25/mo',
-      savings: 'Save 37%',
       bestValue: true,
       features: [
-        'Everything in Quarterly',
-        'Dedicated account manager',
-        'API access',
-        'White-label reports',
-        'Unlimited price history',
-        'Premium support (24/7)'
+        '50 analyses per month',
+        'Basic pricing analysis',
+        'Email support',
+        'Perfect for casual sellers'
+      ]
+    },
+    {
+      id: 'standard',
+      name: 'Standard',
+      price: '$9.99',
+      period: '/month',
+      savings: 'Most Popular',
+      bestValue: false,
+      features: [
+        '200 analyses per month',
+        'Detailed pricing analysis',
+        'Shipping cost estimates',
+        'Meetup cost suggestions',
+        'Demand forecasting',
+        'Priority email support'
+      ]
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: '$19.99',
+      period: '/month',
+      savings: 'Best for Resellers',
+      bestValue: false,
+      features: [
+        'Unlimited analyses',
+        'Everything in Standard',
+        'Bulk analysis tool',
+        'Export to CSV',
+        'Historical price tracking',
+        'Priority support'
       ]
     }
   ];
 
-  const handleSubscribe = (planId) => {
+  const handleSubscribe = async (planId) => {
     setSelectedPlan(planId);
-    // In a real app, this would redirect to payment processing
-    alert(`Redirecting to checkout for ${plans.find(p => p.id === planId).name} plan...`);
+
+    try {
+      // Get user email (either from Firebase auth or prompt guest users)
+      let userEmail = currentUser?.email;
+
+      if (!userEmail && isGuestMode) {
+        userEmail = prompt('Please enter your email address for checkout:');
+        if (!userEmail) return;
+      }
+
+      // Create checkout session
+      const apiUrl = import.meta.env.DEV
+        ? 'http://localhost:3001/api/create-checkout-session'
+        : '/api/create-checkout-session';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId,
+          userEmail
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe checkout
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Subscription error:', error);
+      alert('Failed to start checkout. Please try again.');
+    }
   };
 
   return (
     <div className="max-w-7xl mx-auto">
+      {/* Trial Limit Banner */}
+      {isGuestMode && userProfile && userProfile.analysisCount >= 5 && (
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-6 rounded-2xl shadow-xl mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold mb-2">Trial Limit Reached</h3>
+              <p className="text-lg">You've used your 5 free analyses. Create an account to continue or subscribe for unlimited access!</p>
+            </div>
+            <AlertTriangle className="w-16 h-16 opacity-75" />
+          </div>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="mt-4 bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition"
+          >
+            Create Free Account
+          </button>
+        </div>
+      )}
+
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Unlock powerful features to maximize your selling potential. All plans include a 14-day money-back guarantee.
         </p>
       </div>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full relative">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <AuthPage onGuestMode={() => setShowAuthModal(false)} />
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-8 mb-12">
         {plans.map((plan) => (

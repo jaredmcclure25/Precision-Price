@@ -4,18 +4,19 @@
  * All Rights Reserved.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import AuthPage from './AuthPage';
 
 export default function AuthWrapper({ children }) {
   const { currentUser, isGuestMode, enableGuestMode } = useAuth();
 
-  // Show auth page if user is not logged in and not in guest mode
-  if (!currentUser && !isGuestMode) {
-    return <AuthPage onGuestMode={enableGuestMode} />;
-  }
+  // Automatically enable guest mode on first load if not logged in
+  useEffect(() => {
+    if (!currentUser && !isGuestMode) {
+      enableGuestMode();
+    }
+  }, [currentUser, isGuestMode, enableGuestMode]);
 
-  // Show the app if user is logged in or in guest mode
+  // Show the app (either logged in or guest mode)
   return <>{children}</>;
 }

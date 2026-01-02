@@ -4,11 +4,15 @@
  * All Rights Reserved.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Lock, Eye, EyeOff, Shield } from 'lucide-react';
 
 // CHANGE THIS PASSWORD TO YOUR DESIRED PASSWORD
 const SITE_PASSWORD = 'm@rk3tplacetool';
+
+// Create context for site password logout
+const SiteAuthContext = createContext();
+export const useSiteAuth = () => useContext(SiteAuthContext);
 
 export default function PasswordProtection({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -137,21 +141,10 @@ export default function PasswordProtection({ children }) {
     );
   }
 
-  // Render children with logout option
+  // Render children with context provider for site logout
   return (
-    <>
+    <SiteAuthContext.Provider value={{ logoutSite: handleLogout }}>
       {children}
-      {/* Optional: Add a logout button overlay - can be removed if not needed */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <button
-          onClick={handleLogout}
-          className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 transition-colors"
-          title="Logout"
-        >
-          <Lock className="w-4 h-4" />
-          Logout
-        </button>
-      </div>
-    </>
+    </SiteAuthContext.Provider>
   );
 }
