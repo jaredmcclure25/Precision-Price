@@ -743,7 +743,11 @@ Provide pricing analysis in this exact JSON structure:
       {showBugReport && <BugReportModal error={error} onClose={() => setShowBugReport(false)} onSubmit={submitBugReport} />}
 
       {/* Support Button */}
-      <button onClick={() => setShowBugReport(true)} className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition">
+      <button
+        onClick={() => setShowBugReport(true)}
+        className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition z-50"
+        style={{ pointerEvents: 'auto' }}
+      >
         <Bug className="w-6 h-6" />
       </button>
 
@@ -751,8 +755,9 @@ Provide pricing analysis in this exact JSON structure:
       {debugLogs.length > 0 && (
         <button
           onClick={() => setShowDebugConsole(!showDebugConsole)}
-          className="fixed bottom-6 right-24 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition"
+          className="fixed bottom-24 right-6 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition z-50"
           title="Debug Console (for troubleshooting)"
+          style={{ pointerEvents: 'auto' }}
         >
           <FileText className="w-6 h-6" />
           {debugLogs.filter(l => l.type === 'error').length > 0 && (
