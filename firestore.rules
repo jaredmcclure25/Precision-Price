@@ -15,6 +15,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Sold Prices - Proprietary database for pricing intelligence
+    match /soldPrices/{priceId} {
+      // Anyone authenticated (including guests with temporary auth) can submit sold prices
+      allow create: if request.auth != null;
+
+      // Only authenticated users can read (for building pricing models)
+      // In production, restrict this to admin only
+      allow read: if request.auth != null;
+
+      // No updates or deletions - data integrity is critical
+      allow update, delete: if false;
+    }
+
     // User profiles
     match /users/{userId} {
       // Users can read/write their own data

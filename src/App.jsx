@@ -14,6 +14,9 @@ import AuthPage from './AuthPage';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import './storage'; // Cross-browser storage wrapper
+import { parseLocation, getLocationDescription, getLocationPricingInsight } from './locationData';
+import BullseyePriceTarget from './components/BullseyePriceTarget';
+import { getComparableItems, blendPricing, formatPricingInsights } from './pricingIntelligence';
 
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
@@ -253,17 +256,85 @@ export default function MarketplacePricer() {
         });
       }
 
-      let prompt = `You are a marketplace pricing expert. Analyze this item for Facebook Marketplace pricing.`;
-      if (images.length > 0) prompt += `\n\nAnalyze the ${images.length} image(s) to identify the item, assess its condition from multiple angles, and any notable features or flaws.`;
-      prompt += `\n\nAdditional Information:\nItem Name: ${itemName || 'Not specified'}\nCondition: ${condition}\nLocation: ${location || 'Not specified'}\nDetails: ${additionalDetails || 'None'}`;
+      // Parse location for regional pricing intelligence
+      const locationData = parseLocation(location);
+      const locationDesc = getLocationDescription(locationData);
+      const locationInsight = getLocationPricingInsight(locationData);
 
-      prompt += `\n\nYou MUST respond with ONLY valid JSON. Do not include any text before or after the JSON object. Do not use markdown code blocks. Just pure JSON.
+      // Query our proprietary database for comparable sold prices
+      // Note: We don't know the category yet (Claude will identify it), so we'll enhance post-Claude
+      // For now, try to guess category from item name
+      let realPricingData = null;
+      try {
+        // Simple category detection (will be replaced with Claude's more accurate identification)
+        const itemNameLower = (itemName || '').toLowerCase();
+        let guessedCategory = 'general';
+        if (itemNameLower.includes('iphone') || itemNameLower.includes('phone') || itemNameLower.includes('samsung')) {
+          guessedCategory = 'Electronics';
+        } else if (itemNameLower.includes('chair') || itemNameLower.includes('table') || itemNameLower.includes('sofa')) {
+          guessedCategory = 'Furniture';
+        } else if (itemNameLower.includes('nike') || itemNameLower.includes('shirt') || itemNameLower.includes('shoes')) {
+          guessedCategory = 'Clothing';
+        }
+
+        realPricingData = await getComparableItems(itemName, guessedCategory, locationData);
+      } catch (e) {
+        console.log('Could not query database (might be empty or category unknown):', e);
+      }
+
+      // Get current date for seasonal context
+      const currentDate = new Date();
+      const season = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Summer', 'Summer', 'Fall', 'Fall', 'Fall', 'Winter'][currentDate.getMonth()];
+      const currentMonth = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      let prompt = `You are a marketplace pricing expert specializing in Facebook Marketplace. Analyze this item for accurate local pricing.`;
+      if (images.length > 0) prompt += `\n\nAnalyze the ${images.length} image(s) to identify the item, assess its condition from multiple angles, and identify any notable features or flaws that affect value.`;
+
+      prompt += `\n\n=== ITEM INFORMATION ===\nItem Name: ${itemName || 'Not specified'}\nCondition: ${condition}\nLocation: ${location || 'Not specified'}\nAdditional Details: ${additionalDetails || 'None'}`;
+
+      // Add location-based pricing context
+      prompt += `\n\n=== LOCATION MARKET ANALYSIS ===\n`;
+      prompt += `Selling Location: ${locationDesc}\n`;
+      prompt += `Regional Market Factor: ${locationData.multiplier}x national average\n`;
+      prompt += `Market Insight: ${locationInsight}\n`;
+      prompt += `Demand Level: ${locationData.demand}\n`;
+      if (locationData.metro) {
+        prompt += `Metro Area: ${locationData.metro}\n`;
+      }
+
+      // Add real sold price data if available
+      if (realPricingData && realPricingData.count >= 3) {
+        prompt += `\n=== REAL MARKET DATA (PROPRIETARY DATABASE) ===\n`;
+        prompt += `We have ${realPricingData.count} similar items sold ${realPricingData.geographicScope === 'local' ? 'in this area' : realPricingData.geographicScope === 'regional' ? 'in this region' : 'nationally'}:\n`;
+        prompt += `Average Sold Price: $${realPricingData.avgPrice}\n`;
+        prompt += `Price Range: $${realPricingData.min} - $${realPricingData.max}\n`;
+        prompt += `Median Price: $${realPricingData.median}\n`;
+        if (realPricingData.avgDaysToSell) {
+          prompt += `Average Time to Sell: ${realPricingData.avgDaysToSell} days\n`;
+        }
+        prompt += `\nIMPORTANT: Use this real market data as your PRIMARY pricing guide. Adjust for condition and specific features, but anchor your pricing to these actual sold prices.\n`;
+      }
+
+      // Add seasonal context
+      prompt += `\n=== SEASONAL CONTEXT ===\n`;
+      prompt += `Current Period: ${currentMonth} (${season})\n`;
+      prompt += `Consider seasonal demand factors for this item category.\n`;
+
+      prompt += `\n\nIMPORTANT PRICING GUIDELINES:
+1. Adjust prices based on the regional market multiplier (${locationData.multiplier}x)
+2. Consider that ${locationDesc} has ${locationData.demand} demand conditions
+3. Account for ${season} seasonal factors relevant to this item
+4. Provide confidence score (0-100) based on how certain you are about this pricing
+5. For high-value markets, buyers expect quality and are willing to pay premium prices
+6. For value markets, price competitively to move items quickly
+
+You MUST respond with ONLY valid JSON. Do not include any text before or after the JSON object. Do not use markdown code blocks. Just pure JSON.
 
 Provide pricing analysis in this exact JSON structure:
 {
   "itemIdentification": {
     "name": "string",
-    "category": "string", 
+    "category": "string",
     "brand": "string or null",
     "observedCondition": "string"
   },
@@ -282,6 +353,12 @@ Provide pricing analysis in this exact JSON structure:
     "minimumAcceptable": number,
     "reasoning": "string"
   },
+  "locationFactors": {
+    "regionalMultiplier": ${locationData.multiplier},
+    "marketType": "${locationDesc}",
+    "localDemand": "${locationData.demand}"
+  },
+  "confidenceScore": number,
   "optimizationTips": ["string", "string"],
   "comparableItems": [{"description": "string", "typicalPrice": number}],
   "imageAnalysis": "string"
@@ -379,6 +456,44 @@ Provide pricing analysis in this exact JSON structure:
           );
         }
 
+        // HYBRID PRICING: Blend AI response with real database pricing if available
+        if (realPricingData && realPricingData.count >= 3) {
+          addDebugLog('info', `Blending AI pricing with ${realPricingData.count} real data points`);
+
+          const aiPricing = {
+            min: parsedResult.suggestedPriceRange.min,
+            max: parsedResult.suggestedPriceRange.max,
+            optimal: parsedResult.suggestedPriceRange.optimal
+          };
+
+          // Blend AI pricing with real market data (70% real, 30% AI)
+          const blendedPricing = blendPricing(aiPricing, realPricingData);
+
+          // Update result with blended pricing
+          parsedResult.suggestedPriceRange = {
+            min: blendedPricing.min,
+            max: blendedPricing.max,
+            optimal: blendedPricing.optimal
+          };
+          parsedResult.confidenceScore = blendedPricing.confidenceScore;
+          parsedResult.dataSource = blendedPricing.dataSource;
+          parsedResult.dataCount = blendedPricing.dataCount;
+          parsedResult.geographicScope = blendedPricing.geographicScope;
+          parsedResult.avgDaysToSell = blendedPricing.avgDaysToSell;
+          parsedResult.pricingInsights = formatPricingInsights(realPricingData, locationData);
+
+          addDebugLog('success', `Hybrid pricing: $${blendedPricing.optimal} (confidence: ${blendedPricing.confidenceScore}%)`);
+        } else if (realPricingData) {
+          // Some data but not enough for blending
+          parsedResult.dataCount = realPricingData.count;
+          parsedResult.dataSource = 'AI_with_limited_data';
+          parsedResult.pricingInsights = formatPricingInsights(realPricingData, locationData);
+        } else {
+          // No real data available
+          parsedResult.dataCount = 0;
+          parsedResult.dataSource = 'AI_only';
+        }
+
         setResult(parsedResult);
         setShowFeedback(true);
 
@@ -456,7 +571,7 @@ Provide pricing analysis in this exact JSON structure:
     }
   };
 
-  const submitFeedback = async (wasFair, wasSold, actualPrice, feedback) => {
+  const submitFeedback = async (wasFair, wasSold, actualPrice, feedback, daysToSell = null) => {
     try {
       const feedbackData = {
         itemName: result?.itemIdentification?.name || itemName,
@@ -464,9 +579,11 @@ Provide pricing analysis in this exact JSON structure:
         wasFair, wasSold,
         actualPrice: actualPrice || null,
         feedback,
+        daysToSell: daysToSell,
         timestamp: new Date().toISOString()
       };
 
+      // Save to localStorage for backward compatibility
       let allFeedback = [];
       try {
         const stored = await window.storage.get('pricingfeedback');
@@ -475,28 +592,96 @@ Provide pricing analysis in this exact JSON structure:
 
       allFeedback.push(feedbackData);
       await window.storage.set('pricingfeedback', JSON.stringify(allFeedback));
-      
-      // Update user achievements - FIXED: Use actual sale price as earnings
+
+      // If sold, save to Firebase soldPrices collection for proprietary database
+      if (wasSold && actualPrice && result) {
+        try {
+          const locationData = parseLocation(location);
+
+          const soldPriceData = {
+            // Item details
+            itemName: result.itemIdentification?.name || itemName,
+            category: result.itemIdentification?.category || 'uncategorized',
+            brand: result.itemIdentification?.brand || null,
+            condition: condition,
+
+            // Pricing data
+            suggestedPrice: result.suggestedPriceRange?.optimal || null,
+            suggestedMin: result.suggestedPriceRange?.min || null,
+            suggestedMax: result.suggestedPriceRange?.max || null,
+            actualSoldPrice: actualPrice,
+
+            // Location for regional pricing intelligence
+            location: {
+              raw: location || 'not specified',
+              parsed: {
+                city: locationData.city,
+                state: locationData.state,
+                zipCode: locationData.zipCode || null,
+                metro: locationData.metro || null,
+                multiplier: locationData.multiplier
+              }
+            },
+
+            // Timing and accuracy
+            timestamp: new Date(),
+            daysToSell: daysToSell,
+            wasAccurate: Math.abs(actualPrice - result.suggestedPriceRange.optimal) / actualPrice < 0.10, // Within 10%
+            priceDifference: actualPrice - result.suggestedPriceRange.optimal,
+
+            // User info
+            userId: currentUser?.uid || 'guest',
+            userEmail: currentUser?.email || 'guest',
+            isGuestMode: isGuestMode,
+
+            // Metadata
+            metadata: {
+              hasImages: images.length > 0,
+              imageCount: images.length,
+              confidenceScore: result.confidenceScore || null,
+              feedback: feedback || null
+            }
+          };
+
+          // Save to Firebase
+          await addDoc(collection(db, 'soldPrices'), soldPriceData);
+          console.log('✅ Sold price saved to proprietary database');
+        } catch (firebaseError) {
+          console.error('Failed to save to Firebase soldPrices:', firebaseError);
+          // Don't fail the whole feedback submission if Firebase fails
+        }
+      }
+
+      // Update user achievements - Use actual sale price as earnings
       if (wasSold && actualPrice && result?.suggestedPriceRange) {
-        const earningSaved = Math.abs(actualPrice); // Ensure positive value
+        const earningSaved = Math.abs(actualPrice);
         const isPerfectPrice = Math.abs(actualPrice - result.suggestedPriceRange.optimal) / actualPrice < 0.05;
-        
+
         const currentEarnings = userProfile?.totalEarnings || 0;
         const currentPerfectPrices = userProfile?.perfectPrices || 0;
-        
+        const currentContributions = userProfile?.dataContributions || 0;
+
         await updateUserProfile({
           totalEarnings: currentEarnings + earningSaved,
-          perfectPrices: isPerfectPrice ? currentPerfectPrices + 1 : currentPerfectPrices
+          perfectPrices: isPerfectPrice ? currentPerfectPrices + 1 : currentPerfectPrices,
+          dataContributions: currentContributions + 1 // Track contributions to database
         });
 
         // Check for earnings milestones
         if (currentEarnings + earningSaved >= 1000 && currentEarnings < 1000) {
           alert('🎉 Achievement Unlocked: Big Earner - $1,000 in extra earnings!');
         }
+
+        // Check for contribution badges
+        if (currentContributions + 1 === 5) {
+          alert('🏆 Badge Earned: Data Hero - You have contributed 5 sold prices to help the community!');
+        } else if (currentContributions + 1 === 25) {
+          alert('🌟 Badge Earned: Market Insider - You have contributed 25 sold prices! You are a pricing expert!');
+        }
       }
-      
+
       setFeedbackSubmitted(true);
-      
+
       // Reload stats to show updated earnings
       if (view === 'dashboard') {
         await loadStats();
@@ -954,29 +1139,46 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
       </div>
 
       <div className="bg-white rounded-2xl shadow-xl p-8">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-6">
           <TrendingUp className="w-6 h-6 text-green-600" />
           <h2 className="text-2xl font-bold">Pricing Recommendation</h2>
         </div>
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="text-sm text-gray-600">Minimum</div>
-            <div className="text-2xl font-bold">${result.suggestedPriceRange.min}</div>
+
+        {/* Bullseye Price Target Visualization */}
+        <BullseyePriceTarget
+          min={result.suggestedPriceRange.min}
+          max={result.suggestedPriceRange.max}
+          optimal={result.suggestedPriceRange.optimal}
+          confidence={result.confidenceScore || 70}
+          location={result.locationFactors?.marketType || location}
+          dataCount={result.dataCount || 0}
+        />
+
+        {/* Real Market Data Insights */}
+        {result.pricingInsights && (
+          <div className="mt-6 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+              </svg>
+              <h3 className="font-semibold text-emerald-900">Market Data Insights</h3>
+            </div>
+            <p className="text-sm text-emerald-800">{result.pricingInsights}</p>
           </div>
-          <div className="bg-indigo-50 p-4 rounded-lg border-2 border-indigo-200">
-            <div className="text-sm text-indigo-600">Optimal</div>
-            <div className="text-3xl font-bold text-indigo-600">${result.suggestedPriceRange.optimal}</div>
+        )}
+
+        {/* Pricing Strategy Details */}
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5" />
+            Listing Strategy
+          </h3>
+          <div className="space-y-2">
+            <p className="text-blue-800"><strong>Suggested List Price:</strong> ${result.pricingStrategy.listingPrice}</p>
+            <p className="text-blue-800"><strong>Don't Go Below:</strong> ${result.pricingStrategy.minimumAcceptable}</p>
+            <p className="text-sm text-blue-700 mt-3 p-3 bg-white bg-opacity-50 rounded">{result.pricingStrategy.reasoning}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="text-sm text-gray-600">Maximum</div>
-            <div className="text-2xl font-bold">${result.suggestedPriceRange.max}</div>
-          </div>
-        </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">Strategy</h3>
-          <p className="text-blue-800"><strong>List at:</strong> ${result.pricingStrategy.listingPrice}</p>
-          <p className="text-blue-800"><strong>Accept no less than:</strong> ${result.pricingStrategy.minimumAcceptable}</p>
-          <p className="text-sm text-blue-700 mt-2">{result.pricingStrategy.reasoning}</p>
         </div>
       </div>
 
@@ -1722,11 +1924,17 @@ function FeedbackForm({onSubmit}) {
   const [wasFair, setWasFair] = useState(null);
   const [wasSold, setWasSold] = useState(null);
   const [actualPrice, setActualPrice] = useState('');
+  const [daysToSell, setDaysToSell] = useState('');
   const [feedback, setFeedback] = useState('');
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8">
-      <h2 className="text-2xl font-bold mb-4">Help Us Improve</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">Help Us Improve</h2>
+        <div className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full font-medium">
+          🎁 Earn rewards for feedback!
+        </div>
+      </div>
       <div className="space-y-6">
         <div>
           <p className="font-medium mb-3">Was this pricing fair?</p>
@@ -1749,25 +1957,46 @@ function FeedbackForm({onSubmit}) {
         </div>
 
         {wasSold && (
-          <div>
-            <label className="block font-medium mb-2">Actual sale price?</label>
-            <input type="number" value={actualPrice} onChange={(e) => {
-              const value = e.target.value;
-              if (value === '') {
-                setActualPrice('');
-                return;
-              }
-              const validation = InputValidation.validatePrice(value);
-              if (validation.valid) {
-                setActualPrice(value);
-              }
-            }} placeholder="Enter price" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
-          </div>
+          <>
+            <div>
+              <label className="block font-medium mb-2">Actual sale price? *</label>
+              <input type="number" value={actualPrice} onChange={(e) => {
+                const value = e.target.value;
+                if (value === '') {
+                  setActualPrice('');
+                  return;
+                }
+                const validation = InputValidation.validatePrice(value);
+                if (validation.valid) {
+                  setActualPrice(value);
+                }
+              }} placeholder="Enter price" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-2">How many days did it take to sell? (optional)</label>
+              <input
+                type="number"
+                value={daysToSell}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 365)) {
+                    setDaysToSell(value);
+                  }
+                }}
+                placeholder="e.g., 5"
+                min="0"
+                max="365"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">This helps us understand market timing</p>
+            </div>
+          </>
         )}
 
         <div>
-          <label className="block font-medium mb-2">Comments</label>
-          <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Any feedback..." rows={3} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
+          <label className="block font-medium mb-2">Comments (optional)</label>
+          <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Any feedback about the pricing or your experience..." rows={3} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
         </div>
 
         <button onClick={() => {
@@ -1780,10 +2009,15 @@ function FeedbackForm({onSubmit}) {
             }
             priceValue = validation.value;
           }
-          onSubmit(wasFair, wasSold, priceValue, feedback);
-        }} disabled={wasFair === null || wasSold === null} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg">
+          const daysValue = daysToSell ? parseInt(daysToSell) : null;
+          onSubmit(wasFair, wasSold, priceValue, feedback, daysValue);
+        }} disabled={wasFair === null || wasSold === null} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition">
           Submit Feedback
         </button>
+
+        <div className="text-xs text-center text-gray-500 bg-gray-50 p-3 rounded-lg">
+          💚 Your feedback helps improve pricing for everyone! Thank you for contributing to our community database.
+        </div>
       </div>
     </div>
   );
