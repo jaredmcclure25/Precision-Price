@@ -982,15 +982,15 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location (with ZIP for best accuracy)</label>
                   <input type="text" value={location} onChange={(e) => {
                     let value = InputValidation.sanitizeText(e.target.value, 100);
                     // Additional path traversal protection
                     value = value.replace(/\.\./g, '').replace(/[\/\\]/g, '');
                     setLocation(value);
-                  }} placeholder="e.g., Los Angeles, CA" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                  }} placeholder="e.g., New York, NY 10001" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
                   <div className="text-xs text-gray-500 mt-1">
-                    {location.length}/100 characters
+                    Including ZIP code helps us give you precise local pricing • {location.length}/100 characters
                   </div>
                 </div>
               </div>

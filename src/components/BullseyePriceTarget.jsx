@@ -1,12 +1,12 @@
 /**
- * Bullseye Price Target Visualization
+ * Price Range Visualization
  * Copyright © 2025 Jared McClure / PrecisionPrices.Com
  * All Rights Reserved.
  *
- * Visual pricing target using dartboard metaphor:
- * - Outer ring (MIN): Easy sale, quick turnover
- * - Middle ring (OPTIMAL): Sweet spot, balanced price/time
- * - Center bullseye (MAX): Premium price, patient sale
+ * Visual pricing strategy using graduated pricing bars:
+ * - MIN: Quick sale price (sell fast, lower profit)
+ * - OPTIMAL: Sweet spot (recommended, balanced)
+ * - MAX: Premium price (patient sale, highest profit)
  */
 
 import React from 'react';
@@ -46,130 +46,63 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {/* Bullseye Target */}
-      <div className="relative w-full aspect-square max-w-md mx-auto mb-8">
-        {/* SVG Bullseye */}
-        <svg viewBox="0 0 400 400" className="w-full h-full">
-          {/* Outer ring (MIN) - Light emerald, easiest to hit */}
-          <circle
-            cx="200"
-            cy="200"
-            r="180"
-            fill="#10b981"
-            fillOpacity="0.15"
-            stroke="#10b981"
-            strokeWidth="3"
-            className="transition-all duration-300"
-          />
-
-          {/* Middle ring (OPTIMAL) - Medium emerald with pulsing animation */}
-          <circle
-            cx="200"
-            cy="200"
-            r="120"
-            fill="#059669"
-            fillOpacity="0.3"
-            stroke="#059669"
-            strokeWidth="4"
-            className="animate-pulse transition-all duration-300"
-          />
-
-          {/* Center bullseye (MAX) - Dark emerald with gold accent */}
-          <circle
-            cx="200"
-            cy="200"
-            r="60"
-            fill="#047857"
-            fillOpacity="0.5"
-            stroke="#f59e0b"
-            strokeWidth="4"
-            className="transition-all duration-300"
-          />
-
-          {/* Center dot */}
-          <circle
-            cx="200"
-            cy="200"
-            r="8"
-            fill="#f59e0b"
-            className="transition-all duration-300"
-          />
-
-          {/* Price labels */}
-          {/* MIN price (outer ring) - positioned in outer band */}
-          <text
-            x="200"
-            y="50"
-            textAnchor="middle"
-            className="fill-emerald-600 font-bold"
-            style={{ fontSize: '20px' }}
-          >
-            ${min}
-          </text>
-          <text
-            x="200"
-            y="68"
-            textAnchor="middle"
-            className="fill-emerald-600 font-medium"
-            style={{ fontSize: '11px' }}
-          >
-            Quick Sale
-          </text>
-
-          {/* OPTIMAL price (middle ring) - positioned in middle band */}
-          <text
-            x="200"
-            y="195"
-            textAnchor="middle"
-            className="fill-emerald-700 font-bold"
-            style={{ fontSize: '28px' }}
-          >
-            ${optimal}
-          </text>
-          <text
-            x="200"
-            y="218"
-            textAnchor="middle"
-            className="fill-emerald-700 font-semibold"
-            style={{ fontSize: '13px' }}
-          >
-            Sweet Spot
-          </text>
-
-          {/* MAX price (center bullseye) - positioned at bottom */}
-          <text
-            x="200"
-            y="345"
-            textAnchor="middle"
-            className="fill-emerald-800 font-bold"
-            style={{ fontSize: '20px' }}
-          >
-            ${max}
-          </text>
-          <text
-            x="200"
-            y="363"
-            textAnchor="middle"
-            className="fill-emerald-800 font-medium"
-            style={{ fontSize: '11px' }}
-          >
-            Premium
-          </text>
-        </svg>
-
-        {/* Legend icons - positioned outside and to the right */}
-        <div className="absolute top-1/2 -translate-y-1/2 -right-2 md:-right-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-2 border border-gray-200">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-emerald-500" />
-            <span className="whitespace-nowrap">Quick</span>
+      {/* Price Range Visualization */}
+      <div className="mb-8">
+        <div className="bg-gradient-to-r from-emerald-100 via-emerald-200 to-yellow-100 rounded-2xl p-8 shadow-lg">
+          {/* Title */}
+          <div className="text-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Your Pricing Strategy</h3>
+            <p className="text-sm text-gray-600">Choose your speed vs. profit tradeoff</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-emerald-600" />
-            <span className="whitespace-nowrap">Balanced</span>
+
+          {/* Price Range Bar */}
+          <div className="relative h-24 bg-white rounded-xl shadow-inner mb-6 overflow-hidden">
+            {/* Gradient background showing price range */}
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-emerald-500 to-yellow-500 opacity-20"></div>
+
+            {/* MIN marker */}
+            <div className="absolute left-0 top-0 bottom-0 w-1/3 border-r-2 border-emerald-600 border-dashed flex items-center justify-center">
+              <div className="text-center">
+                <Zap className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-emerald-700">${min}</div>
+                <div className="text-xs text-emerald-600 font-medium">Quick Sale</div>
+              </div>
+            </div>
+
+            {/* OPTIMAL marker (highlighted) */}
+            <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-x-2 border-emerald-700 bg-emerald-50 flex items-center justify-center animate-pulse">
+              <div className="text-center">
+                <Target className="w-7 h-7 text-emerald-700 mx-auto mb-1" />
+                <div className="text-3xl font-bold text-emerald-800">${optimal}</div>
+                <div className="text-sm text-emerald-700 font-semibold">RECOMMENDED</div>
+              </div>
+            </div>
+
+            {/* MAX marker */}
+            <div className="absolute right-0 top-0 bottom-0 w-1/3 border-l-2 border-yellow-600 border-dashed flex items-center justify-center">
+              <div className="text-center">
+                <Award className="w-6 h-6 text-yellow-700 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-yellow-800">${max}</div>
+                <div className="text-xs text-yellow-700 font-medium">Premium</div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-emerald-700" />
-            <span className="whitespace-nowrap">Maximum</span>
+
+          {/* Speed/Profit axis labels */}
+          <div className="flex justify-between items-center text-xs text-gray-600 px-2">
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">Faster Sale</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium">Higher Profit</span>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
