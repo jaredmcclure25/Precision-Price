@@ -747,21 +747,28 @@ Provide pricing analysis in this exact JSON structure:
         <Bug className="w-6 h-6" />
       </button>
 
-      {/* Debug Console Toggle (for mobile debugging) */}
-      <button
-        onClick={() => setShowDebugConsole(!showDebugConsole)}
-        className="fixed bottom-6 right-24 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition"
-        title="Debug Console"
-      >
-        <FileText className="w-6 h-6" />
-      </button>
+      {/* Debug Console Toggle (hidden by default, only for troubleshooting) */}
+      {debugLogs.length > 0 && (
+        <button
+          onClick={() => setShowDebugConsole(!showDebugConsole)}
+          className="fixed bottom-6 right-24 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition"
+          title="Debug Console (for troubleshooting)"
+        >
+          <FileText className="w-6 h-6" />
+          {debugLogs.filter(l => l.type === 'error').length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {debugLogs.filter(l => l.type === 'error').length}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* Debug Console */}
       {showDebugConsole && (
         <div className="fixed bottom-24 right-6 bg-black text-green-400 p-4 rounded-lg shadow-2xl w-96 max-h-96 overflow-y-auto font-mono text-xs z-50">
           <div className="flex justify-between items-center mb-2 border-b border-green-600 pb-2">
             <span className="font-bold">Debug Console</span>
-            <button onClick={() => setDebugLogs([])} className="text-red-400 hover:text-red-300">Clear</button>
+            <button onClick={() => { setDebugLogs([]); setShowDebugConsole(false); }} className="text-red-400 hover:text-red-300">Clear</button>
           </div>
           {debugLogs.length === 0 ? (
             <p className="text-gray-500">No logs yet...</p>
