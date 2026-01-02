@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Precision Prices - Bug Reports Admin</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #059669;
+    }
+    .bug-report {
+      background: white;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .bug-report.resolved {
+      opacity: 0.6;
+      background: #f0fdf4;
+    }
+    .bug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .timestamp {
+      color: #666;
+      font-size: 14px;
+    }
+    .error {
+      background: #fee2e2;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .description {
+      margin: 10px 0;
+      line-height: 1.5;
+    }
+    .meta {
+      color: #666;
+      font-size: 12px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+    .resolve-btn {
+      padding: 8px 16px;
+      background: #059669;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .resolve-btn:hover {
+      background: #047857;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐛 Bug Reports Admin</h1>
+  <div id="loading" class="loading">Loading bug reports...</div>
+  <div id="bug-reports"></div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyA9rhVA4Wj4XhfpUogmsdRgYjVPCtoVQTc",
+      authDomain: "precisionprices.firebaseapp.com",
+      projectId: "precisionprices",
+      storageBucket: "precisionprices.firebasestorage.app",
+      messagingSenderId: "1019654984116",
+      appId: "1:1019654984116:web:839cbeaa35714ae54c62e1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Listen to bug reports in real-time
+    const q = query(collection(db, 'bugReports'), orderBy('timestamp', 'desc'));
+
+    onSnapshot(q, (snapshot) => {
+      const container = document.getElementById('bug-reports');
+      const loading = document.getElementById('loading');
+
+      loading.style.display = 'none';
+
+      if (snapshot.empty) {
+        container.innerHTML = '<p style="text-align:center;color:#666;">No bug reports yet!</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      snapshot.forEach((docSnap) => {
+        const bug = docSnap.data();
+        const bugId = docSnap.id;
+
+        const div = document.createElement('div');
+        div.className = 'bug-report' + (bug.resolved ? ' resolved' : '');
+        div.innerHTML = `
+          <div class="bug-header">
+            <div class="timestamp">
+              ${new Date(bug.timestamp).toLocaleString()}
+              ${bug.resolved ? ' <strong style="color:#059669;">✓ RESOLVED</strong>' : ''}
+            </div>
+            ${!bug.resolved ? `<button class="resolve-btn" onclick="resolveBug('${bugId}')">Mark Resolved</button>` : ''}
+          </div>
+          <div class="description"><strong>Description:</strong> ${bug.description || 'No description provided'}</div>
+          ${bug.error ? `<div class="error"><strong>Error:</strong> ${bug.error}</div>` : ''}
+          <div class="meta">
+            <div><strong>User:</strong> ${bug.userEmail} ${bug.isGuestMode ? '(Guest)' : '(Logged in)'}</div>
+            <div><strong>Browser:</strong> ${bug.userAgent}</div>
+            <div><strong>URL:</strong> ${bug.url}</div>
+            <div><strong>Viewport:</strong> ${bug.viewportSize}</div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    });
+
+    // Make resolveBug available globally
+    window.resolveBug = async (bugId) => {
+      if (!confirm('Mark this bug as resolved?')) return;
+      try {
+        await updateDoc(doc(db, 'bugReports', bugId), {
+          resolved: true,
+          resolvedAt: new Date().toISOString()
+        });
+      } catch (e) {
+        alert('Failed to update bug report: ' + e.message);
+      }
+    };
+  </script>
+</body>
+</html>

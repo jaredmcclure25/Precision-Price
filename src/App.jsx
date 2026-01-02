@@ -11,6 +11,8 @@ import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import { useSiteAuth } from './PasswordProtection';
 import AuthPage from './AuthPage';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from './firebase';
 import './storage'; // Cross-browser storage wrapper
 
 export default function MarketplacePricer() {
@@ -507,24 +509,27 @@ Provide pricing analysis in this exact JSON structure:
 
   const submitBugReport = async (bugDescription, errorMessage) => {
     try {
-      let bugs = [];
-      try {
-        const stored = await window.storage.get('bugreports', true); // shared storage
-        if (stored && stored.value) bugs = JSON.parse(stored.value);
-      } catch (e) {}
-
-      bugs.push({
+      // Save bug report to Firebase Firestore
+      const bugReport = {
         description: bugDescription,
         error: errorMessage || error,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
-        resolved: false
-      });
+        userId: currentUser?.uid || 'guest',
+        userEmail: currentUser?.email || 'guest',
+        isGuestMode: isGuestMode,
+        resolved: false,
+        // Add context for debugging
+        url: window.location.href,
+        viewportSize: `${window.innerWidth}x${window.innerHeight}`
+      };
 
-      await window.storage.set('bugreports', JSON.stringify(bugs), true); // shared
+      await addDoc(collection(db, 'bugReports'), bugReport);
+
       alert('Bug report submitted! Our team will investigate. Thank you!');
       setShowBugReport(false);
     } catch (e) {
+      console.error('Failed to submit bug report:', e);
       alert('Failed to submit bug report. Please try again.');
     }
   };
