@@ -12,7 +12,7 @@
 import React from 'react';
 import { Target, TrendingUp, Zap, Award } from 'lucide-react';
 
-export default function BullseyePriceTarget({ min, max, optimal, confidence = 70, location, dataCount = 0 }) {
+export default function BullseyePriceTarget({ min, max, optimal, confidence = 70, locationData, dataCount = 0 }) {
   // Calculate confidence level message
   const getConfidenceMessage = () => {
     if (dataCount >= 10) {
@@ -25,6 +25,20 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
   };
 
   const confidenceInfo = getConfidenceMessage();
+
+  // Format location display with ZIP code
+  const formatLocation = () => {
+    if (!locationData) return null;
+
+    const parts = [];
+    if (locationData.city) parts.push(locationData.city);
+    if (locationData.state) parts.push(locationData.state);
+    if (locationData.zipCode) parts.push(locationData.zipCode);
+
+    return parts.join(', ');
+  };
+
+  const locationDisplay = formatLocation();
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -214,13 +228,13 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
         </div>
 
         {/* Location Badge */}
-        {location && (
+        {locationDisplay && (
           <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
             <div className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
-              {location}
+              {locationDisplay}
             </div>
             <span className="text-xs text-gray-500">Prices adjusted for your market</span>
           </div>

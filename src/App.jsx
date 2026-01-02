@@ -456,6 +456,9 @@ Provide pricing analysis in this exact JSON structure:
           );
         }
 
+        // Add parsed location data to result
+        parsedResult.locationData = locationData;
+
         // HYBRID PRICING: Blend AI response with real database pricing if available
         if (realPricingData && realPricingData.count >= 3) {
           addDebugLog('info', `Blending AI pricing with ${realPricingData.count} real data points`);
@@ -1150,7 +1153,7 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           max={result.suggestedPriceRange.max}
           optimal={result.suggestedPriceRange.optimal}
           confidence={result.confidenceScore || 70}
-          location={result.locationFactors?.marketType || location}
+          locationData={result.locationData}
           dataCount={result.dataCount || 0}
         />
 
@@ -1937,13 +1940,13 @@ function FeedbackForm({onSubmit}) {
       </div>
       <div className="space-y-6">
         <div>
-          <p className="font-medium mb-3">Was this pricing fair?</p>
+          <p className="font-medium mb-3">Was this pricing recommendation helpful and accurate?</p>
           <div className="flex gap-4">
-            <button onClick={() => setWasFair(true)} className={`flex-1 py-3 px-4 rounded-lg border-2 transition flex items-center justify-center gap-2 ${wasFair === true ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300'}`}>
-              <ThumbsUp className="w-5 h-5" />Yes
+            <button type="button" onClick={() => setWasFair(true)} className={`flex-1 py-3 px-4 rounded-lg border-2 transition flex items-center justify-center gap-2 ${wasFair === true ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 hover:border-green-300'}`}>
+              <ThumbsUp className="w-5 h-5" />Yes, Helpful
             </button>
-            <button onClick={() => setWasFair(false)} className={`flex-1 py-3 px-4 rounded-lg border-2 transition flex items-center justify-center gap-2 ${wasFair === false ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-300'}`}>
-              <ThumbsDown className="w-5 h-5" />No
+            <button type="button" onClick={() => setWasFair(false)} className={`flex-1 py-3 px-4 rounded-lg border-2 transition flex items-center justify-center gap-2 ${wasFair === false ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-300 hover:border-red-300'}`}>
+              <ThumbsDown className="w-5 h-5" />Not Helpful
             </button>
           </div>
         </div>
@@ -1951,8 +1954,8 @@ function FeedbackForm({onSubmit}) {
         <div>
           <p className="font-medium mb-3">Did you sell it?</p>
           <div className="flex gap-4">
-            <button onClick={() => setWasSold(true)} className={`flex-1 py-3 rounded-lg border-2 transition ${wasSold === true ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300'}`}>Yes!</button>
-            <button onClick={() => setWasSold(false)} className={`flex-1 py-3 rounded-lg border-2 transition ${wasSold === false ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-300'}`}>Not Yet</button>
+            <button type="button" onClick={() => setWasSold(true)} className={`flex-1 py-3 rounded-lg border-2 transition ${wasSold === true ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 hover:border-green-300'}`}>Yes, Sold!</button>
+            <button type="button" onClick={() => setWasSold(false)} className={`flex-1 py-3 rounded-lg border-2 transition ${wasSold === false ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-300 hover:border-orange-300'}`}>Not Yet</button>
           </div>
         </div>
 
@@ -1999,19 +2002,39 @@ function FeedbackForm({onSubmit}) {
           <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Any feedback about the pricing or your experience..." rows={3} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
         </div>
 
-        <button onClick={() => {
-          let priceValue = null;
-          if (actualPrice) {
-            const validation = InputValidation.validatePrice(actualPrice);
-            if (!validation.valid) {
-              alert(validation.error);
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Validate required fields
+            if (wasFair === null || wasSold === null) {
+              alert('Please answer both questions before submitting.');
               return;
             }
-            priceValue = validation.value;
-          }
-          const daysValue = daysToSell ? parseInt(daysToSell) : null;
-          onSubmit(wasFair, wasSold, priceValue, feedback, daysValue);
-        }} disabled={wasFair === null || wasSold === null} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition">
+
+            // If sold, require actual price
+            if (wasSold && !actualPrice) {
+              alert('Please enter the actual sale price.');
+              return;
+            }
+
+            let priceValue = null;
+            if (actualPrice) {
+              const validation = InputValidation.validatePrice(actualPrice);
+              if (!validation.valid) {
+                alert(validation.error);
+                return;
+              }
+              priceValue = validation.value;
+            }
+            const daysValue = daysToSell ? parseInt(daysToSell) : null;
+            onSubmit(wasFair, wasSold, priceValue, feedback, daysValue);
+          }}
+          disabled={wasFair === null || wasSold === null || (wasSold && !actualPrice)}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition cursor-pointer"
+        >
           Submit Feedback
         </button>
 
