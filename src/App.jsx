@@ -2004,9 +2004,11 @@ function FeedbackForm({onSubmit}) {
 
         <button
           type="button"
-          onClick={(e) => {
+          onClick={async (e) => {
             e.preventDefault();
             e.stopPropagation();
+
+            console.log('Submit button clicked!', { wasFair, wasSold, actualPrice });
 
             // Validate required fields
             if (wasFair === null || wasSold === null) {
@@ -2029,8 +2031,17 @@ function FeedbackForm({onSubmit}) {
               }
               priceValue = validation.value;
             }
+
             const daysValue = daysToSell ? parseInt(daysToSell) : null;
-            onSubmit(wasFair, wasSold, priceValue, feedback, daysValue);
+
+            try {
+              console.log('Calling onSubmit with:', { wasFair, wasSold, priceValue, feedback, daysValue });
+              await onSubmit(wasFair, wasSold, priceValue, feedback, daysValue);
+              console.log('Feedback submitted successfully!');
+            } catch (error) {
+              console.error('Error submitting feedback:', error);
+              alert('There was an error submitting your feedback. Please try again.');
+            }
           }}
           disabled={wasFair === null || wasSold === null || (wasSold && !actualPrice)}
           className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition cursor-pointer"

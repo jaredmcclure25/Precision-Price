@@ -92,80 +92,80 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
           />
 
           {/* Price labels */}
-          {/* MIN price (outer ring) */}
+          {/* MIN price (outer ring) - positioned in outer band */}
           <text
             x="200"
-            y="60"
+            y="50"
             textAnchor="middle"
-            className="fill-emerald-600 font-bold text-2xl"
-            style={{ fontSize: '24px' }}
+            className="fill-emerald-600 font-bold"
+            style={{ fontSize: '20px' }}
           >
             ${min}
           </text>
           <text
             x="200"
-            y="85"
+            y="68"
             textAnchor="middle"
-            className="fill-emerald-600 text-xs font-medium"
-            style={{ fontSize: '12px' }}
+            className="fill-emerald-600 font-medium"
+            style={{ fontSize: '11px' }}
           >
             Quick Sale
           </text>
 
-          {/* OPTIMAL price (middle ring) */}
+          {/* OPTIMAL price (middle ring) - positioned in middle band */}
           <text
             x="200"
-            y="185"
+            y="195"
             textAnchor="middle"
-            className="fill-emerald-700 font-bold text-3xl"
-            style={{ fontSize: '32px' }}
+            className="fill-emerald-700 font-bold"
+            style={{ fontSize: '28px' }}
           >
             ${optimal}
           </text>
           <text
             x="200"
-            y="215"
+            y="218"
             textAnchor="middle"
-            className="fill-emerald-700 text-sm font-semibold"
-            style={{ fontSize: '14px' }}
+            className="fill-emerald-700 font-semibold"
+            style={{ fontSize: '13px' }}
           >
             Sweet Spot
           </text>
 
-          {/* MAX price (center bullseye) */}
+          {/* MAX price (center bullseye) - positioned at bottom */}
           <text
             x="200"
-            y="340"
+            y="345"
             textAnchor="middle"
-            className="fill-emerald-800 font-bold text-2xl"
-            style={{ fontSize: '24px' }}
+            className="fill-emerald-800 font-bold"
+            style={{ fontSize: '20px' }}
           >
             ${max}
           </text>
           <text
             x="200"
-            y="365"
+            y="363"
             textAnchor="middle"
-            className="fill-emerald-800 text-xs font-medium"
-            style={{ fontSize: '12px' }}
+            className="fill-emerald-800 font-medium"
+            style={{ fontSize: '11px' }}
           >
-            Premium Price
+            Premium
           </text>
         </svg>
 
-        {/* Legend icons */}
-        <div className="absolute top-0 right-0 bg-white rounded-lg shadow-md p-3 text-xs space-y-1">
+        {/* Legend icons - positioned outside and to the right */}
+        <div className="absolute top-1/2 -translate-y-1/2 -right-2 md:-right-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-2 border border-gray-200">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-emerald-500" />
-            <span>Quick</span>
+            <span className="whitespace-nowrap">Quick</span>
           </div>
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-emerald-600" />
-            <span>Balanced</span>
+            <span className="whitespace-nowrap">Balanced</span>
           </div>
           <div className="flex items-center gap-2">
             <Award className="w-4 h-4 text-emerald-700" />
-            <span>Maximum</span>
+            <span className="whitespace-nowrap">Maximum</span>
           </div>
         </div>
       </div>
