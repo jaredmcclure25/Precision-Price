@@ -37,6 +37,8 @@ export default function MarketplacePricer() {
   const [showBugReport, setShowBugReport] = useState(false);
   const [shippingEstimate, setShippingEstimate] = useState(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebugConsole, setShowDebugConsole] = useState(false);
   const resultsRef = useRef(null);
 
   const tips = [
@@ -46,6 +48,24 @@ export default function MarketplacePricer() {
     "🎯 Price within 5% of our suggestion for best results",
     "📊 Adding 3+ photos increases sale probability by 60%"
   ];
+
+  // Debug logging helper
+  const addDebugLog = (type, message) => {
+    const time = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev, { type, message: String(message), time }].slice(-50)); // Keep last 50 logs
+  };
+
+  // Capture console errors
+  useEffect(() => {
+    const originalError = console.error;
+    console.error = (...args) => {
+      addDebugLog('error', args.join(' '));
+      originalError.apply(console, args);
+    };
+    return () => {
+      console.error = originalError;
+    };
+  }, []);
 
   useEffect(() => {
     loadUserProfile();
@@ -328,6 +348,9 @@ Provide pricing analysis in this exact JSON structure:
       const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
 
       if (!jsonMatch) {
+        addDebugLog('error', 'JSON parsing failed');
+        addDebugLog('info', `Response length: ${textContent.length}`);
+        addDebugLog('info', `Preview: ${textContent.substring(0, 200)}`);
         console.error('Failed to parse API response');
         console.error('Raw response length:', textContent.length);
         console.error('First 500 chars:', textContent.substring(0, 500));
@@ -723,6 +746,36 @@ Provide pricing analysis in this exact JSON structure:
       <button onClick={() => setShowBugReport(true)} className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition">
         <Bug className="w-6 h-6" />
       </button>
+
+      {/* Debug Console Toggle (for mobile debugging) */}
+      <button
+        onClick={() => setShowDebugConsole(!showDebugConsole)}
+        className="fixed bottom-6 right-24 bg-gray-700 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition"
+        title="Debug Console"
+      >
+        <FileText className="w-6 h-6" />
+      </button>
+
+      {/* Debug Console */}
+      {showDebugConsole && (
+        <div className="fixed bottom-24 right-6 bg-black text-green-400 p-4 rounded-lg shadow-2xl w-96 max-h-96 overflow-y-auto font-mono text-xs z-50">
+          <div className="flex justify-between items-center mb-2 border-b border-green-600 pb-2">
+            <span className="font-bold">Debug Console</span>
+            <button onClick={() => setDebugLogs([])} className="text-red-400 hover:text-red-300">Clear</button>
+          </div>
+          {debugLogs.length === 0 ? (
+            <p className="text-gray-500">No logs yet...</p>
+          ) : (
+            debugLogs.map((log, i) => (
+              <div key={i} className="mb-2 border-b border-gray-800 pb-1">
+                <span className="text-blue-400">[{log.time}]</span>
+                <span className={log.type === 'error' ? 'text-red-400' : 'text-green-400'}> {log.type}:</span>
+                <div className="ml-2 whitespace-pre-wrap break-words">{log.message}</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
