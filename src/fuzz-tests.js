@@ -373,7 +373,7 @@ export const InputValidation = {
     }
 
     if (file.size > maxSize) {
-      return { valid: false, error: 'File too large. Maximum size is 10MB' };
+      return { valid: false, error: 'file too large' };
     }
 
     // Check file name for path traversal

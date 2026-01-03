@@ -28,7 +28,7 @@ const PROHIBITED_PATTERNS = {
       'photo of me', 'photo of my', 'picture of me', 'my daughter', 'my son',
       'child in photo', 'baby in picture', 'person in image'
     ],
-    message: 'We cannot analyze photos of people. Please upload images of physical items only.'
+    message: 'unauthorized upload'
   },
 
   // Actual illegal drugs (not baby formula, supplements, or legitimate products)
@@ -39,7 +39,7 @@ const PROHIBITED_PATTERNS = {
       'prescription pills for sale', 'oxycodone for sale', 'xanax for sale',
       'weed for sale', 'marijuana for sale', 'cannabis for sale'
     ],
-    message: 'We cannot provide pricing for illegal drugs or controlled substances.'
+    message: 'unauthorized upload'
   },
 
   // Active/functional weapons (not collectibles, antiques, or kitchen knives)
@@ -50,7 +50,7 @@ const PROHIBITED_PATTERNS = {
       'bomb', 'explosive device', 'grenade', 'live explosives',
       'illegal weapon', 'unlicensed firearm', 'unregistered gun'
     ],
-    message: 'We cannot provide pricing for active weapons or ammunition.'
+    message: 'unauthorized upload'
   },
 
   // Explicit adult content
@@ -60,7 +60,7 @@ const PROHIBITED_PATTERNS = {
       'explicit content', 'nsfw', 'xxx rated', 'erotic video',
       'nude photo', 'naked picture', 'sexual content'
     ],
-    message: 'We cannot analyze adult or explicit content.'
+    message: 'unauthorized upload'
   },
 
   // Clearly illegal items
@@ -72,7 +72,7 @@ const PROHIBITED_PATTERNS = {
       'social security card', 'passport for sale', 'drivers license for sale',
       'credit card numbers', 'bank account credentials'
     ],
-    message: 'We cannot provide pricing for stolen, counterfeit, or illegal items.'
+    message: 'unauthorized upload'
   },
 
   // Human body parts/fluids
@@ -82,7 +82,7 @@ const PROHIBITED_PATTERNS = {
       'human blood', 'human tissue', 'body part',
       'human remains', 'organs for transplant'
     ],
-    message: 'We cannot analyze human body parts or biological materials.'
+    message: 'unauthorized upload'
   },
 
   // Protected/endangered species
@@ -92,7 +92,7 @@ const PROHIBITED_PATTERNS = {
       'tiger skin', 'endangered species', 'protected animal',
       'illegal wildlife', 'exotic animal parts'
     ],
-    message: 'We cannot price items from protected or endangered species.'
+    message: 'unauthorized upload'
   }
 };
 

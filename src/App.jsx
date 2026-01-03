@@ -158,7 +158,7 @@ export default function MarketplacePricer() {
       } else if (file.size <= 10 * 1024 * 1024) {
         validFiles.push(file);
       } else {
-        errors.push(`${file.name}: File too large (max 10MB)`);
+        errors.push(`${file.name}: file too large`);
       }
     });
 
@@ -432,9 +432,9 @@ Provide pricing analysis in this exact JSON structure:
       if (!response.ok) {
         const errorData = await response.json();
 
-        // Handle prohibited content errors with clear messaging
+        // Handle prohibited content errors with simple message
         if (errorData.error?.type === 'prohibited_content') {
-          throw new Error(`⚠️ ${errorData.error.message}\n\nPrecision Prices is designed for legitimate marketplace items only. Please try a different item.`);
+          throw new Error(errorData.error.message);
         }
 
         throw new Error(errorData.error?.message || `API error: ${response.status}`);
