@@ -31,13 +31,11 @@ Your production site is showing errors because environment variables are missing
    - Click "Generate Domain"
    - Copy the generated URL (e.g., `https://precision-prices-production.up.railway.app`)
 
-4. **Add Environment Variables in Railway**:
+5. **Add Environment Variables in Railway**:
    - Go to "Variables" tab
-   - Add:
-     ```
-     ANTHROPIC_API_KEY=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
-     STRIPE_SECRET_KEY=sk_test_51Sl7IdKH8sS1fktCuyNAY0GjltiXaQFiDQash38QeixzmKxnvdgsBmrfoIjm4k3DbXsbyxLUDyDL3AOMLg9nZ40B00tBJ6sWVY
-     ```
+   - Add these two variables:
+     - `ANTHROPIC_API_KEY` = `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`
+     - `STRIPE_SECRET_KEY` = `sk_test_51Sl7IdKH8sS1fktCuyNAY0GjltiXaQFiDQash38QeixzmKxnvdgsBmrfoIjm4k3DbXsbyxLUDyDL3AOMLg9nZ40B00tBJ6sWVY`
 
 5. **Deploy**:
    - Railway should auto-deploy from your GitHub repo
