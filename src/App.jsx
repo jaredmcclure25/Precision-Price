@@ -441,9 +441,19 @@ Provide pricing analysis in this exact JSON structure:
             parsedResult.suggestedPriceRange.max
           ];
 
+          // Check if all prices are zero (item not suitable for resale)
+          const allZero = prices.every(p => p === 0);
+
+          if (allZero) {
+            // Item has no resale value - show the reasoning to user
+            const reasoning = parsedResult.pricingStrategy?.reasoning ||
+                            'This item appears to have no marketplace value.';
+            throw new Error(`Not suitable for resale: ${reasoning}`);
+          }
+
           // Validate all prices are positive numbers
           const invalidPrices = prices.filter(p =>
-            typeof p !== 'number' || isNaN(p) || p <= 0 || p > 1000000
+            typeof p !== 'number' || isNaN(p) || p < 0 || p > 1000000
           );
 
           if (invalidPrices.length > 0) {
