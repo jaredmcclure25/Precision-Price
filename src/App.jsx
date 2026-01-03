@@ -155,10 +155,10 @@ export default function MarketplacePricer() {
 
       if (!validation.valid) {
         errors.push(`${file.name}: ${validation.error}`);
-      } else if (file.size <= 5 * 1024 * 1024) {
+      } else if (file.size <= 10 * 1024 * 1024) {
         validFiles.push(file);
       } else {
-        errors.push(`${file.name}: File too large (max 5MB)`);
+        errors.push(`${file.name}: File too large (max 10MB)`);
       }
     });
 
@@ -431,6 +431,12 @@ Provide pricing analysis in this exact JSON structure:
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle prohibited content errors with clear messaging
+        if (errorData.error?.type === 'prohibited_content') {
+          throw new Error(`⚠️ ${errorData.error.message}\n\nPrecision Prices is designed for legitimate marketplace items only. Please try a different item.`);
+        }
+
         throw new Error(errorData.error?.message || `API error: ${response.status}`);
       }
 
@@ -1016,7 +1022,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                     <label htmlFor="image-upload" className="cursor-pointer">
                       <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-600 mb-1">Click to upload images</p>
-                      <p className="text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 5MB each ({images.length}/5 uploaded)</p>
+                      <p className="text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 10MB each ({images.length}/5 uploaded)</p>
                     </label>
                   </div>
                 )}

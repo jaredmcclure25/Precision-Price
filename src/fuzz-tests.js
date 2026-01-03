@@ -366,14 +366,14 @@ export const InputValidation = {
       'image/heic-sequence',
       'image/heif-sequence'
     ];
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 10 * 1024 * 1024; // 10MB
 
     if (!validTypes.includes(file.type.toLowerCase())) {
       return { valid: false, error: 'Invalid file type. Use JPEG, PNG, GIF, WebP, or HEIC' };
     }
 
     if (file.size > maxSize) {
-      return { valid: false, error: 'File too large. Maximum size is 5MB' };
+      return { valid: false, error: 'File too large. Maximum size is 10MB' };
     }
 
     // Check file name for path traversal

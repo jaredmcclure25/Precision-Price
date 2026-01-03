@@ -15,6 +15,74 @@ const app = express();
 const PORT = process.env.PORT || 3001; // Use Railway's PORT or default to 3001
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Prohibited items list - items not allowed for pricing analysis
+const PROHIBITED_ITEMS = {
+  people: [
+    'child', 'children', 'kid', 'kids', 'baby', 'babies', 'infant', 'toddler',
+    'minor', 'minors', 'person', 'people', 'human', 'humans', 'individual',
+    'boy', 'girl', 'teen', 'teenager', 'youth'
+  ],
+  drugs: [
+    'drug', 'drugs', 'narcotic', 'narcotics', 'cocaine', 'heroin', 'meth',
+    'methamphetamine', 'marijuana', 'cannabis', 'weed', 'opioid', 'fentanyl',
+    'ecstasy', 'mdma', 'lsd', 'psychedelic', 'prescription', 'pill', 'pills',
+    'xanax', 'adderall', 'oxycodone', 'hydrocodone', 'percocet', 'vicodin',
+    'medication', 'medicine', 'pharmaceutical', 'controlled substance'
+  ],
+  weapons: [
+    'gun', 'guns', 'firearm', 'firearms', 'weapon', 'weapons', 'rifle', 'pistol',
+    'handgun', 'shotgun', 'ammunition', 'ammo', 'bullet', 'bullets', 'explosive',
+    'explosives', 'bomb', 'grenade', 'knife', 'knives', 'sword', 'dagger',
+    'machete', 'brass knuckles', 'nunchucks', 'taser', 'stun gun'
+  ],
+  adult: [
+    'porn', 'pornography', 'pornographic', 'sex toy', 'adult toy', 'vibrator',
+    'dildo', 'explicit', 'nsfw', 'xxx', 'erotic', 'sexual', 'nude', 'nudity'
+  ],
+  illegal: [
+    'stolen', 'counterfeit', 'fake id', 'fake identification', 'hacking tool',
+    'crack', 'pirated', 'illegal', 'classified', 'confidential document',
+    'government document', 'passport', 'social security', 'ssn',
+    'credit card', 'debit card', 'bank account'
+  ],
+  dangerous: [
+    'poison', 'toxic', 'hazardous', 'radioactive', 'asbestos', 'mercury',
+    'lead paint', 'biological weapon', 'chemical weapon'
+  ],
+  bodyParts: [
+    'organ', 'organs', 'kidney', 'liver', 'heart', 'blood', 'plasma',
+    'tissue', 'body part', 'human remains'
+  ],
+  animals: [
+    'endangered species', 'ivory', 'tiger', 'rhino horn', 'elephant tusk',
+    'protected animal', 'illegal wildlife'
+  ]
+};
+
+// Function to check if item description contains prohibited content
+function checkProhibitedContent(text) {
+  if (!text) return { allowed: true };
+
+  const lowerText = text.toLowerCase();
+
+  for (const [category, keywords] of Object.entries(PROHIBITED_ITEMS)) {
+    for (const keyword of keywords) {
+      // Use word boundaries to avoid false positives
+      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+      if (regex.test(lowerText)) {
+        return {
+          allowed: false,
+          category,
+          keyword,
+          message: `This item category (${category}) is not allowed for pricing analysis. We cannot provide pricing for ${keyword}.`
+        };
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
 // Enable CORS for your frontend (allow local dev and production)
 app.use(cors({
   origin: [
@@ -46,6 +114,36 @@ app.post('/api/analyze', async (req, res) => {
       return res.status(500).json({
         error: {
           message: 'Server configuration error: ANTHROPIC_API_KEY not set'
+        }
+      });
+    }
+
+    // Extract text content from messages to check for prohibited items
+    let textToCheck = '';
+    if (messages && messages.length > 0) {
+      const userMessage = messages[messages.length - 1];
+      if (userMessage && userMessage.content) {
+        if (typeof userMessage.content === 'string') {
+          textToCheck = userMessage.content;
+        } else if (Array.isArray(userMessage.content)) {
+          // Extract text from content array
+          textToCheck = userMessage.content
+            .filter(c => c.type === 'text')
+            .map(c => c.text)
+            .join(' ');
+        }
+      }
+    }
+
+    // Check for prohibited content
+    const contentCheck = checkProhibitedContent(textToCheck);
+    if (!contentCheck.allowed) {
+      console.log(`🚫 Blocked prohibited content: ${contentCheck.category} - ${contentCheck.keyword}`);
+      return res.status(400).json({
+        error: {
+          type: 'prohibited_content',
+          message: contentCheck.message,
+          category: contentCheck.category
         }
       });
     }
