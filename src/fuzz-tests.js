@@ -355,11 +355,21 @@ export const InputValidation = {
 
   // Validate image file
   validateImageFile: (file) => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const validTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'image/heic-sequence',
+      'image/heif-sequence'
+    ];
     const maxSize = 5 * 1024 * 1024; // 5MB
 
-    if (!validTypes.includes(file.type)) {
-      return { valid: false, error: 'Invalid file type. Use JPEG, PNG, GIF, or WebP' };
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      return { valid: false, error: 'Invalid file type. Use JPEG, PNG, GIF, WebP, or HEIC' };
     }
 
     if (file.size > maxSize) {

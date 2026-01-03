@@ -17,6 +17,7 @@ import './storage'; // Cross-browser storage wrapper
 import { parseLocation, getLocationDescription, getLocationPricingInsight } from './locationData';
 import BullseyePriceTarget from './components/BullseyePriceTarget';
 import { getComparableItems, blendPricing, formatPricingInsights } from './pricingIntelligence';
+import heic2any from 'heic2any';
 
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
@@ -141,7 +142,7 @@ export default function MarketplacePricer() {
     }
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
@@ -167,13 +168,58 @@ export default function MarketplacePricer() {
 
     const newImages = validFiles.slice(0, 5 - images.length);
 
-    newImages.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImages(prev => [...prev, { file, preview: reader.result }]);
-      };
-      reader.readAsDataURL(file);
-    });
+    // Process each file (convert HEIC if needed)
+    for (const file of newImages) {
+      try {
+        let processedFile = file;
+
+        // Check if file is HEIC/HEIF and convert to JPEG
+        const isHEIC = file.type === 'image/heic' ||
+                       file.type === 'image/heif' ||
+                       file.type === 'image/heic-sequence' ||
+                       file.type === 'image/heif-sequence' ||
+                       file.name.toLowerCase().endsWith('.heic') ||
+                       file.name.toLowerCase().endsWith('.heif');
+
+        if (isHEIC) {
+          console.log('🔄 Converting HEIC to JPEG:', file.name);
+          try {
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: 'image/jpeg',
+              quality: 0.9
+            });
+
+            // Handle array of blobs (heic2any can return array)
+            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+
+            // Create a new File object with JPEG type
+            processedFile = new File(
+              [blob],
+              file.name.replace(/\.heic$/i, '.jpg'),
+              { type: 'image/jpeg' }
+            );
+            console.log('✅ HEIC converted successfully');
+          } catch (conversionError) {
+            console.error('❌ HEIC conversion failed:', conversionError);
+            errors.push(`${file.name}: HEIC conversion failed`);
+            setError(errors.join('; '));
+            continue;
+          }
+        }
+
+        // Read the processed file
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImages(prev => [...prev, { file: processedFile, preview: reader.result }]);
+        };
+        reader.readAsDataURL(processedFile);
+      } catch (err) {
+        console.error('Error processing image:', err);
+        errors.push(`${file.name}: Processing failed`);
+        setError(errors.join('; '));
+      }
+    }
   };
 
   const removeImage = (index) => {
@@ -966,11 +1012,11 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
                 {images.length < 5 && (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-400 transition cursor-pointer">
-                    <input key={formKey} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" id="image-upload" />
+                    <input key={formKey} type="file" accept="image/*,.heic,.heif" multiple onChange={handleImageUpload} className="hidden" id="image-upload" />
                     <label htmlFor="image-upload" className="cursor-pointer">
                       <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-600 mb-1">Click to upload images</p>
-                      <p className="text-sm text-gray-500">PNG, JPG up to 5MB each ({images.length}/5 uploaded)</p>
+                      <p className="text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 5MB each ({images.length}/5 uploaded)</p>
                     </label>
                   </div>
                 )}
