@@ -528,7 +528,12 @@ Provide pricing analysis in this exact JSON structure:
       } catch (parseError) {
         console.error('JSON parsing error:', parseError);
         console.error('Attempted to parse:', jsonMatch[0]);
-        throw new Error('Could not parse pricing data. Please try again.');
+
+        // Create detailed error with parse information
+        const detailedError = new Error('Could not parse pricing data. Please try again.');
+        detailedError.originalError = parseError.message;
+        detailedError.parseAttempt = jsonMatch[0].substring(0, 500); // First 500 chars
+        throw detailedError;
       }
     } catch (err) {
       setError(err.message || 'Failed to analyze pricing');
@@ -538,6 +543,8 @@ Provide pricing analysis in this exact JSON structure:
         description: 'Automatic error report from analyzePricing function',
         error: err.message || 'Unknown error',
         errorStack: err.stack || 'No stack trace',
+        originalError: err.originalError || null,
+        parseAttempt: err.parseAttempt || null,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
         userId: currentUser?.uid || 'guest',
@@ -549,25 +556,36 @@ Provide pricing analysis in this exact JSON structure:
         itemContext: {
           itemName: itemName || 'none',
           location: location || 'none',
-          hasImages: images.length > 0
+          hasImages: images.length > 0,
+          condition: condition || 'none',
+          additionalDetails: additionalDetails ? additionalDetails.substring(0, 100) : 'none'
         }
       };
 
       // Send to Firebase silently in background
       try {
-        await addDoc(collection(db, 'bugReports'), autoBugReport);
-        console.log('Error automatically logged to Firebase');
+        console.log('🐛 Attempting to log error to Firebase bugReports...');
+        const docRef = await addDoc(collection(db, 'bugReports'), autoBugReport);
+        console.log('✅ Error automatically logged to Firebase with ID:', docRef.id);
       } catch (firebaseError) {
-        console.warn('Failed to auto-log error to Firebase:', firebaseError);
+        console.error('❌ Failed to auto-log error to Firebase:', firebaseError);
+        console.error('Firebase error details:', {
+          code: firebaseError.code,
+          message: firebaseError.message,
+          name: firebaseError.name
+        });
+
         // Fallback to localStorage
         try {
+          console.log('📦 Falling back to localStorage...');
           let bugs = [];
           const stored = await window.storage.get('bugreports', true);
           if (stored && stored.value) bugs = JSON.parse(stored.value);
           bugs.push(autoBugReport);
           await window.storage.set('bugreports', JSON.stringify(bugs), true);
+          console.log('✅ Bug report saved to localStorage');
         } catch (e) {
-          console.error('Failed to save bug report:', e);
+          console.error('❌ Failed to save bug report to localStorage:', e);
         }
       }
     } finally {
