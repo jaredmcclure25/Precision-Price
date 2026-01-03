@@ -368,8 +368,10 @@ Provide pricing analysis in this exact JSON structure:
       contentParts.push({ type: 'text', text: prompt });
 
       // Call our backend server instead of Anthropic directly
-      // Use relative URL for production, localhost for development
-      const apiUrl = import.meta.env.DEV
+      // Use environment variable for backend URL, fallback to localhost in dev
+      const apiUrl = import.meta.env.VITE_BACKEND_URL
+        ? `${import.meta.env.VITE_BACKEND_URL}/api/analyze`
+        : import.meta.env.DEV
         ? 'http://localhost:3001/api/analyze'
         : '/api/analyze';
 
@@ -1500,7 +1502,9 @@ function Subscription() {
       }
 
       // Create checkout session
-      const apiUrl = import.meta.env.DEV
+      const apiUrl = import.meta.env.VITE_BACKEND_URL
+        ? `${import.meta.env.VITE_BACKEND_URL}/api/create-checkout-session`
+        : import.meta.env.DEV
         ? 'http://localhost:3001/api/create-checkout-session'
         : '/api/create-checkout-session';
 

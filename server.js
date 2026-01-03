@@ -12,7 +12,7 @@ import Stripe from 'stripe';
 dotenv.config();
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001; // Use Railway's PORT or default to 3001
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Enable CORS for your frontend (allow local dev and production)
