@@ -184,7 +184,7 @@ export default function MarketplacePricer() {
     // Check if guest user has exceeded trial limit
     if (isGuestMode && userProfile) {
       const analysisCount = userProfile.analysisCount || 0;
-      const TRIAL_LIMIT = 5;
+      const TRIAL_LIMIT = 999999; // Temporarily unlimited for family testing
 
       if (analysisCount >= TRIAL_LIMIT) {
         setError(`Trial limit reached (${TRIAL_LIMIT} free analyses). Please create an account to continue.`);

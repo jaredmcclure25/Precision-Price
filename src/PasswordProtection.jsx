@@ -8,7 +8,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Lock, Eye, EyeOff, Shield } from 'lucide-react';
 
 // CHANGE THIS PASSWORD TO YOUR DESIRED PASSWORD
-const SITE_PASSWORD = 'm@rk3tplacetool';
+const SITE_PASSWORD = 'pod26';
 
 // Create context for site password logout
 const SiteAuthContext = createContext();
