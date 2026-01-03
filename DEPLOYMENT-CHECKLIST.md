@@ -16,9 +16,15 @@ Your production site is showing errors because environment variables are missing
 
 ## Step 1: Deploy Backend to Railway
 
+**Note:** Railway requires a $5/month Hobby subscription for production deployments with public domains.
+
 1. **Go to Railway Dashboard**: https://railway.app/dashboard
 2. **Find your project**: `precision-prices` or similar
-3. **Generate Public Domain**:
+3. **Upgrade to Hobby Plan** (if not already done):
+   - Click on your workspace/account settings
+   - Select "Hobby" plan ($5/month)
+   - Complete payment
+4. **Generate Public Domain**:
    - Click on your service
    - Go to "Settings" tab
    - Scroll to "Networking" section
