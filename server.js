@@ -15,66 +15,128 @@ const app = express();
 const PORT = process.env.PORT || 3001; // Use Railway's PORT or default to 3001
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Prohibited items list - items not allowed for pricing analysis
-const PROHIBITED_ITEMS = {
-  people: [
-    'child', 'children', 'kid', 'kids', 'baby', 'babies', 'infant', 'toddler',
-    'minor', 'minors', 'person', 'people', 'human', 'humans', 'individual',
-    'boy', 'girl', 'teen', 'teenager', 'youth'
-  ],
-  drugs: [
-    'drug', 'drugs', 'narcotic', 'narcotics', 'cocaine', 'heroin', 'meth',
-    'methamphetamine', 'marijuana', 'cannabis', 'weed', 'opioid', 'fentanyl',
-    'ecstasy', 'mdma', 'lsd', 'psychedelic', 'prescription', 'pill', 'pills',
-    'xanax', 'adderall', 'oxycodone', 'hydrocodone', 'percocet', 'vicodin',
-    'medication', 'medicine', 'pharmaceutical', 'controlled substance'
-  ],
-  weapons: [
-    'gun', 'guns', 'firearm', 'firearms', 'weapon', 'weapons', 'rifle', 'pistol',
-    'handgun', 'shotgun', 'ammunition', 'ammo', 'bullet', 'bullets', 'explosive',
-    'explosives', 'bomb', 'grenade', 'knife', 'knives', 'sword', 'dagger',
-    'machete', 'brass knuckles', 'nunchucks', 'taser', 'stun gun'
-  ],
-  adult: [
-    'porn', 'pornography', 'pornographic', 'sex toy', 'adult toy', 'vibrator',
-    'dildo', 'explicit', 'nsfw', 'xxx', 'erotic', 'sexual', 'nude', 'nudity'
-  ],
-  illegal: [
-    'stolen', 'counterfeit', 'fake id', 'fake identification', 'hacking tool',
-    'crack', 'pirated', 'illegal', 'classified', 'confidential document',
-    'government document', 'passport', 'social security', 'ssn',
-    'credit card', 'debit card', 'bank account'
-  ],
-  dangerous: [
-    'poison', 'toxic', 'hazardous', 'radioactive', 'asbestos', 'mercury',
-    'lead paint', 'biological weapon', 'chemical weapon'
-  ],
-  bodyParts: [
-    'organ', 'organs', 'kidney', 'liver', 'heart', 'blood', 'plasma',
-    'tissue', 'body part', 'human remains'
-  ],
-  animals: [
-    'endangered species', 'ivory', 'tiger', 'rhino horn', 'elephant tusk',
-    'protected animal', 'illegal wildlife'
-  ]
+// Smart content filtering - context-aware prohibited items detection
+// Focus: Images OF people (not products FOR people), actual drugs (not legitimate products),
+// active weapons (not collectibles), explicit adult content
+
+const PROHIBITED_PATTERNS = {
+  // Images/photos OF people (especially minors) - use phrases that indicate a person IN the photo
+  peopleInPhotos: {
+    triggers: [
+      'photo of child', 'photo of baby', 'picture of kid', 'image of person',
+      'selfie', 'portrait', 'headshot', 'family photo', 'wedding photo',
+      'photo of me', 'photo of my', 'picture of me', 'my daughter', 'my son',
+      'child in photo', 'baby in picture', 'person in image'
+    ],
+    message: 'We cannot analyze photos of people. Please upload images of physical items only.'
+  },
+
+  // Actual illegal drugs (not baby formula, supplements, or legitimate products)
+  illegalDrugs: {
+    triggers: [
+      'cocaine', 'heroin', 'meth', 'methamphetamine', 'fentanyl',
+      'ecstasy', 'mdma', 'lsd', 'crack cocaine',
+      'prescription pills for sale', 'oxycodone for sale', 'xanax for sale',
+      'weed for sale', 'marijuana for sale', 'cannabis for sale'
+    ],
+    message: 'We cannot provide pricing for illegal drugs or controlled substances.'
+  },
+
+  // Active/functional weapons (not collectibles, antiques, or kitchen knives)
+  activeWeapons: {
+    triggers: [
+      'loaded gun', 'functional firearm', 'working gun', 'ammunition for sale',
+      'live ammo', 'real gun', 'working rifle', 'functional pistol',
+      'bomb', 'explosive device', 'grenade', 'live explosives',
+      'illegal weapon', 'unlicensed firearm', 'unregistered gun'
+    ],
+    message: 'We cannot provide pricing for active weapons or ammunition.'
+  },
+
+  // Explicit adult content
+  adultContent: {
+    triggers: [
+      'porn', 'pornography', 'pornographic', 'sex toy', 'adult toy',
+      'explicit content', 'nsfw', 'xxx rated', 'erotic video',
+      'nude photo', 'naked picture', 'sexual content'
+    ],
+    message: 'We cannot analyze adult or explicit content.'
+  },
+
+  // Clearly illegal items
+  illegalItems: {
+    triggers: [
+      'stolen', 'stolen goods', 'counterfeit', 'fake designer',
+      'fake id', 'fake identification', 'forged document',
+      'hacked account', 'cracked software', 'pirated software',
+      'social security card', 'passport for sale', 'drivers license for sale',
+      'credit card numbers', 'bank account credentials'
+    ],
+    message: 'We cannot provide pricing for stolen, counterfeit, or illegal items.'
+  },
+
+  // Human body parts/fluids
+  bodyParts: {
+    triggers: [
+      'human organ', 'kidney for sale', 'liver for sale',
+      'human blood', 'human tissue', 'body part',
+      'human remains', 'organs for transplant'
+    ],
+    message: 'We cannot analyze human body parts or biological materials.'
+  },
+
+  // Protected/endangered species
+  protectedAnimals: {
+    triggers: [
+      'ivory', 'elephant tusk', 'rhino horn',
+      'tiger skin', 'endangered species', 'protected animal',
+      'illegal wildlife', 'exotic animal parts'
+    ],
+    message: 'We cannot price items from protected or endangered species.'
+  }
 };
 
-// Function to check if item description contains prohibited content
+// Legitimate items that should NOT be blocked (allowlist patterns)
+const LEGITIMATE_PATTERNS = [
+  // Baby/children's products (not photos OF babies)
+  'baby shoes', 'baby clothes', 'baby carrier', 'baby monitor', 'baby toys',
+  'kids shoes', 'kids clothes', 'childrens book', 'toy for kids',
+  'infant clothing', 'toddler clothes', 'stroller', 'crib', 'car seat',
+
+  // Collectibles and antiques
+  'vintage knife', 'antique sword', 'collectible knife', 'decorative knife',
+  'knife collection', 'sword collection', 'military memorabilia', 'historical weapon',
+  'replica gun', 'toy gun', 'prop weapon', 'display knife',
+
+  // Legitimate health/beauty products
+  'vitamin', 'supplement', 'protein powder', 'baby formula',
+  'over the counter', 'otc medication', 'pain relief cream',
+  'first aid', 'bandages', 'medicine cabinet'
+];
+
+// Smart content checker with context awareness
 function checkProhibitedContent(text) {
   if (!text) return { allowed: true };
 
   const lowerText = text.toLowerCase();
 
-  for (const [category, keywords] of Object.entries(PROHIBITED_ITEMS)) {
-    for (const keyword of keywords) {
-      // Use word boundaries to avoid false positives
-      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-      if (regex.test(lowerText)) {
+  // First check if it matches legitimate patterns (allowlist)
+  for (const legitimatePattern of LEGITIMATE_PATTERNS) {
+    if (lowerText.includes(legitimatePattern)) {
+      console.log(`✅ Allowlisted item detected: "${legitimatePattern}"`);
+      return { allowed: true }; // Explicitly allow
+    }
+  }
+
+  // Then check prohibited patterns
+  for (const [category, config] of Object.entries(PROHIBITED_PATTERNS)) {
+    for (const trigger of config.triggers) {
+      if (lowerText.includes(trigger)) {
         return {
           allowed: false,
           category,
-          keyword,
-          message: `This item category (${category}) is not allowed for pricing analysis. We cannot provide pricing for ${keyword}.`
+          trigger,
+          message: config.message
         };
       }
     }
@@ -138,7 +200,7 @@ app.post('/api/analyze', async (req, res) => {
     // Check for prohibited content
     const contentCheck = checkProhibitedContent(textToCheck);
     if (!contentCheck.allowed) {
-      console.log(`🚫 Blocked prohibited content: ${contentCheck.category} - ${contentCheck.keyword}`);
+      console.log(`🚫 Blocked prohibited content: ${contentCheck.category} - "${contentCheck.trigger}"`);
       return res.status(400).json({
         error: {
           type: 'prohibited_content',
