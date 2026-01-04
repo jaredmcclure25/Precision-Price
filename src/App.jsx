@@ -3495,25 +3495,148 @@ function BulkAnalysis() {
                 )}
 
                 {item.result && (
-                  <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <p className="font-semibold text-green-900">Analysis Complete</p>
+                  <div className="mt-4 space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <p className="font-semibold text-green-900">Analysis Complete</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 mt-3">
+                        <div>
+                          <p className="text-xs text-gray-600">Low</p>
+                          <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[0] || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">Target</p>
+                          <p className="text-lg font-bold text-emerald-600">${item.result.pricing?.prices[1] || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">High</p>
+                          <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[2] || 0}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mt-3">
-                      <div>
-                        <p className="text-xs text-gray-600">Low</p>
-                        <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[0] || 0}</p>
+
+                    {/* Listing Strategy */}
+                    {item.result.pricingStrategy && (
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5" />
+                          Listing Strategy
+                        </h3>
+                        <div className="space-y-2">
+                          <p className="text-blue-800 text-sm"><strong>Suggested List Price:</strong> ${item.result.pricingStrategy.listingPrice}</p>
+                          <p className="text-blue-800 text-sm"><strong>Don't Go Below:</strong> ${item.result.pricingStrategy.minimumAcceptable}</p>
+                          <p className="text-xs text-blue-700 mt-2 p-2 bg-white bg-opacity-50 rounded">{item.result.pricingStrategy.reasoning}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-600">Target</p>
-                        <p className="text-lg font-bold text-emerald-600">${item.result.pricing?.prices[1] || 0}</p>
+                    )}
+
+                    {/* Help Us Improve Button */}
+                    {!item.feedbackShown && (
+                      <button
+                        onClick={() => updateItem(item.id, 'feedbackShown', true)}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-medium flex items-center justify-center gap-2"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        Help Us Improve
+                      </button>
+                    )}
+
+                    {/* Feedback Form */}
+                    {item.feedbackShown && !item.feedbackSubmitted && (
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-gray-900">Help Us Improve</h3>
+                          <div className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-medium">
+                            🎁 Earn rewards!
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-medium mb-2">Did you sell this item?</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => updateItem(item.id, 'wasSold', true)}
+                                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${
+                                  item.wasSold === true
+                                    ? 'bg-green-500 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => updateItem(item.id, 'wasSold', false)}
+                                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${
+                                  item.wasSold === false
+                                    ? 'bg-orange-500 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                              >
+                                No
+                              </button>
+                            </div>
+                          </div>
+
+                          {item.wasSold && (
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Actual Sale Price</label>
+                              <input
+                                type="number"
+                                value={item.actualPrice || ''}
+                                onChange={(e) => updateItem(item.id, 'actualPrice', e.target.value)}
+                                placeholder="Enter sale price"
+                                className="w-full px-3 py-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="text-sm font-medium mb-2">Was the pricing accurate?</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => updateItem(item.id, 'wasFair', true)}
+                                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition flex items-center justify-center gap-1 ${
+                                  item.wasFair === true
+                                    ? 'bg-green-500 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                              >
+                                <ThumbsUp className="w-4 h-4" /> Yes
+                              </button>
+                              <button
+                                onClick={() => updateItem(item.id, 'wasFair', false)}
+                                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition flex items-center justify-center gap-1 ${
+                                  item.wasFair === false
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                              >
+                                <ThumbsDown className="w-4 h-4" /> No
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => updateItem(item.id, 'feedbackSubmitted', true)}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-medium text-sm"
+                          >
+                            Submit Feedback
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-600">High</p>
-                        <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[2] || 0}</p>
+                    )}
+
+                    {/* Feedback Submitted Confirmation */}
+                    {item.feedbackSubmitted && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle className="w-5 h-5" />
+                          <p className="text-sm font-medium">Feedback submitted! Thank you!</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
