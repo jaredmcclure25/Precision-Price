@@ -24,6 +24,7 @@ export default function MarketplacePricer() {
   const { logoutSite } = useSiteAuth();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
+  const [analysisMode, setAnalysisMode] = useState('single'); // 'single' or 'bulk'
   const [stats, setStats] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [itemName, setItemName] = useState('');
@@ -61,7 +62,7 @@ export default function MarketplacePricer() {
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
     else if (['dashboard', 'history', 'achievements', 'leaderboard'].includes(view)) setMainTab('dashboard');
-    else if (['shipping', 'bulk', 'referral', 'testing'].includes(view)) setMainTab('tools');
+    else if (['shipping', 'referral', 'testing'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
 
     const tipInterval = setInterval(() => {
@@ -935,7 +936,6 @@ Provide pricing analysis in this exact JSON structure:
             <div className="flex gap-2 flex-wrap">
               {[
                 { id: 'shipping', icon: Truck, label: 'Shipping' },
-                { id: 'bulk', icon: Package, label: 'Bulk Analysis' },
                 { id: 'referral', icon: Share2, label: 'Referrals' },
                 { id: 'testing', icon: TestTube, label: 'Security Tests' }
               ].map(tab => (
@@ -974,10 +974,41 @@ Provide pricing analysis in this exact JSON structure:
 
       <div className="p-6">
         {view === 'pricing' && (
-          <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey}} />
+          <>
+            {/* Mode Toggle */}
+            <div className="max-w-7xl mx-auto mb-6">
+              <div className="bg-white rounded-xl shadow-sm p-2 inline-flex gap-2">
+                <button
+                  onClick={() => setAnalysisMode('single')}
+                  className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                    analysisMode === 'single'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Single Item
+                </button>
+                <button
+                  onClick={() => setAnalysisMode('bulk')}
+                  className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                    analysisMode === 'bulk'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Bulk Analysis
+                </button>
+              </div>
+            </div>
+
+            {analysisMode === 'single' ? (
+              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey}} />
+            ) : (
+              <BulkAnalysis />
+            )}
+          </>
         )}
         {view === 'shipping' && <ShippingCalculator />}
-        {view === 'bulk' && <BulkAnalysis />}
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
         {view === 'history' && <ItemHistory />}
         {view === 'achievements' && <Achievements userProfile={userProfile} />}
@@ -3281,41 +3312,51 @@ function BulkAnalysis() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">Bulk Analysis</h2>
-            <p className="text-gray-600 mt-2">Analyze multiple items at once - perfect for vendors!</p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={addItem}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-            >
-              <Package className="w-4 h-4" />
-              Add Item
-            </button>
-            {items.length > 0 && (
-              <>
+      {/* Slogan Section */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-indigo-600 mb-2">Analyze Multiple Items at Once!</h1>
+        <p className="text-lg text-gray-600">Perfect for vendors - get AI pricing for all your inventory</p>
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Items List (2/3 width) */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Bulk Analysis</h2>
+                <p className="text-gray-600">Add multiple items and analyze them all at once</p>
+              </div>
+              <div className="flex gap-3">
                 <button
-                  onClick={analyzeAll}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                  onClick={addItem}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  Analyze All ({items.length})
+                  <Package className="w-4 h-4" />
+                  Add Item
                 </button>
-                <button
-                  onClick={exportResults}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  <Download className="w-4 h-4" />
-                  Export CSV
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+                {items.length > 0 && (
+                  <>
+                    <button
+                      onClick={analyzeAll}
+                      disabled={loading}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                    >
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      Analyze All ({items.length})
+                    </button>
+                    <button
+                      onClick={exportResults}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export CSV
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
 
         {loading && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -3460,6 +3501,63 @@ function BulkAnalysis() {
             ))}
           </div>
         )}
+          </div>
+        </div>
+
+        {/* Right Column - How to Use Summary (1/3 width) */}
+        <div className="lg:col-span-1">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-8 sticky top-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">How Bulk Analysis Works</h3>
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                  1
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Add Items</h4>
+                  <p className="text-sm text-gray-600">Click "Add Item" to create entries for all products you want to price</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                  2
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Fill Details</h4>
+                  <p className="text-sm text-gray-600">For each item, add photos, name, condition, and location</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                  3
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Analyze All</h4>
+                  <p className="text-sm text-gray-600">Click "Analyze All" to get AI pricing for every item simultaneously</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                  4
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Export Results</h4>
+                  <p className="text-sm text-gray-600">Download your pricing data as CSV for easy listing</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 pt-6 border-t border-indigo-200">
+              <p className="text-sm text-gray-600 italic">Perfect for vendors with multiple items to list!</p>
+            </div>
+            <button
+              onClick={() => window.open('/referral', '_self')}
+              className="mt-6 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              <Share2 className="w-5 h-5" />
+              Refer a Friend & Earn Rewards
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
