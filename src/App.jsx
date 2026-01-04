@@ -3149,7 +3149,11 @@ function BulkAnalysis() {
     setLoading(true);
     setCompletedCount(0);
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const apiUrl = import.meta.env.VITE_BACKEND_URL
+      ? `${import.meta.env.VITE_BACKEND_URL}/api/analyze`
+      : import.meta.env.DEV
+      ? 'http://localhost:3001/api/analyze'
+      : '/api/analyze';
 
     for (const item of items) {
       if (!item.itemName.trim()) {
@@ -3160,19 +3164,50 @@ function BulkAnalysis() {
       updateItem(item.id, 'loading', true);
 
       try {
-        const formData = new FormData();
-        formData.append('itemName', item.itemName);
-        formData.append('condition', item.condition);
-        formData.append('location', item.location || '');
-        formData.append('additionalDetails', '');
+        // Convert images to base64 (same as regular analysis)
+        const contentParts = [];
 
-        item.images.forEach((img, idx) => {
-          formData.append(`images`, img.file);
-        });
+        for (const img of item.images) {
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result;
+              const base64 = result.substring(result.indexOf(',') + 1);
+              resolve(base64);
+            };
+            reader.onerror = () => reject(new Error("Failed to read image"));
+            reader.readAsDataURL(img.file);
+          });
 
-        const response = await fetch(`${backendUrl}/api/analyze`, {
+          let mediaType = 'image/jpeg';
+          if (img.file.type === 'image/png') mediaType = 'image/png';
+          else if (img.file.type === 'image/webp') mediaType = 'image/webp';
+          else if (img.file.type === 'image/gif') mediaType = 'image/gif';
+
+          contentParts.push({
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType, data: base64Data }
+          });
+        }
+
+        // Build prompt (simplified version)
+        const currentDate = new Date();
+        const season = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Summer', 'Summer', 'Fall', 'Fall', 'Fall', 'Winter'][currentDate.getMonth()];
+
+        let prompt = `You are a marketplace pricing expert. Analyze this item for accurate pricing.`;
+        if (item.images.length > 0) prompt += `\n\nAnalyze the ${item.images.length} image(s).`;
+
+        prompt += `\n\nItem: ${item.itemName}\nCondition: ${item.condition}\nLocation: ${item.location || 'Not specified'}`;
+        prompt += `\n\nProvide ONLY valid JSON in this structure:\n{\n  "itemIdentification": {"name": "string", "category": "string"},\n  "suggestedPriceRange": {"min": number, "max": number, "optimal": number},\n  "pricingStrategy": {"listingPrice": number, "minimumAcceptable": number}\n}`;
+
+        contentParts.push({ type: 'text', text: prompt });
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
-          body: formData
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: contentParts }]
+          })
         });
 
         if (!response.ok) {
@@ -3184,8 +3219,29 @@ function BulkAnalysis() {
         }
 
         const data = await response.json();
-        updateItem(item.id, 'result', data);
-        updateItem(item.id, 'error', null);
+
+        // Parse Claude's response
+        const textContent = data.content.find(c => c.type === 'text')?.text || '';
+        const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+
+        if (jsonMatch) {
+          const parsedResult = JSON.parse(jsonMatch[0]);
+          // Format result to match expected structure
+          const formattedResult = {
+            pricing: {
+              prices: [
+                parsedResult.suggestedPriceRange?.min || 0,
+                parsedResult.pricingStrategy?.listingPrice || parsedResult.suggestedPriceRange?.optimal || 0,
+                parsedResult.suggestedPriceRange?.max || 0
+              ]
+            }
+          };
+          updateItem(item.id, 'result', formattedResult);
+          updateItem(item.id, 'error', null);
+        } else {
+          throw new Error('Unable to parse pricing data');
+        }
+
         setCompletedCount(prev => prev + 1);
       } catch (err) {
         updateItem(item.id, 'error', err.message);
