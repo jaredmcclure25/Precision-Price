@@ -3396,9 +3396,39 @@ function BulkAnalysis() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  {/* Upload Photos First */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Item Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
+                    <input
+                      type="file"
+                      accept="image/*,.heic,.heif"
+                      multiple
+                      onChange={(e) => handleImageUpload(item.id, e)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                    {item.images.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 mt-3">
+                        {item.images.map((img, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-64 object-cover rounded-lg" />
+                            <button
+                              onClick={() => removeImage(item.id, idx)}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Item Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Item Name {item.images.length === 0 && '*'}
+                    </label>
                     <input
                       type="text"
                       value={item.itemName}
@@ -3408,57 +3438,46 @@ function BulkAnalysis() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                    <select
-                      value={item.condition}
-                      onChange={(e) => updateItem(item.id, 'condition', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="new">New</option>
-                      <option value="like-new">Like New</option>
-                      <option value="excellent">Excellent</option>
-                      <option value="good">Good</option>
-                      <option value="fair">Fair</option>
-                      <option value="poor">Poor</option>
-                    </select>
+                  {/* Condition + Location Grid */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Condition *</label>
+                      <select
+                        value={item.condition}
+                        onChange={(e) => updateItem(item.id, 'condition', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="new">New</option>
+                        <option value="like-new">Like New</option>
+                        <option value="excellent">Excellent</option>
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                        <option value="poor">Poor</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Location (with ZIP for best accuracy)</label>
+                      <input
+                        type="text"
+                        value={item.location}
+                        onChange={(e) => updateItem(item.id, 'location', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="ZIP code or city"
+                      />
+                    </div>
                   </div>
 
+                  {/* Additional Details */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location (optional)</label>
-                    <input
-                      type="text"
-                      value={item.location}
-                      onChange={(e) => updateItem(item.id, 'location', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                      placeholder="ZIP code or city"
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Additional Details</label>
+                    <textarea
+                      value={item.additionalDetails || ''}
+                      onChange={(e) => updateItem(item.id, 'additionalDetails', e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+                      placeholder="Brand, model, defects, accessories included, etc."
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Photos (up to 5)</label>
-                    <input
-                      type="file"
-                      accept="image/*,.heic,.heif"
-                      multiple
-                      onChange={(e) => handleImageUpload(item.id, e)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
-                    />
-                    {item.images.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        {item.images.map((img, idx) => (
-                          <div key={idx} className="relative">
-                            <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-20 object-cover rounded" />
-                            <button
-                              onClick={() => removeImage(item.id, idx)}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
 
