@@ -858,8 +858,9 @@ Provide pricing analysis in this exact JSON structure:
               {[
                 { id: 'home', icon: Home, label: 'Home' },
                 { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
-                { id: 'tools', icon: Package, label: 'Tools' },
-                { id: 'subscription', icon: CreditCard, label: 'Subscription' }
+                { id: 'tools', icon: Package, label: 'Tools' }
+                // STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live
+                // { id: 'subscription', icon: CreditCard, label: 'Subscription' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1014,7 +1015,8 @@ Provide pricing analysis in this exact JSON structure:
         {view === 'achievements' && <Achievements userProfile={userProfile} />}
         {view === 'leaderboard' && <Leaderboard />}
         {view === 'referral' && <ReferralProgram userProfile={userProfile} />}
-        {view === 'subscription' && <Subscription />}
+        {/* STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live */}
+        {/* {view === 'subscription' && <Subscription />} */}
         {view === 'testing' && <TestRunner appFunctions={{
           setItemName,
           setLocation,
