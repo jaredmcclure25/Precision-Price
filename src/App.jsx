@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, TestTube, LogOut } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Users, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, TestTube, LogOut, Download } from 'lucide-react';
 import TestRunner from './TestRunner';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
@@ -61,7 +61,7 @@ export default function MarketplacePricer() {
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
     else if (['dashboard', 'history', 'achievements', 'leaderboard'].includes(view)) setMainTab('dashboard');
-    else if (['shipping', 'referral', 'testing'].includes(view)) setMainTab('tools');
+    else if (['shipping', 'bulk', 'referral', 'testing'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
 
     const tipInterval = setInterval(() => {
@@ -168,8 +168,8 @@ export default function MarketplacePricer() {
 
     const newImages = validFiles.slice(0, 5 - images.length);
 
-    // Process each file (convert HEIC if needed)
-    for (const file of newImages) {
+    // Process all files in parallel for faster HEIC conversion
+    const processPromises = newImages.map(async (file) => {
       try {
         let processedFile = file;
 
@@ -187,7 +187,7 @@ export default function MarketplacePricer() {
             const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
-              quality: 0.9
+              quality: 0.7  // Reduced from 0.9 for faster conversion
             });
 
             // Handle array of blobs (heic2any can return array)
@@ -202,23 +202,32 @@ export default function MarketplacePricer() {
             console.log('✅ HEIC converted successfully');
           } catch (conversionError) {
             console.error('❌ HEIC conversion failed:', conversionError);
-            errors.push(`${file.name}: HEIC conversion failed`);
-            setError(errors.join('; '));
-            continue;
+            throw new Error(`${file.name}: HEIC conversion failed`);
           }
         }
 
-        // Read the processed file
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImages(prev => [...prev, { file: processedFile, preview: reader.result }]);
-        };
-        reader.readAsDataURL(processedFile);
+        // Read the processed file and return promise
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({ file: processedFile, preview: reader.result });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(processedFile);
+        });
       } catch (err) {
         console.error('Error processing image:', err);
-        errors.push(`${file.name}: Processing failed`);
-        setError(errors.join('; '));
+        throw new Error(`${file.name}: Processing failed`);
       }
+    });
+
+    // Wait for all conversions to complete and update state once
+    try {
+      const processedImages = await Promise.all(processPromises);
+      setImages(prev => [...prev, ...processedImages]);
+    } catch (err) {
+      errors.push(err.message);
+      setError(errors.join('; '));
     }
   };
 
@@ -926,6 +935,7 @@ Provide pricing analysis in this exact JSON structure:
             <div className="flex gap-2 flex-wrap">
               {[
                 { id: 'shipping', icon: Truck, label: 'Shipping' },
+                { id: 'bulk', icon: Package, label: 'Bulk Analysis' },
                 { id: 'referral', icon: Share2, label: 'Referrals' },
                 { id: 'testing', icon: TestTube, label: 'Security Tests' }
               ].map(tab => (
@@ -967,6 +977,7 @@ Provide pricing analysis in this exact JSON structure:
           <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey}} />
         )}
         {view === 'shipping' && <ShippingCalculator />}
+        {view === 'bulk' && <BulkAnalysis />}
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
         {view === 'history' && <ItemHistory />}
         {view === 'achievements' && <Achievements userProfile={userProfile} />}
@@ -1027,10 +1038,10 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                   </div>
                 )}
                 {images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div className="grid grid-cols-2 gap-4 mt-4">
                     {images.map((img, idx) => (
                       <div key={idx} className="relative">
-                        <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                        <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-64 object-cover rounded-lg" />
                         <button onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600">
                           <X className="w-4 h-4" />
                         </button>
@@ -3036,6 +3047,368 @@ function FeeCalculator({ calculateFees }) {
     </div>
   );
 }
+
+function BulkAnalysis() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
+
+  const addItem = () => {
+    setItems(prev => [...prev, {
+      id: Date.now(),
+      itemName: '',
+      condition: 'good',
+      location: '',
+      images: [],
+      result: null,
+      loading: false,
+      error: null
+    }]);
+  };
+
+  const removeItem = (id) => {
+    setItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateItem = (id, field, value) => {
+    setItems(prev => prev.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const handleImageUpload = async (id, e) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = [];
+    const errors = [];
+
+    for (const file of files) {
+      const validation = InputValidation.validateImageFile(file);
+      if (!validation.valid) {
+        errors.push(`${file.name}: ${validation.error}`);
+      } else {
+        validFiles.push(file);
+      }
+    }
+
+    if (errors.length > 0) {
+      updateItem(id, 'error', errors.join('; '));
+    }
+
+    const newImages = validFiles.slice(0, 5);
+
+    // Process all files in parallel
+    const processPromises = newImages.map(async (file) => {
+      try {
+        let processedFile = file;
+
+        const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
+                       file.name.toLowerCase().endsWith('.heic');
+
+        if (isHEIC) {
+          console.log('🔄 Converting HEIC to JPEG:', file.name);
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.7
+          });
+
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          processedFile = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+          console.log('✅ HEIC converted successfully');
+        }
+
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve({ file: processedFile, preview: reader.result });
+          reader.onerror = reject;
+          reader.readAsDataURL(processedFile);
+        });
+      } catch (err) {
+        console.error('Error processing image:', err);
+        throw new Error(`${file.name}: Processing failed`);
+      }
+    });
+
+    try {
+      const processedImages = await Promise.all(processPromises);
+      setItems(prev => prev.map(item =>
+        item.id === id ? { ...item, images: [...item.images, ...processedImages] } : item
+      ));
+    } catch (err) {
+      updateItem(id, 'error', err.message);
+    }
+  };
+
+  const removeImage = (itemId, imageIndex) => {
+    setItems(prev => prev.map(item =>
+      item.id === itemId ? { ...item, images: item.images.filter((_, i) => i !== imageIndex) } : item
+    ));
+  };
+
+  const analyzeAll = async () => {
+    setLoading(true);
+    setCompletedCount(0);
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+
+    for (const item of items) {
+      if (!item.itemName.trim()) {
+        updateItem(item.id, 'error', 'Item name required');
+        continue;
+      }
+
+      updateItem(item.id, 'loading', true);
+
+      try {
+        const formData = new FormData();
+        formData.append('itemName', item.itemName);
+        formData.append('condition', item.condition);
+        formData.append('location', item.location || '');
+        formData.append('additionalDetails', '');
+
+        item.images.forEach((img, idx) => {
+          formData.append(`images`, img.file);
+        });
+
+        const response = await fetch(`${backendUrl}/api/analyze`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData.error?.type === 'prohibited_content') {
+            throw new Error(errorData.error.message);
+          }
+          throw new Error(errorData.error?.message || `API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        updateItem(item.id, 'result', data);
+        updateItem(item.id, 'error', null);
+        setCompletedCount(prev => prev + 1);
+      } catch (err) {
+        updateItem(item.id, 'error', err.message);
+      } finally {
+        updateItem(item.id, 'loading', false);
+      }
+    }
+
+    setLoading(false);
+  };
+
+  const exportResults = () => {
+    const csv = [
+      ['Item Name', 'Condition', 'Location', 'Low Price', 'Target Price', 'High Price', 'Status'].join(','),
+      ...items.map(item => {
+        if (!item.result) return [item.itemName, item.condition, item.location, '', '', '', 'Not analyzed'].join(',');
+        const prices = item.result.pricing?.prices || [];
+        return [
+          item.itemName,
+          item.condition,
+          item.location,
+          prices[0] || '',
+          prices[1] || '',
+          prices[2] || '',
+          'Complete'
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bulk-analysis-${Date.now()}.csv`;
+    a.click();
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Bulk Analysis</h2>
+            <p className="text-gray-600 mt-2">Analyze multiple items at once - perfect for vendors!</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={addItem}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              <Package className="w-4 h-4" />
+              Add Item
+            </button>
+            {items.length > 0 && (
+              <>
+                <button
+                  onClick={analyzeAll}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  Analyze All ({items.length})
+                </button>
+                <button
+                  onClick={exportResults}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {loading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <div>
+                <p className="font-semibold text-blue-900">Analyzing items...</p>
+                <p className="text-sm text-blue-700">Completed: {completedCount} / {items.length}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {items.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg mb-2">No items yet</p>
+            <p className="text-gray-500 mb-6">Click "Add Item" to start analyzing multiple items</p>
+            <button
+              onClick={addItem}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              Add Your First Item
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {items.map((item, index) => (
+              <div key={item.id} className="border border-gray-200 rounded-xl p-6 bg-gray-50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Item #{index + 1}</h3>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Item Name *</label>
+                    <input
+                      type="text"
+                      value={item.itemName}
+                      onChange={(e) => updateItem(item.id, 'itemName', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="e.g., iPhone 13 Pro"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                    <select
+                      value={item.condition}
+                      onChange={(e) => updateItem(item.id, 'condition', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="new">New</option>
+                      <option value="like-new">Like New</option>
+                      <option value="excellent">Excellent</option>
+                      <option value="good">Good</option>
+                      <option value="fair">Fair</option>
+                      <option value="poor">Poor</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Location (optional)</label>
+                    <input
+                      type="text"
+                      value={item.location}
+                      onChange={(e) => updateItem(item.id, 'location', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="ZIP code or city"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Photos (up to 5)</label>
+                    <input
+                      type="file"
+                      accept="image/*,.heic,.heif"
+                      multiple
+                      onChange={(e) => handleImageUpload(item.id, e)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                    {item.images.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {item.images.map((img, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-20 object-cover rounded" />
+                            <button
+                              onClick={() => removeImage(item.id, idx)}
+                              className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {item.error && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-800 text-sm">{item.error}</p>
+                  </div>
+                )}
+
+                {item.loading && (
+                  <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    <p className="text-blue-800 text-sm">Analyzing...</p>
+                  </div>
+                )}
+
+                {item.result && (
+                  <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <p className="font-semibold text-green-900">Analysis Complete</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 mt-3">
+                      <div>
+                        <p className="text-xs text-gray-600">Low</p>
+                        <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[0] || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Target</p>
+                        <p className="text-lg font-bold text-emerald-600">${item.result.pricing?.prices[1] || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">High</p>
+                        <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[2] || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ShippingCalculator() {
   const [activeTab, setActiveTab] = useState('estimator'); // estimator, container, meetup
   const [weight, setWeight] = useState('');
