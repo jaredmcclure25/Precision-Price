@@ -254,9 +254,9 @@ app.post('/api/analyze', async (req, res) => {
 
 //     // Define pricing plans
 //     const planPrices = {
-//       basic: { amount: 499, interval: 'month' }, // $4.99
-//       standard: { amount: 999, interval: 'month' }, // $9.99
-//       pro: { amount: 1999, interval: 'month' } // $19.99
+//       basic: { amount: 199, interval: 'month' }, // $1.99
+//       standard: { amount: 599, interval: 'month' }, // $5.99
+//       pro: { amount: 1499, interval: 'month' } // $14.99
 //     };
 
 //     const plan = planPrices[planId];
