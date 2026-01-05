@@ -1550,7 +1550,7 @@ function Subscription() {
     {
       id: 'basic',
       name: 'Basic',
-      price: '$4.99',
+      price: '$1.99',
       period: '/month',
       savings: null,
       bestValue: true,
@@ -1564,7 +1564,7 @@ function Subscription() {
     {
       id: 'standard',
       name: 'Standard',
-      price: '$9.99',
+      price: '$5.99',
       period: '/month',
       savings: 'Most Popular',
       bestValue: false,
@@ -1580,7 +1580,7 @@ function Subscription() {
     {
       id: 'pro',
       name: 'Pro',
-      price: '$19.99',
+      price: '$14.99',
       period: '/month',
       savings: 'Best for Resellers',
       bestValue: false,
