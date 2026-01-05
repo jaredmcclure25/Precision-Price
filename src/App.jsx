@@ -3866,7 +3866,7 @@ function ShippingCalculator() {
           <Package className="w-16 h-16" />
           <div>
             <h2 className="text-3xl font-bold">Shipping & Delivery Center</h2>
-            <p className="text-lg">Calculate costs, find boxes, and plan safe meetups</p>
+            <p className="text-lg">Calculate costs, find boxes, and plan public meetups</p>
           </div>
         </div>
       </div>
@@ -3904,7 +3904,7 @@ function ShippingCalculator() {
           }`}
         >
           <MapPin className="w-5 h-5" />
-          Safe Meetup
+          Public Meetup
         </button>
       </div>
 
@@ -4178,7 +4178,7 @@ function ShippingCalculator() {
       {/* Meetup Location Finder */}
       {activeTab === 'meetup' && (
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h3 className="text-2xl font-bold mb-6">Safe Meetup Location Finder</h3>
+          <h3 className="text-2xl font-bold mb-6">Public Meetup Location Finder</h3>
           
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">Your Location (City or ZIP)</label>
@@ -4204,7 +4204,7 @@ function ShippingCalculator() {
           {meetupSuggestions && (
             <div className="space-y-6">
               <div className="bg-green-50 border-2 border-green-300 rounded-xl p-6">
-                <h4 className="text-xl font-bold text-green-900 mb-4">🛡️ Recommended Safe Meetup Locations</h4>
+                <h4 className="text-xl font-bold text-green-900 mb-4">📍 Recommended Public Meetup Locations</h4>
                 <div className="space-y-3">
                   {meetupSuggestions.safeSpots.map((spot, idx) => (
                     <div key={idx} className="bg-white p-4 rounded-lg border-2 border-gray-200 hover:border-green-400 transition">
