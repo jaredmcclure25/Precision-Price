@@ -1,0 +1,28 @@
+/**
+ * Precision Prices - Analytics Wrapper Component
+ * Copyright © 2025 Jared McClure / PrecisionPrices.Com
+ * All Rights Reserved.
+ */
+
+import React, { useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { useAnalytics } from './hooks/useAnalytics';
+
+/**
+ * Wrapper component that initializes analytics tracking
+ * Wrap your app with this component to enable automatic session tracking
+ */
+export default function AnalyticsWrapper({ children }) {
+  const { currentUser } = useAuth();
+  const { trackAuth } = useAnalytics();
+
+  // Track login/logout events
+  useEffect(() => {
+    if (currentUser) {
+      // User logged in or session resumed
+      trackAuth('login', currentUser);
+    }
+  }, [currentUser, trackAuth]);
+
+  return <>{children}</>;
+}

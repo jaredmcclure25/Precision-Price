@@ -39,6 +39,62 @@ service cloud.firestore {
       }
     }
 
+    // ============================================================================
+    // ANALYTICS & ACTIVITY TRACKING COLLECTIONS
+    // ============================================================================
+
+    // Sessions collection - users can create their own sessions
+    match /sessions/{sessionId} {
+      // Allow anyone to create a session (including guests)
+      allow create: if true;
+
+      // Allow read/update only for the session owner or if it's a guest session
+      allow read, update: if resource.data.userId == null ||
+                            (request.auth != null && resource.data.userId == request.auth.uid);
+
+      // Prevent deletion
+      allow delete: if false;
+    }
+
+    // Activities collection - users can log their own activities
+    match /activities/{activityId} {
+      // Allow anyone to create activities (including guests)
+      allow create: if true;
+
+      // Allow read only for the activity owner
+      allow read: if resource.data.userId == null ||
+                     (request.auth != null && resource.data.userId == request.auth.uid);
+
+      // Prevent updates and deletes
+      allow update, delete: if false;
+    }
+
+    // Daily analytics - read-only for authenticated users
+    match /analytics_daily/{dateId} {
+      // Allow authenticated users to read daily stats
+      allow read: if request.auth != null;
+
+      // Prevent client-side writes (use server-side functions for aggregation)
+      allow create, update, delete: if false;
+    }
+
+    // User stats - users can read/write their own stats
+    match /user_stats/{statsId} {
+      // Allow users to read and update their own stats
+      allow read, create, update: if request.auth != null &&
+                                      resource.data.userId == request.auth.uid;
+
+      // Prevent deletion
+      allow delete: if false;
+    }
+
+    // Feedback collection - allow authenticated users to submit feedback
+    match /feedback/{feedbackId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;
