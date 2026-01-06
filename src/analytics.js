@@ -81,7 +81,7 @@ export async function initializeSession(user = null) {
     sessionStartTime = Date.now();
     pageViews = [];
 
-    const deviceInfo = getDeviceInfo();
+    const deviceInfo = await getDeviceInfo();
 
     const sessionData = {
       sessionId,
@@ -474,9 +474,9 @@ function generateSessionId() {
 }
 
 /**
- * Helper: Get device information
+ * Helper: Get device information with location
  */
-function getDeviceInfo() {
+async function getDeviceInfo() {
   const ua = navigator.userAgent;
 
   let deviceType = 'desktop';
@@ -496,6 +496,27 @@ function getDeviceInfo() {
   else if (/firefox/i.test(ua)) browser = 'Firefox';
   else if (/edge/i.test(ua)) browser = 'Edge';
 
+  // Get approximate location from IP (using free ipapi.co service)
+  let location = null;
+  try {
+    const response = await fetch('https://ipapi.co/json/', { timeout: 3000 });
+    if (response.ok) {
+      const data = await response.json();
+      location = {
+        city: data.city,
+        region: data.region,
+        country: data.country_name,
+        countryCode: data.country_code,
+        timezone: data.timezone,
+        latitude: data.latitude,
+        longitude: data.longitude
+      };
+    }
+  } catch (error) {
+    console.log('Could not fetch location data:', error);
+    // Continue without location - not critical
+  }
+
   return {
     type: deviceType,
     os,
@@ -503,7 +524,8 @@ function getDeviceInfo() {
     userAgent: ua,
     screenWidth: window.screen.width,
     screenHeight: window.screen.height,
-    language: navigator.language
+    language: navigator.language,
+    location // Added location data
   };
 }
 

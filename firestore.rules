@@ -43,13 +43,28 @@ service cloud.firestore {
     // ANALYTICS & ACTIVITY TRACKING COLLECTIONS
     // ============================================================================
 
+    // Helper function to check if user is admin
+    // UPDATE THIS with your admin email(s)
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.token.email in [
+               'contact@precisionprices.com',
+               'ericalmlowe@gmail.com'
+               // Add more admin emails here
+             ];
+    }
+
     // Sessions collection - users can create their own sessions
     match /sessions/{sessionId} {
       // Allow anyone to create a session (including guests)
       allow create: if true;
 
-      // Allow read/update only for the session owner or if it's a guest session
-      allow read, update: if resource.data.userId == null ||
+      // Allow read/update for:
+      // - Admin (can read all sessions)
+      // - Session owner
+      // - Guest sessions (no userId)
+      allow read, update: if isAdmin() ||
+                            resource.data.userId == null ||
                             (request.auth != null && resource.data.userId == request.auth.uid);
 
       // Prevent deletion
@@ -61,8 +76,12 @@ service cloud.firestore {
       // Allow anyone to create activities (including guests)
       allow create: if true;
 
-      // Allow read only for the activity owner
-      allow read: if resource.data.userId == null ||
+      // Allow read for:
+      // - Admin (can read all activities)
+      // - Activity owner
+      // - Guest activities (no userId)
+      allow read: if isAdmin() ||
+                     resource.data.userId == null ||
                      (request.auth != null && resource.data.userId == request.auth.uid);
 
       // Prevent updates and deletes
@@ -74,15 +93,22 @@ service cloud.firestore {
       // Allow authenticated users to read daily stats
       allow read: if request.auth != null;
 
-      // Prevent client-side writes (use server-side functions for aggregation)
-      allow create, update, delete: if false;
+      // Allow admin to write aggregated data
+      allow create, update: if isAdmin();
+
+      // Prevent deletion
+      allow delete: if false;
     }
 
-    // User stats - users can read/write their own stats
+    // User stats - users can read/write their own stats, admin can read all
     match /user_stats/{statsId} {
       // Allow users to read and update their own stats
-      allow read, create, update: if request.auth != null &&
-                                      resource.data.userId == request.auth.uid;
+      // Allow admin to read all stats
+      allow read: if isAdmin() ||
+                     (request.auth != null && resource.data.userId == request.auth.uid);
+
+      allow create, update: if request.auth != null &&
+                               resource.data.userId == request.auth.uid;
 
       // Prevent deletion
       allow delete: if false;
