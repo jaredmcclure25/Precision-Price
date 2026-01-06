@@ -499,22 +499,34 @@ async function getDeviceInfo() {
   // Get approximate location from IP (using free ipapi.co service)
   let location = null;
   try {
-    const response = await fetch('https://ipapi.co/json/', { timeout: 3000 });
+    // Mobile-compatible fetch with AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch('https://ipapi.co/json/', {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    clearTimeout(timeoutId);
+
     if (response.ok) {
       const data = await response.json();
       location = {
-        city: data.city,
-        region: data.region,
-        country: data.country_name,
-        countryCode: data.country_code,
-        timezone: data.timezone,
-        latitude: data.latitude,
-        longitude: data.longitude
+        city: data.city || 'Unknown',
+        region: data.region || 'Unknown',
+        country: data.country_name || 'Unknown',
+        countryCode: data.country_code || 'XX',
+        timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        latitude: data.latitude || null,
+        longitude: data.longitude || null
       };
     }
   } catch (error) {
-    console.log('Could not fetch location data:', error);
-    // Continue without location - not critical
+    // Silently fail - location is nice-to-have, not required
+    console.log('Location fetch skipped (offline or slow network)');
   }
 
   return {
