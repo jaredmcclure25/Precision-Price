@@ -30,14 +30,19 @@ export function useAnalytics() {
   // Initialize session on mount
   useEffect(() => {
     if (!sessionInitialized.current) {
+      console.log('🔄 Initializing analytics session for user:', currentUser?.email || 'guest');
       initializeSession(currentUser).then(() => {
         sessionInitialized.current = true;
+        console.log('✅ Analytics session ready');
+      }).catch((error) => {
+        console.error('❌ Failed to initialize analytics session:', error);
       });
     }
 
     // End session on unmount
     return () => {
       if (sessionInitialized.current) {
+        console.log('👋 Ending analytics session');
         endSession();
         sessionInitialized.current = false;
       }
