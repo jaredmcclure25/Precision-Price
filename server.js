@@ -169,6 +169,64 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Precision Prices backend is running' });
 });
 
+// ============================================================================
+// ANALYTICS & ACTIVITY LOGGING ENDPOINTS
+// ============================================================================
+
+// Log activity event
+app.post('/api/analytics/activity', async (req, res) => {
+  try {
+    const { sessionId, userId, activityType, metadata } = req.body;
+
+    if (!activityType) {
+      return res.status(400).json({ error: 'activityType is required' });
+    }
+
+    // Log to console for server-side monitoring
+    console.log(`[ACTIVITY] ${activityType} - User: ${userId || 'guest'} - Session: ${sessionId}`);
+
+    // Here you could also log to a server-side database or analytics service
+    // For now, we're relying on client-side Firestore writes
+
+    res.json({ success: true, logged: true });
+  } catch (error) {
+    console.error('Error logging activity:', error);
+    res.status(500).json({ error: 'Failed to log activity' });
+  }
+});
+
+// Get analytics summary (server-side aggregation if needed)
+app.get('/api/analytics/summary', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // This could query your database for aggregated stats
+    // For now, returning a basic structure that the frontend will populate
+
+    res.json({
+      message: 'Analytics data available via Firestore client-side queries',
+      serverTime: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting analytics summary:', error);
+    res.status(500).json({ error: 'Failed to get analytics summary' });
+  }
+});
+
+// Track page view (optional server-side logging)
+app.post('/api/analytics/pageview', async (req, res) => {
+  try {
+    const { sessionId, page, timestamp } = req.body;
+
+    console.log(`[PAGEVIEW] ${page} - Session: ${sessionId}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error logging pageview:', error);
+    res.status(500).json({ error: 'Failed to log pageview' });
+  }
+});
+
 // Pricing analysis endpoint
 app.post('/api/analyze', async (req, res) => {
   try {
