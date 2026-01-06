@@ -1092,11 +1092,11 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                   </div>
                 )}
                 {imageLoading && (
-                  <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-8 text-center">
-                    <Loader2 className="w-12 h-12 text-indigo-500 mx-auto mb-3 animate-spin" />
-                    <p className="text-indigo-700 font-medium mb-1">Image loading</p>
-                    <p className="text-sm text-indigo-600">This may take a few seconds</p>
-                    <div className="mt-4 w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
+                  <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-6 sm:p-8 text-center touch-none">
+                    <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-indigo-500 mx-auto mb-3 animate-spin" />
+                    <p className="text-indigo-700 font-medium mb-1 text-sm sm:text-base">Image loading</p>
+                    <p className="text-xs sm:text-sm text-indigo-600">This may take a few seconds</p>
+                    <div className="mt-3 sm:mt-4 w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
                       <div className="bg-indigo-500 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
                     </div>
                   </div>
@@ -3457,9 +3457,9 @@ function BulkAnalysis() {
                       />
                     )}
                     {item.imageLoading && (
-                      <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-4 text-center">
+                      <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-4 text-center touch-none">
                         <Loader2 className="w-8 h-8 text-indigo-500 mx-auto mb-2 animate-spin" />
-                        <p className="text-indigo-700 text-sm font-medium">Image loading, may take a few seconds</p>
+                        <p className="text-indigo-700 text-xs sm:text-sm font-medium">Image loading, may take a few seconds</p>
                       </div>
                     )}
                     {item.images.length > 0 && (
