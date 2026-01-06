@@ -33,6 +33,7 @@ export default function MarketplacePricer() {
   const [additionalDetails, setAdditionalDetails] = useState('');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -169,6 +170,21 @@ export default function MarketplacePricer() {
 
     const newImages = validFiles.slice(0, 5 - images.length);
 
+    // Check if any files need HEIC conversion
+    const hasHEIC = newImages.some(file =>
+      file.type === 'image/heic' ||
+      file.type === 'image/heif' ||
+      file.type === 'image/heic-sequence' ||
+      file.type === 'image/heif-sequence' ||
+      file.name.toLowerCase().endsWith('.heic') ||
+      file.name.toLowerCase().endsWith('.heif')
+    );
+
+    // Show loading indicator if HEIC conversion is needed
+    if (hasHEIC) {
+      setImageLoading(true);
+    }
+
     // Process all files in parallel for faster HEIC conversion
     const processPromises = newImages.map(async (file) => {
       try {
@@ -229,6 +245,8 @@ export default function MarketplacePricer() {
     } catch (err) {
       errors.push(err.message);
       setError(errors.join('; '));
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -1060,7 +1078,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
-                {images.length < 5 && (
+                {images.length < 5 && !imageLoading && (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-400 transition cursor-pointer">
                     <input key={formKey} type="file" accept="image/*,.heic,.heif" multiple onChange={handleImageUpload} className="hidden" id="image-upload" />
                     <label htmlFor="image-upload" className="cursor-pointer">
@@ -1068,6 +1086,16 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                       <p className="text-gray-600 mb-1">Click to upload images</p>
                       <p className="text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 10MB each ({images.length}/5 uploaded)</p>
                     </label>
+                  </div>
+                )}
+                {imageLoading && (
+                  <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-8 text-center">
+                    <Loader2 className="w-12 h-12 text-indigo-500 mx-auto mb-3 animate-spin" />
+                    <p className="text-indigo-700 font-medium mb-1">Converting HEIC images...</p>
+                    <p className="text-sm text-indigo-600">This may take a few seconds</p>
+                    <div className="mt-4 w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
+                    </div>
                   </div>
                 )}
                 {images.length > 0 && (
@@ -3095,6 +3123,7 @@ function BulkAnalysis() {
       images: [],
       result: null,
       loading: false,
+      imageLoading: false,
       error: null
     }]);
   };
@@ -3128,6 +3157,18 @@ function BulkAnalysis() {
     }
 
     const newImages = validFiles.slice(0, 5);
+
+    // Check if any files need HEIC conversion
+    const hasHEIC = newImages.some(file =>
+      file.type === 'image/heic' ||
+      file.type === 'image/heif' ||
+      file.name.toLowerCase().endsWith('.heic') ||
+      file.name.toLowerCase().endsWith('.heif')
+    );
+
+    if (hasHEIC) {
+      updateItem(id, 'imageLoading', true);
+    }
 
     // Process all files in parallel
     const processPromises = newImages.map(async (file) => {
@@ -3165,10 +3206,11 @@ function BulkAnalysis() {
     try {
       const processedImages = await Promise.all(processPromises);
       setItems(prev => prev.map(item =>
-        item.id === id ? { ...item, images: [...item.images, ...processedImages] } : item
+        item.id === id ? { ...item, images: [...item.images, ...processedImages], imageLoading: false } : item
       ));
     } catch (err) {
       updateItem(id, 'error', err.message);
+      updateItem(id, 'imageLoading', false);
     }
   };
 
@@ -3402,13 +3444,21 @@ function BulkAnalysis() {
                   {/* Upload Photos First */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
-                    <input
-                      type="file"
-                      accept="image/*,.heic,.heif"
-                      multiple
-                      onChange={(e) => handleImageUpload(item.id, e)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
-                    />
+                    {!item.imageLoading && (
+                      <input
+                        type="file"
+                        accept="image/*,.heic,.heif"
+                        multiple
+                        onChange={(e) => handleImageUpload(item.id, e)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                      />
+                    )}
+                    {item.imageLoading && (
+                      <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-4 text-center">
+                        <Loader2 className="w-8 h-8 text-indigo-500 mx-auto mb-2 animate-spin" />
+                        <p className="text-indigo-700 text-sm font-medium">Converting HEIC images...</p>
+                      </div>
+                    )}
                     {item.images.length > 0 && (
                       <div className="grid grid-cols-2 gap-2 mt-3">
                         {item.images.map((img, idx) => (
