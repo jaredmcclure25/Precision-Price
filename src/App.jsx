@@ -18,6 +18,7 @@ import { parseLocation, getLocationDescription, getLocationPricingInsight } from
 import BullseyePriceTarget from './components/BullseyePriceTarget';
 import { getComparableItems, blendPricing, formatPricingInsights } from './pricingIntelligence';
 import heic2any from 'heic2any';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
@@ -62,7 +63,7 @@ export default function MarketplacePricer() {
 
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
-    else if (['dashboard', 'history', 'achievements', 'leaderboard'].includes(view)) setMainTab('dashboard');
+    else if (['dashboard', 'history', 'achievements', 'leaderboard', 'analytics'].includes(view)) setMainTab('dashboard');
     else if (['shipping', 'referral', 'testing'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
 
@@ -929,7 +930,8 @@ Provide pricing analysis in this exact JSON structure:
                 { id: 'dashboard', icon: BarChart3, label: 'Stats' },
                 { id: 'history', icon: History, label: 'History' },
                 { id: 'achievements', icon: Trophy, label: 'Badges' },
-                { id: 'leaderboard', icon: Star, label: 'Leaderboard' }
+                { id: 'leaderboard', icon: Star, label: 'Leaderboard' },
+                { id: 'analytics', icon: Users, label: 'Site Analytics' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1032,6 +1034,7 @@ Provide pricing analysis in this exact JSON structure:
         {view === 'history' && <ItemHistory />}
         {view === 'achievements' && <Achievements userProfile={userProfile} />}
         {view === 'leaderboard' && <Leaderboard />}
+        {view === 'analytics' && <AnalyticsDashboard />}
         {view === 'referral' && <ReferralProgram userProfile={userProfile} />}
         {/* STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live */}
         {/* {view === 'subscription' && <Subscription />} */}
