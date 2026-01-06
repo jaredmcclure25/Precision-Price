@@ -4,7 +4,7 @@
  * All Rights Reserved.
  */
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useAnalytics } from './hooks/useAnalytics';
 
@@ -14,15 +14,16 @@ import { useAnalytics } from './hooks/useAnalytics';
  */
 export default function AnalyticsWrapper({ children }) {
   const { currentUser } = useAuth();
-  const { trackAuth } = useAnalytics();
+  // This hook automatically initializes sessions in its useEffect
+  const analytics = useAnalytics();
 
   // Track login/logout events
   useEffect(() => {
     if (currentUser) {
       // User logged in or session resumed
-      trackAuth('login', currentUser);
+      analytics.trackAuth('login', currentUser);
     }
-  }, [currentUser, trackAuth]);
+  }, [currentUser, analytics]);
 
   return <>{children}</>;
 }
