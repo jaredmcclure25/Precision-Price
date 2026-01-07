@@ -200,7 +200,6 @@ export default function MarketplacePricer() {
                        file.name.toLowerCase().endsWith('.heif');
 
         if (isHEIC) {
-          console.log('🔄 Converting HEIC to JPEG:', file.name);
           try {
             const convertedBlob = await heic2any({
               blob: file,
@@ -217,9 +216,8 @@ export default function MarketplacePricer() {
               file.name.replace(/\.heic$/i, '.jpg'),
               { type: 'image/jpeg' }
             );
-            console.log('✅ HEIC converted successfully');
           } catch (conversionError) {
-            console.error('❌ HEIC conversion failed:', conversionError);
+            console.error('HEIC conversion failed:', conversionError);
             throw new Error(`${file.name}: HEIC conversion failed`);
           }
         }
@@ -256,14 +254,13 @@ export default function MarketplacePricer() {
   };
 
   const analyzePricing = async () => {
-    // Check if guest user has exceeded trial limit
+    // Check if guest user has exceeded 3 attempts
     if (isGuestMode && userProfile) {
-      const analysisCount = userProfile.analysisCount || 0;
-      const TRIAL_LIMIT = 999999; // Temporarily unlimited for family testing
+      const guestAttempts = userProfile.guestAttempts || 0;
 
-      if (analysisCount >= TRIAL_LIMIT) {
-        setError(`Trial limit reached (${TRIAL_LIMIT} free analyses). Please create an account to continue.`);
-        setView('subscription'); // Redirect to subscription/signup page
+      if (guestAttempts >= 3) {
+        setError('You\'ve reached the 3 free analysis limit. Please sign in or create an account to continue.');
+        setView('login');
         return;
       }
     }
@@ -615,9 +612,16 @@ Provide pricing analysis in this exact JSON structure:
         });
 
         // Update user profile
-        await updateUserProfile({
+        const updates = {
           analysisCount: (userProfile?.analysisCount || 0) + 1
-        });
+        };
+
+        // Track guest attempts separately
+        if (isGuestMode) {
+          updates.guestAttempts = (userProfile?.guestAttempts || 0) + 1;
+        }
+
+        await updateUserProfile(updates);
       } catch (parseError) {
         console.error('JSON parsing error:', parseError);
         console.error('Attempted to parse:', jsonMatch[0]);
@@ -1082,22 +1086,31 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
                 {images.length < 5 && !imageLoading && (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-400 transition cursor-pointer">
-                    <input key={formKey} type="file" accept="image/*,.heic,.heif" multiple onChange={handleImageUpload} className="hidden" id="image-upload" />
-                    <label htmlFor="image-upload" className="cursor-pointer">
-                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600 mb-1">Click to upload images</p>
-                      <p className="text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 10MB each ({images.length}/5 uploaded)</p>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center hover:border-indigo-400 transition cursor-pointer active:border-indigo-500">
+                    <input
+                      key={formKey}
+                      type="file"
+                      accept="image/*,.heic,.heif"
+                      multiple
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                      disabled={imageLoading}
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer block">
+                      <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-2 sm:mb-3" />
+                      <p className="text-gray-600 mb-1 text-sm sm:text-base font-medium">Tap to upload images</p>
+                      <p className="text-xs sm:text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 10MB each ({images.length}/5 uploaded)</p>
                     </label>
                   </div>
                 )}
                 {imageLoading && (
-                  <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-6 sm:p-8 text-center touch-none">
-                    <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-indigo-500 mx-auto mb-3 animate-spin" />
-                    <p className="text-indigo-700 font-medium mb-1 text-sm sm:text-base">Image loading</p>
-                    <p className="text-xs sm:text-sm text-indigo-600">This may take a few seconds</p>
-                    <div className="mt-3 sm:mt-4 w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
-                      <div className="bg-indigo-500 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
+                  <div className="border-2 border-indigo-500 bg-indigo-50 rounded-lg p-8 sm:p-10 text-center touch-none min-h-[200px] flex flex-col justify-center">
+                    <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-indigo-600 mx-auto mb-4 animate-spin" />
+                    <p className="text-indigo-700 font-bold mb-2 text-base sm:text-lg">Converting image...</p>
+                    <p className="text-sm sm:text-base text-indigo-600">This may take a few seconds</p>
+                    <div className="mt-4 sm:mt-5 w-full max-w-xs mx-auto bg-indigo-200 rounded-full h-2.5 overflow-hidden">
+                      <div className="bg-indigo-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
                     </div>
                   </div>
                 )}
