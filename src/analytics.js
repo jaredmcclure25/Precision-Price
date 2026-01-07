@@ -103,12 +103,6 @@ export async function initializeSession(user = null) {
       id: sessionRef.id
     };
 
-    console.log('✅ Analytics session initialized:', {
-      sessionId,
-      userId: user?.uid || 'guest',
-      userEmail: user?.email || 'guest'
-    });
-
     // Log session start activity
     await logActivity('session_start', {
       sessionId,
@@ -190,7 +184,6 @@ export async function logPageView(page, metadata = {}) {
  */
 export async function logActivity(activityType, metadata = {}) {
   if (!currentSession) {
-    console.warn('⚠️ Cannot log activity - no active session:', activityType);
     return;
   }
 
@@ -208,7 +201,6 @@ export async function logActivity(activityType, metadata = {}) {
 
     // Add to buffer for batch processing
     activityBuffer.push(activity);
-    console.log('📊 Activity logged:', activityType, metadata);
 
     // Flush buffer if it gets too large
     if (activityBuffer.length >= 10) {
@@ -536,7 +528,6 @@ async function getDeviceInfo() {
     }
   } catch (error) {
     // Silently fail - location is nice-to-have, not required
-    console.log('Location fetch skipped (offline or slow network)');
   }
 
   return {

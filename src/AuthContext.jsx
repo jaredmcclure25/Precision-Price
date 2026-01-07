@@ -84,6 +84,7 @@ export function AuthProvider({ children }) {
           streak: 0,
           totalEarnings: 0,
           analysisCount: 0,
+          guestAttempts: 0,
           perfectPrices: 0,
           level: 1
         };
@@ -97,6 +98,7 @@ export function AuthProvider({ children }) {
         streak: 0,
         totalEarnings: 0,
         analysisCount: 0,
+        guestAttempts: 0,
         perfectPrices: 0,
         level: 1
       };
@@ -104,6 +106,11 @@ export function AuthProvider({ children }) {
     }
 
     setLoading(false);
+  }
+
+  // Check if guest has reached the attempt limit
+  function hasReachedGuestLimit() {
+    return isGuestMode && userProfile && userProfile.guestAttempts >= 3;
   }
 
   // Load user profile from Firestore
@@ -250,7 +257,8 @@ export function AuthProvider({ children }) {
     enableGuestMode,
     updateUserProfile,
     saveItemToHistory,
-    getItemHistory
+    getItemHistory,
+    hasReachedGuestLimit
   };
 
   return (
