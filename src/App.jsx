@@ -46,7 +46,6 @@ export default function MarketplacePricer() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showTip, setShowTip] = useState(true);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
-  const [shippingEstimate, setShippingEstimate] = useState(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const resultsRef = useRef(null);
