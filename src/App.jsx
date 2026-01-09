@@ -1042,7 +1042,7 @@ Provide pricing analysis in this exact JSON structure:
             </div>
 
             {analysisMode === 'single' ? (
-              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey}} />
+              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal}} />
             ) : (
               <BulkAnalysis />
             )}
@@ -1071,7 +1071,7 @@ Provide pricing analysis in this exact JSON structure:
   );
 }
 
-function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey}) {
+function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal}) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
@@ -1284,12 +1284,16 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
 
           console.log('Form cleared');
         }}
+        currentListingId={currentListingId}
+        handleFeedbackSubmit={handleFeedbackSubmit}
+        setShowTransactionModal={setShowTransactionModal}
+        userProfile={userProfile}
       />}
     </div>
   );
 }
 
-function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis}) {
+function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, setShowTransactionModal, userProfile}) {
   const [showShare, setShowShare] = useState(false);
 
   const shareSuccess = () => {
