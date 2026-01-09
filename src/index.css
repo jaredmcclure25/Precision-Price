@@ -11,12 +11,10 @@
     font-size: 16px !important;
   }
 
-  /* Safe area for notched phones (iPhone X+) */
+  /* Safe area for notched phones (iPhone X+) - only top/bottom, not sides */
   body {
     padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    padding-bottom: 0; /* Don't add bottom padding to body, use pb-safe on specific elements */
   }
 
   /* Smooth scrolling on mobile */
