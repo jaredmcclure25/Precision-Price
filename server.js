@@ -305,6 +305,67 @@ app.post('/api/analyze', async (req, res) => {
 });
 
 // STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live
+// ============================================================================
+// FEEDBACK SUBMISSION ENDPOINT
+// ============================================================================
+
+// Submit feedback (price accuracy, transaction outcomes)
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { listingId, sessionId, userId, purpose, stage, effort, value, variant, metadata } = req.body;
+
+    // Validate required fields
+    if (!listingId || !purpose || !effort) {
+      return res.status(400).json({
+        error: 'Missing required fields: listingId, purpose, effort'
+      });
+    }
+
+    // Log feedback to server console for monitoring
+    console.log(`[FEEDBACK] ${purpose} - Listing: ${listingId} - Stage: ${stage || 'pre_listing'} - Value: ${JSON.stringify(value)}`);
+
+    // Here you could:
+    // 1. Store in a PostgreSQL database for long-term analytics
+    // 2. Send to analytics platform (Mixpanel, Amplitude, etc.)
+    // 3. Trigger webhooks for high-value feedback
+    // 4. Update pricing model training data
+
+    // For now, acknowledge receipt (client handles Firestore storage)
+    res.json({
+      success: true,
+      message: 'Feedback received',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error processing feedback:', error);
+    res.status(500).json({
+      error: 'Failed to process feedback',
+      message: error.message
+    });
+  }
+});
+
+// Get feedback analytics (for admin/analytics dashboard)
+app.get('/api/feedback/analytics', async (req, res) => {
+  try {
+    const { startDate, endDate, purpose } = req.query;
+
+    // This would query your Postgres database for aggregated feedback
+    // For now, return structure for frontend to implement
+
+    res.json({
+      message: 'Feedback analytics available via Firestore queries',
+      note: 'Implement Postgres sync for server-side aggregation',
+      serverTime: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting feedback analytics:', error);
+    res.status(500).json({ error: 'Failed to get analytics' });
+  }
+});
+
+// STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live
 // Stripe checkout session endpoint
 // app.post('/api/create-checkout-session', async (req, res) => {
 //   try {

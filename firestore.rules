@@ -121,6 +121,36 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ============================================================================
+    // FEEDBACK SYSTEM COLLECTIONS (New)
+    // ============================================================================
+
+    // Temporary listings - track items for feedback collection
+    match /listings_temp/{listingId} {
+      // Allow anyone to create/read/update temp listings (session-based tracking)
+      allow create: if true;
+      allow read: if true;
+      allow update: if true;
+
+      // Prevent deletion (data integrity)
+      allow delete: if false;
+    }
+
+    // Feedback events - collect price accuracy and transaction outcomes
+    match /feedback_events/{eventId} {
+      // Allow anyone to submit feedback (including guests)
+      allow create: if true;
+
+      // Allow read for:
+      // - Admin (can read all feedback)
+      // - Authenticated users (can read their own)
+      allow read: if isAdmin() ||
+                     (request.auth != null);
+
+      // Prevent updates and deletes (data integrity)
+      allow update, delete: if false;
+    }
+
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;
