@@ -19,10 +19,15 @@ import BullseyePriceTarget from './components/BullseyePriceTarget';
 import { getComparableItems, blendPricing, formatPricingInsights } from './pricingIntelligence';
 import heic2any from 'heic2any';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import { useFeedbackSystem } from './hooks/useFeedbackSystem';
+import MicroFeedback from './components/MicroFeedback';
+import TransactionOutcome from './components/TransactionOutcome';
+import FeedbackDashboard from './components/FeedbackDashboard';
 
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
   const { logoutSite } = useSiteAuth();
+  const { sessionData, currentListingId, createListingRecord, handleFeedbackSubmit } = useFeedbackSystem();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
   const [analysisMode, setAnalysisMode] = useState('single'); // 'single' or 'bulk'
@@ -43,6 +48,7 @@ export default function MarketplacePricer() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [shippingEstimate, setShippingEstimate] = useState(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
   const resultsRef = useRef(null);
 
   const tips = [
@@ -63,7 +69,7 @@ export default function MarketplacePricer() {
 
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
-    else if (['dashboard', 'history', 'achievements', 'leaderboard', 'analytics'].includes(view)) setMainTab('dashboard');
+    else if (['dashboard', 'history', 'achievements', 'leaderboard', 'analytics', 'feedback-dashboard'].includes(view)) setMainTab('dashboard');
     else if (['shipping', 'referral', 'testing'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
 
@@ -591,6 +597,15 @@ Provide pricing analysis in this exact JSON structure:
         setResult(parsedResult);
         setShowFeedback(true);
 
+        // Create listing record for feedback tracking
+        if (createListingRecord) {
+          createListingRecord(parsedResult).then(listingId => {
+            console.log('✅ Created listing for feedback:', listingId);
+          }).catch(err => {
+            console.warn('Could not create listing record:', err);
+          });
+        }
+
         // Scroll to results after a brief delay to ensure render
         setTimeout(() => {
           resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1039,6 +1054,7 @@ Provide pricing analysis in this exact JSON structure:
         {view === 'achievements' && <Achievements userProfile={userProfile} />}
         {view === 'leaderboard' && <Leaderboard />}
         {view === 'analytics' && <AnalyticsDashboard />}
+        {view === 'feedback-dashboard' && <FeedbackDashboard />}
         {view === 'referral' && <ReferralProgram userProfile={userProfile} />}
         {/* STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live */}
         {/* {view === 'subscription' && <Subscription />} */}
@@ -1295,6 +1311,14 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
             <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg">
               <Search className="w-4 h-4" />New Analysis
             </button>
+            <button
+              type="button"
+              onClick={() => setShowTransactionModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Report Sale
+            </button>
             <button type="button" onClick={shareSuccess} className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
               <Share2 className="w-4 h-4" />Share
             </button>
@@ -1357,7 +1381,22 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
       </div>
 
       {showFeedback && !feedbackSubmitted && <FeedbackForm onSubmit={submitFeedback} />}
-      
+
+      {/* MicroFeedback Component */}
+      {showFeedback && !feedbackSubmitted && currentListingId && (
+        <div className="mt-4">
+          <MicroFeedback
+            listingId={currentListingId}
+            onFeedbackSubmit={async (feedbackData) => {
+              const result = await handleFeedbackSubmit(feedbackData, userProfile);
+              if (result.success) {
+                console.log('✅ Micro feedback submitted successfully');
+              }
+            }}
+          />
+        </div>
+      )}
+
       {feedbackSubmitted && (
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex items-center gap-3 text-green-600 justify-center">
@@ -1365,6 +1404,22 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
             <p className="text-xl font-semibold">Feedback submitted! Thank you!</p>
           </div>
         </div>
+      )}
+
+      {/* TransactionOutcome Modal */}
+      {showTransactionModal && currentListingId && (
+        <TransactionOutcome
+          listingId={currentListingId}
+          suggestedPrice={result.suggestedPriceRange.optimal}
+          onSubmit={async (outcomeData) => {
+            const submitResult = await handleFeedbackSubmit(outcomeData, userProfile);
+            if (submitResult.success) {
+              console.log('✅ Transaction outcome recorded');
+              setShowTransactionModal(false);
+            }
+          }}
+          onClose={() => setShowTransactionModal(false)}
+        />
       )}
     </div>
   );
