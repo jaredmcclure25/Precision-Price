@@ -156,6 +156,9 @@ app.use(cors({
     'http://localhost:5176',
     'http://localhost:5177',
     'http://localhost:5178',
+    'http://192.168.1.67:5173', // Mobile dev testing
+    'http://192.168.1.67:5174',
+    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d{4,5}$/, // Any local network IP for mobile testing
     'https://www.precisionprices.com',
     'https://precisionprices.com',
     'https://precision-price.vercel.app',
