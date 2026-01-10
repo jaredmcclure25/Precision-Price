@@ -6,7 +6,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 
 // Firebase configuration
 // IMPORTANT: Replace these with your actual Firebase project credentials
@@ -26,11 +26,15 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 
-// Initialize Firestore with settings optimized for mobile Safari
-// This fixes CORS errors by using HTTP long polling instead of WebSockets
+// Initialize Firestore with offline persistence disabled
+// This is the nuclear option for Safari CORS issues - no persistent connections at all
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
   useFetchStreams: false,
+  ignoreUndefinedProperties: true,
+  localCache: {
+    kind: 'memory'
+  }
 });
 
 export default app;
