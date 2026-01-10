@@ -6,7 +6,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 
 // Firebase configuration
 // IMPORTANT: Replace these with your actual Firebase project credentials
@@ -25,6 +25,12 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Initialize Firestore with settings to prevent CORS errors
+// Use HTTP/1.1 instead of gRPC/WebChannel to avoid preflight CORS issues
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true, // Use long polling instead of WebSocket
+  useFetchStreams: false, // Disable streaming for better CORS compatibility
+});
 
 export default app;
