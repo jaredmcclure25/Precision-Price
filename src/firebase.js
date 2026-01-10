@@ -27,10 +27,14 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Initialize Firestore with settings to prevent CORS errors
-// Use HTTP/1.1 instead of gRPC/WebChannel to avoid preflight CORS issues
+// Completely disable persistent connections to eliminate all CORS errors
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true, // Use long polling instead of WebSocket
-  useFetchStreams: false, // Disable streaming for better CORS compatibility
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+  // Disable all offline persistence to prevent connection attempts
+  localCache: {
+    kind: 'MemoryLocalCache'
+  }
 });
 
 export default app;
