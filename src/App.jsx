@@ -267,7 +267,7 @@ export default function MarketplacePricer() {
     if (isGuestMode && userProfile) {
       const guestAttempts = userProfile.guestAttempts || 0;
 
-      if (guestAttempts >= 3) {
+      if (guestAttempts >= 100) { // Temporarily increased limit for testing
         console.log('❌ Guest limit reached');
         setError('You\'ve reached the 3 free analysis limit. Please sign in or create an account to continue.');
         setView('login');
