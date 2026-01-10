@@ -90,15 +90,19 @@ const styles = {
     gap: '8px'
   },
   button: {
-    padding: '8px 12px',
+    padding: '12px 16px',
+    minHeight: '44px',
+    minWidth: '44px',
     border: '1px solid #d1d5db',
     borderRadius: '6px',
     backgroundColor: '#ffffff',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     transition: 'all 0.2s ease',
-    color: '#6b7280'
+    color: '#6b7280',
+    touchAction: 'manipulation'
   },
   thankYou: {
     fontSize: '14px',
