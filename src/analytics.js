@@ -498,37 +498,10 @@ async function getDeviceInfo() {
   else if (/firefox/i.test(ua)) browser = 'Firefox';
   else if (/edge/i.test(ua)) browser = 'Edge';
 
-  // Get approximate location from IP (using free ipapi.co service)
+  // Get approximate location from IP
+  // DISABLED: ipapi.co rate limits causing CORS errors (429)
+  // Location detection not critical for app functionality
   let location = null;
-  try {
-    // Mobile-compatible fetch with AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-    const response = await fetch('https://ipapi.co/json/', {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const data = await response.json();
-      location = {
-        city: data.city || 'Unknown',
-        region: data.region || 'Unknown',
-        country: data.country_name || 'Unknown',
-        countryCode: data.country_code || 'XX',
-        timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        latitude: data.latitude || null,
-        longitude: data.longitude || null
-      };
-    }
-  } catch (error) {
-    // Silently fail - location is nice-to-have, not required
-  }
 
   return {
     type: deviceType,
