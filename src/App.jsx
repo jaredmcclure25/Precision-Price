@@ -262,11 +262,13 @@ export default function MarketplacePricer() {
   };
 
   const analyzePricing = async () => {
+    console.log('🎯 Analyze button clicked!');
     // Check if guest user has exceeded 3 attempts
     if (isGuestMode && userProfile) {
       const guestAttempts = userProfile.guestAttempts || 0;
 
       if (guestAttempts >= 3) {
+        console.log('❌ Guest limit reached');
         setError('You\'ve reached the 3 free analysis limit. Please sign in or create an account to continue.');
         setView('login');
         return;
@@ -275,6 +277,7 @@ export default function MarketplacePricer() {
 
     // Validate inputs before API call
     if (images.length === 0 && !itemName.trim()) {
+      console.log('❌ No image or item name provided');
       setError('Please provide either an image or item name');
       return;
     }
