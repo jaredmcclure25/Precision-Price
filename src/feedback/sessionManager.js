@@ -6,7 +6,8 @@
  * Hybrid session tracking: anonymous + authenticated users
  */
 
-import { addDocument, getDocument, updateDocument } from '../firestoreREST';
+import { db } from '../firebase';
+import { collection, addDoc, getDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 /**
  * Generate a unique session ID
@@ -39,13 +40,29 @@ function getDeviceType() {
  * @returns {Promise<object>} - Session data
  */
 export async function initializeSession(currentUser = null, zipCode = null) {
-  // TEMPORARILY DISABLED - Firestore REST API requires auth
-  // Just create a local session for now
   let sessionId = localStorage.getItem('pp_session_id');
 
   if (!sessionId) {
     sessionId = generateSessionId();
     localStorage.setItem('pp_session_id', sessionId);
+
+    // Create session in Firestore
+    try {
+      const sessionData = {
+        sessionId,
+        userId: currentUser?.uid || null,
+        userEmail: currentUser?.email || null,
+        deviceType: getDeviceType(),
+        region: zipCode || null,
+        createdAt: serverTimestamp(),
+        lastActiveAt: serverTimestamp(),
+        isAnonymous: !currentUser
+      };
+
+      await addDoc(collection(db, 'sessions'), sessionData);
+    } catch (error) {
+      console.error('Error creating session:', error);
+    }
   }
 
   const sessionData = {
@@ -54,8 +71,6 @@ export async function initializeSession(currentUser = null, zipCode = null) {
     userEmail: currentUser?.email || null,
     deviceType: getDeviceType(),
     region: zipCode || null,
-    createdAt: new Date(),
-    lastActiveAt: new Date(),
     isAnonymous: !currentUser
   };
 

@@ -11,7 +11,8 @@ import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import { useSiteAuth } from './PasswordProtection';
 import AuthPage from './AuthPage';
-import { addDocument } from './firestoreREST';
+import { db } from './firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import './storage'; // Cross-browser storage wrapper
 import { parseLocation, getLocationDescription, getLocationPricingInsight } from './locationData';
 import BullseyePriceTarget from './components/BullseyePriceTarget';
@@ -686,7 +687,7 @@ Provide pricing analysis in this exact JSON structure:
       // Send to Firebase silently in background
       try {
         console.log('🐛 Attempting to log error to Firebase bugReports...');
-        const docRef = await addDocument('bugReports', autoBugReport);
+        const docRef = await addDoc(collection(db, 'bugReports'), autoBugReport);
         console.log('✅ Error automatically logged to Firebase with ID:', docRef.id);
       } catch (firebaseError) {
         console.error('❌ Failed to auto-log error to Firebase:', firebaseError);
@@ -787,7 +788,7 @@ Provide pricing analysis in this exact JSON structure:
           };
 
           // Save to Firebase
-          await addDocument('soldPrices', soldPriceData);
+          await addDoc(collection(db, 'soldPrices'), soldPriceData);
           console.log('✅ Sold price saved to proprietary database');
         } catch (firebaseError) {
           console.error('Failed to save to Firebase soldPrices:', firebaseError);
