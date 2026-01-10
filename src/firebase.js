@@ -6,7 +6,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 
 // Firebase configuration
 // IMPORTANT: Replace these with your actual Firebase project credentials
@@ -26,12 +26,12 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 
-// Initialize Firestore with mobile-friendly settings
-// Use persistent cache to avoid CORS issues on mobile Safari
+// Initialize Firestore with mobile Safari compatibility
+// Use memory cache and disable problematic features for mobile browsers
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
+  localCache: memoryLocalCache(),
+  experimentalForceLongPolling: false,
+  experimentalAutoDetectLongPolling: false
 });
 
 export default app;
