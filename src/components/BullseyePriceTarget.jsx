@@ -61,29 +61,29 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-emerald-500 to-yellow-500 opacity-20"></div>
 
             {/* MIN marker */}
-            <div className="absolute left-0 top-0 bottom-0 w-1/3 border-r-2 border-emerald-600 border-dashed flex items-center justify-center">
+            <div className="absolute left-0 top-0 bottom-0 w-1/3 border-r-2 border-emerald-600 border-dashed flex items-center justify-center px-1">
               <div className="text-center">
-                <Zap className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
-                <div className="text-2xl font-bold text-emerald-700">${min}</div>
-                <div className="text-xs text-emerald-600 font-medium">Quick Sale</div>
+                <Zap className="w-4 h-4 sm:w-6 sm:h-6 text-emerald-600 mx-auto mb-1" />
+                <div className="text-lg sm:text-2xl font-bold text-emerald-700">${min}</div>
+                <div className="text-[10px] sm:text-xs text-emerald-600 font-medium">Quick Sale</div>
               </div>
             </div>
 
             {/* OPTIMAL marker (highlighted) */}
-            <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-x-2 border-emerald-700 bg-emerald-50 flex items-center justify-center animate-pulse">
+            <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-x-2 border-emerald-700 bg-emerald-50 flex items-center justify-center animate-pulse px-1">
               <div className="text-center">
-                <Target className="w-7 h-7 text-emerald-700 mx-auto mb-1" />
-                <div className="text-3xl font-bold text-emerald-800">${optimal}</div>
-                <div className="text-sm text-emerald-700 font-semibold">RECOMMENDED</div>
+                <Target className="w-5 h-5 sm:w-7 sm:h-7 text-emerald-700 mx-auto mb-1" />
+                <div className="text-xl sm:text-3xl font-bold text-emerald-800">${optimal}</div>
+                <div className="text-[10px] sm:text-sm text-emerald-700 font-semibold">BEST</div>
               </div>
             </div>
 
             {/* MAX marker */}
-            <div className="absolute right-0 top-0 bottom-0 w-1/3 border-l-2 border-yellow-600 border-dashed flex items-center justify-center">
+            <div className="absolute right-0 top-0 bottom-0 w-1/3 border-l-2 border-yellow-600 border-dashed flex items-center justify-center px-1">
               <div className="text-center">
-                <Award className="w-6 h-6 text-yellow-700 mx-auto mb-1" />
-                <div className="text-2xl font-bold text-yellow-800">${max}</div>
-                <div className="text-xs text-yellow-700 font-medium">Premium</div>
+                <Award className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-700 mx-auto mb-1" />
+                <div className="text-lg sm:text-2xl font-bold text-yellow-800">${max}</div>
+                <div className="text-[10px] sm:text-xs text-yellow-700 font-medium">Premium</div>
               </div>
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
       </div>
 
       {/* Strategy Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {/* MIN card */}
         <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 text-center">
           <Zap className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
