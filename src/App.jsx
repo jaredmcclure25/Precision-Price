@@ -886,23 +886,24 @@ Provide pricing analysis in this exact JSON structure:
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
       <nav className="bg-gradient-to-r from-emerald-600 to-green-600 shadow-2xl border-b-4 border-emerald-700">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-white p-2 rounded-2xl shadow-lg">
-                <img src="/logo.png" alt="Precision Prices Logo" className="w-12 h-12 object-contain" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
+            <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
+              <div className="bg-white p-1.5 sm:p-2 rounded-2xl shadow-lg flex-shrink-0">
+                <img src="/logo.png" alt="Precision Prices Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
               </div>
-              <div className="text-white">
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                  Precision Prices
-                  <Star className="w-5 h-5 text-yellow-300" />
+              <div className="text-white flex-1 md:flex-initial">
+                <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-1 sm:gap-2">
+                  <span className="hidden xs:inline">Precision Prices</span>
+                  <span className="inline xs:hidden">Precision</span>
+                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
                 </h1>
                 {userProfile && (
-                  <p className="text-xs text-emerald-100">Level {userProfile.level} Seller • {userProfile.badges.length} Badges Earned</p>
+                  <p className="text-[10px] sm:text-xs text-emerald-100 truncate">Level {userProfile.level} • {userProfile.badges.length} Badges</p>
                 )}
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex gap-2 flex-wrap items-center justify-center w-full md:w-auto">
               {[
                 { id: 'home', icon: Home, label: 'Home' },
                 { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -919,14 +920,14 @@ Provide pricing analysis in this exact JSON structure:
                     else if (tab.id === 'tools') setView('shipping');
                     else if (tab.id === 'subscription') setView('subscription');
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-semibold ${
+                  className={`flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px] ${
                     mainTab === tab.id
-                      ? 'bg-white text-emerald-600 shadow-lg scale-105'
-                      : 'bg-emerald-700 text-white hover:bg-emerald-800 hover:scale-105'
+                      ? 'bg-white text-emerald-600 shadow-lg'
+                      : 'bg-emerald-700 text-white hover:bg-emerald-800 active:bg-emerald-900'
                   }`}
                 >
-                  <tab.icon className="w-4 h-4" />
-                  <span className="hidden md:inline">{tab.label}</span>
+                  <tab.icon className="w-5 h-5 md:w-4 md:h-4" />
+                  <span className="hidden md:inline text-sm">{tab.label}</span>
                 </button>
               ))}
 
@@ -939,11 +940,11 @@ Provide pricing analysis in this exact JSON structure:
                   // Reload to show site password screen
                   window.location.reload();
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-semibold"
+                className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px]"
                 title={isGuestMode ? "Logout (Guest)" : currentUser?.email || "Logout"}
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden md:inline">Logout</span>
+                <LogOut className="w-5 h-5 md:w-4 md:h-4" />
+                <span className="hidden md:inline text-sm">Logout</span>
               </button>
             </div>
           </div>
