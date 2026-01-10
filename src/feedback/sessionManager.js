@@ -6,8 +6,7 @@
  * Hybrid session tracking: anonymous + authenticated users
  */
 
-import { collection, addDoc, doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { addDocument, getDocument, updateDocument } from '../firestoreREST';
 
 /**
  * Generate a unique session ID
@@ -47,12 +46,7 @@ export async function initializeSession(currentUser = null, zipCode = null) {
   if (sessionId) {
     // Try to retrieve existing session from Firestore
     try {
-      const sessionRef = doc(db, 'sessions', sessionId);
-      const sessionSnap = await getDoc(sessionRef);
-
-      if (sessionSnap.exists()) {
-        sessionData = sessionSnap.data();
-      }
+      sessionData = await getDocument('sessions', sessionId);
     } catch (error) {
       console.log('Could not retrieve session, creating new one');
     }
@@ -74,8 +68,7 @@ export async function initializeSession(currentUser = null, zipCode = null) {
 
     // Store in Firestore
     try {
-      const sessionRef = doc(db, 'sessions', sessionId);
-      await setDoc(sessionRef, sessionData);
+      await updateDocument('sessions', sessionId, sessionData);
     } catch (error) {
       console.warn('Failed to store session in Firestore:', error);
       // Continue anyway - we can still track locally
@@ -91,8 +84,7 @@ export async function initializeSession(currentUser = null, zipCode = null) {
     sessionData.upgradedAt = new Date();
 
     try {
-      const sessionRef = doc(db, 'sessions', sessionId);
-      await setDoc(sessionRef, sessionData, { merge: true });
+      await updateDocument('sessions', sessionId, sessionData);
     } catch (error) {
       console.warn('Failed to upgrade session:', error);
     }
@@ -109,10 +101,9 @@ export async function updateSessionActivity(sessionId) {
   if (!sessionId) return;
 
   try {
-    const sessionRef = doc(db, 'sessions', sessionId);
-    await setDoc(sessionRef, {
+    await updateDocument('sessions', sessionId, {
       lastActiveAt: new Date()
-    }, { merge: true });
+    });
   } catch (error) {
     // Fail silently - not critical
   }
@@ -127,13 +118,12 @@ export async function linkSessionToUser(sessionId, user) {
   if (!sessionId || !user) return;
 
   try {
-    const sessionRef = doc(db, 'sessions', sessionId);
-    await setDoc(sessionRef, {
+    await updateDocument('sessions', sessionId, {
       userId: user.uid,
       userEmail: user.email,
       isAnonymous: false,
       linkedAt: new Date()
-    }, { merge: true });
+    });
   } catch (error) {
     console.warn('Failed to link session to user:', error);
   }
@@ -160,8 +150,7 @@ export async function createTempListing(listingData, sessionId) {
   };
 
   try {
-    const listingRef = doc(db, 'listings_temp', listingId);
-    await setDoc(listingRef, tempListing);
+    await updateDocument('listings_temp', listingId, tempListing);
   } catch (error) {
     console.warn('Failed to create temp listing:', error);
     // Continue anyway - listing ID is still valid

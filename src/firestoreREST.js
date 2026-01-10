@@ -61,12 +61,44 @@ export async function getDocument(collectionName, docId) {
 }
 
 /**
- * Update a document
+ * Update a document (create if doesn't exist - uses PUT for upsert)
  */
 export async function updateDocument(collectionName, docId, data) {
   try {
+    // Use currentDocument.exists=false to create if doesn't exist
     const response = await fetch(`${BASE_URL}/${collectionName}/${docId}?key=${API_KEY}`, {
       method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: convertToFirestoreFields(data)
+      })
+    });
+
+    if (!response.ok) {
+      // If document doesn't exist (404), create it with PUT
+      if (response.status === 404) {
+        return await setDocument(collectionName, docId, data);
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Firestore REST updateDocument error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Set a document (create or overwrite)
+ */
+export async function setDocument(collectionName, docId, data) {
+  try {
+    const url = `${BASE_URL}/${collectionName}?documentId=${docId}&key=${API_KEY}`;
+    const response = await fetch(url, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -79,9 +111,13 @@ export async function updateDocument(collectionName, docId, data) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    return {
+      id: docId,
+      ...convertFromFirestoreFields(result.fields)
+    };
   } catch (error) {
-    console.error('Firestore REST updateDocument error:', error);
+    console.error('Firestore REST setDocument error:', error);
     throw error;
   }
 }
