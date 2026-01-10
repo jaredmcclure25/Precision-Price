@@ -11,8 +11,7 @@ import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import { useSiteAuth } from './PasswordProtection';
 import AuthPage from './AuthPage';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { addDocument } from './firestoreREST';
 import './storage'; // Cross-browser storage wrapper
 import { parseLocation, getLocationDescription, getLocationPricingInsight } from './locationData';
 import BullseyePriceTarget from './components/BullseyePriceTarget';
@@ -684,7 +683,7 @@ Provide pricing analysis in this exact JSON structure:
       // Send to Firebase silently in background
       try {
         console.log('🐛 Attempting to log error to Firebase bugReports...');
-        const docRef = await addDoc(collection(db, 'bugReports'), autoBugReport);
+        const docRef = await addDocument('bugReports', autoBugReport);
         console.log('✅ Error automatically logged to Firebase with ID:', docRef.id);
       } catch (firebaseError) {
         console.error('❌ Failed to auto-log error to Firebase:', firebaseError);
@@ -785,7 +784,7 @@ Provide pricing analysis in this exact JSON structure:
           };
 
           // Save to Firebase
-          await addDoc(collection(db, 'soldPrices'), soldPriceData);
+          await addDocument('soldPrices', soldPriceData);
           console.log('✅ Sold price saved to proprietary database');
         } catch (firebaseError) {
           console.error('Failed to save to Firebase soldPrices:', firebaseError);
@@ -1049,7 +1048,7 @@ Provide pricing analysis in this exact JSON structure:
             </div>
 
             {analysisMode === 'single' ? (
-              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal}} />
+              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey}} />
             ) : (
               <BulkAnalysis />
             )}
