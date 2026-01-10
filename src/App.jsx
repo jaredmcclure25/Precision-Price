@@ -178,6 +178,9 @@ export default function MarketplacePricer() {
 
     const newImages = validFiles.slice(0, 5 - images.length);
 
+    // Show loading indicator for all image uploads
+    setImageLoading(true);
+
     // Check if any files need HEIC conversion
     const hasHEIC = newImages.some(file =>
       file.type === 'image/heic' ||
@@ -187,11 +190,6 @@ export default function MarketplacePricer() {
       file.name.toLowerCase().endsWith('.heic') ||
       file.name.toLowerCase().endsWith('.heif')
     );
-
-    // Show loading indicator if HEIC conversion is needed
-    if (hasHEIC) {
-      setImageLoading(true);
-    }
 
     // Process all files in parallel for faster HEIC conversion
     const processPromises = newImages.map(async (file) => {
@@ -453,11 +451,11 @@ Provide pricing analysis in this exact JSON structure:
       contentParts.push({ type: 'text', text: prompt });
 
       // Call our backend server instead of Anthropic directly
-      // Use environment variable for backend URL, fallback to localhost in dev
+      // Use environment variable for backend URL, fallback to current hostname in dev
       const apiUrl = import.meta.env.VITE_BACKEND_URL
         ? `${import.meta.env.VITE_BACKEND_URL}/api/analyze`
         : import.meta.env.DEV
-        ? 'http://localhost:3001/api/analyze'
+        ? `http://${window.location.hostname}:3001/api/analyze`
         : '/api/analyze';
 
       console.log('📡 Sending request to API:', apiUrl);
@@ -966,10 +964,10 @@ Provide pricing analysis in this exact JSON structure:
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
+                  className={`flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-lg transition-all text-sm font-medium touch-manipulation ${
                     view === tab.id
                       ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -993,10 +991,10 @@ Provide pricing analysis in this exact JSON structure:
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
+                  className={`flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-lg transition-all text-sm font-medium touch-manipulation ${
                     view === tab.id
                       ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -1016,8 +1014,8 @@ Provide pricing analysis in this exact JSON structure:
               <Zap className="w-6 h-6 animate-pulse" />
               <p className="font-semibold text-lg">{tips[currentTipIndex]}</p>
             </div>
-            <button onClick={() => setShowTip(false)} className="text-white hover:text-gray-200">
-              <X className="w-5 h-5" />
+            <button onClick={() => setShowTip(false)} className="text-white hover:text-gray-200 active:text-gray-300 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>
@@ -1113,7 +1111,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
                 {images.length < 5 && !imageLoading && (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center hover:border-indigo-400 transition cursor-pointer active:border-indigo-500">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center hover:border-indigo-400 transition cursor-pointer active:border-indigo-500 min-h-[120px] flex items-center justify-center">
                     <input
                       key={formKey}
                       type="file"
@@ -1124,7 +1122,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                       id="image-upload"
                       disabled={imageLoading}
                     />
-                    <label htmlFor="image-upload" className="cursor-pointer block">
+                    <label htmlFor="image-upload" className="cursor-pointer block w-full">
                       <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-2 sm:mb-3" />
                       <p className="text-gray-600 mb-1 text-sm sm:text-base font-medium">Tap to upload images</p>
                       <p className="text-xs sm:text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 10MB each ({images.length}/5 uploaded)</p>
@@ -1132,9 +1130,9 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                   </div>
                 )}
                 {imageLoading && (
-                  <div className="border-2 border-indigo-500 bg-indigo-50 rounded-lg p-8 sm:p-10 text-center touch-none min-h-[200px] flex flex-col justify-center">
+                  <div className="border-2 border-indigo-500 bg-indigo-50 rounded-lg p-4 sm:p-6 md:p-8 text-center touch-none min-h-[200px] flex flex-col justify-center">
                     <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-indigo-600 mx-auto mb-4 animate-spin" />
-                    <p className="text-indigo-700 font-bold mb-2 text-base sm:text-lg">Converting image...</p>
+                    <p className="text-indigo-700 font-bold mb-2 text-base sm:text-lg">Loading image...</p>
                     <p className="text-sm sm:text-base text-indigo-600">This may take a few seconds</p>
                     <div className="mt-4 sm:mt-5 w-full max-w-xs mx-auto bg-indigo-200 rounded-full h-2.5 overflow-hidden">
                       <div className="bg-indigo-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
@@ -1142,11 +1140,11 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                   </div>
                 )}
                 {images.length > 0 && (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4">
                     {images.map((img, idx) => (
                       <div key={idx} className="relative">
-                        <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-64 object-cover rounded-lg" />
-                        <button onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600">
+                        <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-32 sm:h-48 md:h-56 lg:h-64 object-cover rounded-lg" />
+                        <button onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 active:bg-red-700 min-w-[36px] min-h-[36px] flex items-center justify-center touch-manipulation">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
@@ -1210,7 +1208,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 </div>
               )}
 
-              <button onClick={analyzePricing} disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2">
+              <button onClick={analyzePricing} disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px]">
                 {loading ? <><Loader2 className="w-5 h-5 animate-spin" />Analyzing...</> : <><Search className="w-5 h-5" />Analyze Pricing</>}
               </button>
             </div>
@@ -1219,7 +1217,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
 
         {/* Right Column - How to Use Summary (1/3 width) */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-8 sticky top-6">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">How to Use</h3>
             <div className="space-y-6">
               <div className="flex gap-4">
@@ -1322,19 +1320,19 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
       <div ref={resultsRef} className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Item Analysis</h2>
-          <div className="flex gap-2">
-            <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg">
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white rounded-lg touch-manipulation">
               <Search className="w-4 h-4" />New Analysis
             </button>
             <button
               type="button"
               onClick={() => setShowTransactionModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
+              className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white rounded-lg touch-manipulation"
             >
               <CheckCircle className="w-4 h-4" />
               Report Sale
             </button>
-            <button type="button" onClick={shareSuccess} className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
+            <button type="button" onClick={shareSuccess} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg touch-manipulation">
               <Share2 className="w-4 h-4" />Share
             </button>
           </div>
@@ -1550,20 +1548,20 @@ function RecentActivityItem({ item, index, onUpdate }) {
             <div className="flex gap-2">
               <button
                 onClick={() => setEditData({ ...editData, wasSold: true })}
-                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${
+                className={`flex-1 px-4 py-3 min-h-[44px] rounded text-sm font-medium transition touch-manipulation ${
                   editData.wasSold
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-green-500 text-white active:bg-green-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                 }`}
               >
                 Sold
               </button>
               <button
                 onClick={() => setEditData({ ...editData, wasSold: false })}
-                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${
+                className={`flex-1 px-4 py-3 min-h-[44px] rounded text-sm font-medium transition touch-manipulation ${
                   !editData.wasSold
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-orange-500 text-white active:bg-orange-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                 }`}
               >
                 Not Sold
@@ -1589,20 +1587,20 @@ function RecentActivityItem({ item, index, onUpdate }) {
             <div className="flex gap-2">
               <button
                 onClick={() => setEditData({ ...editData, wasFair: true })}
-                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition flex items-center justify-center gap-1 ${
+                className={`flex-1 px-4 py-3 min-h-[44px] rounded text-sm font-medium transition flex items-center justify-center gap-1 touch-manipulation ${
                   editData.wasFair
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-green-500 text-white active:bg-green-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                 }`}
               >
                 <ThumbsUp className="w-4 h-4" /> Yes
               </button>
               <button
                 onClick={() => setEditData({ ...editData, wasFair: false })}
-                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition flex items-center justify-center gap-1 ${
+                className={`flex-1 px-4 py-3 min-h-[44px] rounded text-sm font-medium transition flex items-center justify-center gap-1 touch-manipulation ${
                   editData.wasFair === false
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-red-500 text-white active:bg-red-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                 }`}
               >
                 <ThumbsDown className="w-4 h-4" /> No
@@ -3786,7 +3784,7 @@ function BulkAnalysis() {
 
         {/* Right Column - How to Use Summary (1/3 width) */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-8 sticky top-6">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">How Bulk Analysis Works</h3>
             <div className="space-y-6">
               <div className="flex gap-4">
