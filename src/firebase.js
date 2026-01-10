@@ -26,10 +26,14 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 
-// Disable persistent connections to fix Safari CORS errors
+// Completely disable all real-time features to fix Safari CORS errors
+// This forces Firestore to use only REST API calls, no persistent connections
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
   experimentalAutoDetectLongPolling: false,
+  localCache: {
+    kind: 'memory'
+  }
 });
 
 export default app;
