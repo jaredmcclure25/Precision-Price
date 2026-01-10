@@ -153,6 +153,7 @@ export default function MarketplacePricer() {
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
+    console.log('📸 Image upload started, files:', files.length);
     if (files.length === 0) return;
 
     const errors = [];
@@ -247,7 +248,9 @@ export default function MarketplacePricer() {
     try {
       const processedImages = await Promise.all(processPromises);
       setImages(prev => [...prev, ...processedImages]);
+      console.log('✅ Images uploaded successfully:', processedImages.length);
     } catch (err) {
+      console.error('❌ Image upload error:', err);
       errors.push(err.message);
       setError(errors.join('; '));
     } finally {
@@ -302,6 +305,7 @@ export default function MarketplacePricer() {
       return;
     }
 
+    console.log('🔍 Starting price analysis...');
     setLoading(true);
     setError(null);
     setResult(null);
@@ -453,6 +457,7 @@ Provide pricing analysis in this exact JSON structure:
         ? 'http://localhost:3001/api/analyze'
         : '/api/analyze';
 
+      console.log('📡 Sending request to API:', apiUrl);
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -460,6 +465,7 @@ Provide pricing analysis in this exact JSON structure:
           messages: [{ role: 'user', content: contentParts }]
         })
       });
+      console.log('📥 Received API response, status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -594,6 +600,7 @@ Provide pricing analysis in this exact JSON structure:
           parsedResult.dataSource = 'AI_only';
         }
 
+        console.log('✅ Analysis complete! Price:', parsedResult.suggestedPriceRange.optimal);
         setResult(parsedResult);
         setShowFeedback(true);
 
