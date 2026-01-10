@@ -6,7 +6,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 // Firebase configuration
 // IMPORTANT: Replace these with your actual Firebase project credentials
@@ -26,12 +26,9 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 
-// Initialize Firestore with mobile Safari compatibility
-// Use memory cache and disable problematic features for mobile browsers
-export const db = initializeFirestore(app, {
-  localCache: memoryLocalCache(),
-  experimentalForceLongPolling: false,
-  experimentalAutoDetectLongPolling: false
-});
+// Initialize Firestore with default settings
+// Mobile Safari CORS workaround: Use standard getFirestore()
+// and disable real-time listeners if needed
+export const db = getFirestore(app);
 
 export default app;
