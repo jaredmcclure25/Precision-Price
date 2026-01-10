@@ -1293,15 +1293,15 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         }}
         currentListingId={currentListingId}
         handleFeedbackSubmit={handleFeedbackSubmit}
-        setShowTransactionModal={setShowTransactionModal}
         userProfile={userProfile}
       />}
     </div>
   );
 }
 
-function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, setShowTransactionModal, userProfile}) {
+function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, userProfile}) {
   const [showShare, setShowShare] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
 
   const shareSuccess = () => {
     const text = `I just priced my ${result.itemIdentification.name} at $${result.suggestedPriceRange.optimal} using Precision Prices! 🎯`;
