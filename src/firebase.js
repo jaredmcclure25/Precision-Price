@@ -6,7 +6,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 // Firebase configuration
 // IMPORTANT: Replace these with your actual Firebase project credentials
@@ -26,9 +26,10 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 
-// Initialize Firestore with default settings
-// Mobile Safari CORS workaround: Use standard getFirestore()
-// and disable real-time listeners if needed
-export const db = getFirestore(app);
+// Initialize Firestore with long polling for mobile Safari compatibility
+// This fixes CORS errors by avoiding WebSocket connections
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
 
 export default app;
