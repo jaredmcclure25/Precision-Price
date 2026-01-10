@@ -6,7 +6,6 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
 // IMPORTANT: Replace these with your actual Firebase project credentials
@@ -25,6 +24,9 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Firestore SDK REMOVED - Using REST API instead to avoid CORS issues
+// See firestoreREST.js for replacement functions
+export const db = null;
 
 export default app;

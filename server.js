@@ -157,7 +157,9 @@ app.use(cors({
     'http://localhost:5177',
     'http://localhost:5178',
     'https://www.precisionprices.com',
-    'https://precisionprices.com'
+    'https://precisionprices.com',
+    'https://precision-price.vercel.app',
+    'https://precisionprices.firebaseapp.com'
   ],
   credentials: true
 }));
