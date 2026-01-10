@@ -26,10 +26,11 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 
-// Initialize Firestore with long polling for mobile Safari compatibility
-// This fixes CORS errors by avoiding WebSocket connections
+// Initialize Firestore with settings optimized for mobile Safari
+// This fixes CORS errors by using HTTP long polling instead of WebSockets
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
+  useFetchStreams: false,
 });
 
 export default app;
