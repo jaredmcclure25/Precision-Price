@@ -46,6 +46,7 @@ export default function MarketplacePricer() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showTip, setShowTip] = useState(true);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [shippingEstimate, setShippingEstimate] = useState(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const resultsRef = useRef(null);
@@ -891,7 +892,7 @@ Provide pricing analysis in this exact JSON structure:
                 )}
               </div>
             </div>
-            <div className="flex gap-2 md:gap-3 flex-wrap items-center">
+            <div className="flex gap-2 flex-wrap items-center">
               {[
                 { id: 'home', icon: Home, label: 'Home' },
                 { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -908,13 +909,13 @@ Provide pricing analysis in this exact JSON structure:
                     else if (tab.id === 'tools') setView('shipping');
                     else if (tab.id === 'subscription') setView('subscription');
                   }}
-                  className={`flex items-center gap-2 px-3 py-2 md:px-4 rounded-xl transition-all font-semibold text-sm md:text-base ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-semibold ${
                     mainTab === tab.id
                       ? 'bg-white text-emerald-600 shadow-lg scale-105'
                       : 'bg-emerald-700 text-white hover:bg-emerald-800 hover:scale-105'
                   }`}
                 >
-                  <tab.icon className="w-5 h-5 md:w-4 md:h-4" />
+                  <tab.icon className="w-4 h-4" />
                   <span className="hidden md:inline">{tab.label}</span>
                 </button>
               ))}
@@ -928,10 +929,10 @@ Provide pricing analysis in this exact JSON structure:
                   // Reload to show site password screen
                   window.location.reload();
                 }}
-                className="flex items-center gap-2 px-3 py-2 md:px-4 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-semibold text-sm md:text-base"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-semibold"
                 title={isGuestMode ? "Logout (Guest)" : currentUser?.email || "Logout"}
               >
-                <LogOut className="w-5 h-5 md:w-4 md:h-4" />
+                <LogOut className="w-4 h-4" />
                 <span className="hidden md:inline">Logout</span>
               </button>
             </div>
@@ -1041,7 +1042,7 @@ Provide pricing analysis in this exact JSON structure:
             </div>
 
             {analysisMode === 'single' ? (
-              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey}} />
+              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal}} />
             ) : (
               <BulkAnalysis />
             )}
@@ -1070,7 +1071,7 @@ Provide pricing analysis in this exact JSON structure:
   );
 }
 
-function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey}) {
+function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal}) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
@@ -1285,7 +1286,6 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         }}
         currentListingId={currentListingId}
         handleFeedbackSubmit={handleFeedbackSubmit}
-        showTransactionModal={showTransactionModal}
         setShowTransactionModal={setShowTransactionModal}
         userProfile={userProfile}
       />}
@@ -1293,7 +1293,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
   );
 }
 
-function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, userProfile}) {
+function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, setShowTransactionModal, userProfile}) {
   const [showShare, setShowShare] = useState(false);
 
   const shareSuccess = () => {
