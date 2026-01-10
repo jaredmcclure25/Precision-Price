@@ -4,16 +4,13 @@
  * All Rights Reserved.
  *
  * Collect actual sale data: sold price, days to sell, ghosting
- * Mobile-optimized with responsive design
  */
 
 import React, { useState } from "react";
 import { DollarSign, Calendar, Users, CheckCircle, X } from 'lucide-react';
 import { FeedbackPurpose, FeedbackEffort, TransactionStage } from '../feedback/feedbackEnums';
-import { useMobileDetect } from '../hooks/useMobileDetect';
 
 export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit, onClose }) {
-  const { isMobile } = useMobileDetect();
   const [sold, setSold] = useState(null);
   const [finalPrice, setFinalPrice] = useState('');
   const [daysToSell, setDaysToSell] = useState('');
@@ -50,42 +47,36 @@ export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4 sm:p-5">
-      <div className={`modal-mobile bg-white shadow-xl overflow-y-auto ${isMobile ? 'w-full h-full' : 'max-w-lg w-full max-h-[90vh] rounded-xl'}`}>
-        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-200">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 m-0">How did it go?</h3>
-          <button
-            onClick={onClose}
-            className="btn-mobile bg-transparent border-0 cursor-pointer text-gray-500 hover:text-gray-700 p-2 transition-colors"
-            aria-label="Close modal"
-          >
-            <X size={isMobile ? 24 : 20} />
+    <div style={styles.overlay}>
+      <div style={styles.modal}>
+        <div style={styles.header}>
+          <h3 style={styles.title}>How did it go?</h3>
+          <button onClick={onClose} style={styles.closeBtn}>
+            <X size={20} />
           </button>
         </div>
 
-        <div className="card-mobile touch-spacing">
+        <div style={styles.content}>
           {/* Did it sell? */}
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Did your item sell?</label>
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div style={styles.section}>
+            <label style={styles.label}>Did your item sell?</label>
+            <div style={styles.buttonGroup}>
               <button
                 onClick={() => setSold(true)}
-                className={`btn-mobile flex-1 border-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-all ${
-                  sold === true
-                    ? 'border-blue-500 bg-blue-50 text-blue-600'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                }`}
+                style={{
+                  ...styles.optionBtn,
+                  ...(sold === true ? styles.optionBtnActive : {})
+                }}
               >
                 <CheckCircle size={18} />
                 Yes, it sold!
               </button>
               <button
                 onClick={() => setSold(false)}
-                className={`btn-mobile flex-1 border-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-all ${
-                  sold === false
-                    ? 'border-blue-500 bg-blue-50 text-blue-600'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                }`}
+                style={{
+                  ...styles.optionBtn,
+                  ...(sold === false ? styles.optionBtnActive : {})
+                }}
               >
                 <X size={18} />
                 No, still listed
@@ -96,9 +87,9 @@ export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit
           {/* If sold, collect details */}
           {sold === true && (
             <>
-              <div className="mb-5">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <DollarSign size={16} className="inline mr-1" />
+              <div style={styles.section}>
+                <label style={styles.label}>
+                  <DollarSign size={16} style={{ display: 'inline', marginRight: '4px' }} />
                   Final sale price
                 </label>
                 <input
@@ -106,12 +97,12 @@ export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit
                   value={finalPrice}
                   onChange={(e) => setFinalPrice(e.target.value)}
                   placeholder="Enter amount"
-                  className="input-mobile w-full border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                  style={styles.input}
                   min="0"
                   step="0.01"
                 />
                 {finalPrice && suggestedPrice && (
-                  <div className="mt-2 text-xs sm:text-sm text-gray-600">
+                  <div style={styles.hint}>
                     {parseFloat(finalPrice) > suggestedPrice
                       ? `🎉 ${(((parseFloat(finalPrice) - suggestedPrice) / suggestedPrice) * 100).toFixed(0)}% above suggestion!`
                       : parseFloat(finalPrice) < suggestedPrice
@@ -121,9 +112,9 @@ export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit
                 )}
               </div>
 
-              <div className="mb-5">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Calendar size={16} className="inline mr-1" />
+              <div style={styles.section}>
+                <label style={styles.label}>
+                  <Calendar size={16} style={{ display: 'inline', marginRight: '4px' }} />
                   How many days to sell?
                 </label>
                 <input
@@ -131,20 +122,20 @@ export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit
                   value={daysToSell}
                   onChange={(e) => setDaysToSell(e.target.value)}
                   placeholder="Number of days"
-                  className="input-mobile w-full border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                  style={styles.input}
                   min="0"
                 />
               </div>
 
-              <div className="mb-5">
-                <label className="flex items-center text-sm text-gray-700 cursor-pointer">
+              <div style={styles.section}>
+                <label style={styles.checkboxLabel}>
                   <input
                     type="checkbox"
                     checked={ghosted}
                     onChange={(e) => setGhosted(e.target.checked)}
-                    className="w-5 h-5 cursor-pointer accent-blue-500"
+                    style={styles.checkbox}
                   />
-                  <Users size={16} className="ml-2 mr-1" />
+                  <Users size={16} style={{ marginLeft: '8px', marginRight: '4px' }} />
                   I dealt with flaky buyers (ghosting/no-shows)
                 </label>
               </div>
@@ -153,27 +144,23 @@ export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit
 
           {/* If not sold */}
           {sold === false && (
-            <div className="text-xs sm:text-sm text-gray-600">
+            <div style={styles.hint}>
               Thanks for the update! This helps us understand market demand.
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-3 p-4 sm:p-6 pb-safe border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="btn-mobile px-5 py-2.5 border border-gray-300 rounded-lg bg-white cursor-pointer text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
+        <div style={styles.footer}>
+          <button onClick={onClose} style={styles.cancelBtn}>
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={sold === null || submitting}
-            className={`btn-mobile px-5 py-2.5 border-0 rounded-lg text-white cursor-pointer text-sm font-medium transition-colors ${
-              sold === null || submitting
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600'
-            }`}
+            style={{
+              ...styles.submitBtn,
+              ...(sold === null || submitting ? styles.submitBtnDisabled : {})
+            }}
           >
             {submitting ? 'Submitting...' : 'Submit Feedback'}
           </button>
@@ -182,3 +169,142 @@ export default function TransactionOutcome({ listingId, suggestedPrice, onSubmit
     </div>
   );
 }
+
+const styles = {
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px'
+  },
+  modal: {
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    maxWidth: '500px',
+    width: '100%',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  title: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#111827',
+    margin: 0
+  },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#6b7280',
+    padding: '4px'
+  },
+  content: {
+    padding: '24px'
+  },
+  section: {
+    marginBottom: '20px'
+  },
+  label: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '8px'
+  },
+  buttonGroup: {
+    display: 'flex',
+    gap: '12px'
+  },
+  optionBtn: {
+    flex: 1,
+    padding: '12px 16px',
+    border: '2px solid #d1d5db',
+    borderRadius: '8px',
+    backgroundColor: '#ffffff',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    transition: 'all 0.2s ease'
+  },
+  optionBtnActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff',
+    color: '#3b82f6'
+  },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    boxSizing: 'border-box'
+  },
+  checkboxLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '14px',
+    color: '#374151',
+    cursor: 'pointer'
+  },
+  checkbox: {
+    width: '18px',
+    height: '18px',
+    cursor: 'pointer'
+  },
+  hint: {
+    marginTop: '8px',
+    fontSize: '13px',
+    color: '#6b7280'
+  },
+  footer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    padding: '16px 24px',
+    borderTop: '1px solid #e5e7eb'
+  },
+  cancelBtn: {
+    padding: '10px 20px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    backgroundColor: '#ffffff',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151'
+  },
+  submitBtn: {
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '6px',
+    backgroundColor: '#3b82f6',
+    color: '#ffffff',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  submitBtnDisabled: {
+    backgroundColor: '#9ca3af',
+    cursor: 'not-allowed'
+  }
+};
