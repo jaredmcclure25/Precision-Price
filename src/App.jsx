@@ -23,6 +23,8 @@ import { useFeedbackSystem } from './hooks/useFeedbackSystem';
 import MicroFeedback from './components/MicroFeedback';
 import TransactionOutcome from './components/TransactionOutcome';
 import FeedbackDashboard from './components/FeedbackDashboard';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
@@ -459,46 +461,54 @@ Provide pricing analysis in this exact JSON structure:
         : '/api/analyze';
 
       console.log('📡 Sending request to API:', apiUrl);
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: contentParts }]
-        })
-      });
-      console.log('📥 Received API response, status:', response.status);
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      // Create abort controller for timeout (60 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-        // Handle prohibited content errors with simple message
-        if (errorData.error?.type === 'prohibited_content') {
-          throw new Error(errorData.error.message);
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: contentParts }]
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        console.log('📥 Received API response, status:', response.status);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+
+          // Handle prohibited content errors with simple message
+          if (errorData.error?.type === 'prohibited_content') {
+            throw new Error(errorData.error.message);
+          }
+
+          throw new Error(errorData.error?.message || `API error: ${response.status}`);
         }
 
-        throw new Error(errorData.error?.message || `API error: ${response.status}`);
-      }
+        const data = await response.json();
 
-      const data = await response.json();
-      
-      // Extract text content from all text blocks
-      const textContent = data.content
-        .filter(c => c.type === 'text')
-        .map(c => c.text)
-        .join('\n');
-      
-      if (!textContent) {
-        throw new Error('No response content received from API');
-      }
+        // Extract text content from all text blocks
+        const textContent = data.content
+          .filter(c => c.type === 'text')
+          .map(c => c.text)
+          .join('\n');
 
-      // Try to extract JSON from the response
-      // Remove markdown code blocks if present
-      let cleanText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        if (!textContent) {
+          throw new Error('No response content received from API');
+        }
 
-      // Try to find JSON object - use greedy match to get the full object
-      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        // Try to extract JSON from the response
+        // Remove markdown code blocks if present
+        let cleanText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-      if (!jsonMatch) {
+        // Try to find JSON object - use greedy match to get the full object
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
         addDebugLog('error', 'JSON parsing failed');
         addDebugLog('info', `Response length: ${textContent.length}`);
         addDebugLog('info', `Preview: ${textContent.substring(0, 200)}`);
@@ -655,6 +665,13 @@ Provide pricing analysis in this exact JSON structure:
         detailedError.parseAttempt = jsonMatch[0].substring(0, 500); // First 500 chars
         throw detailedError;
       }
+    } catch (fetchError) {
+      // Handle timeout and network errors
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timed out after 60 seconds. The backend may be processing a large request. Please try again with fewer or smaller images.');
+      }
+      throw fetchError;
     } catch (err) {
       setError(err.message || 'Failed to analyze pricing');
 
@@ -3361,47 +3378,61 @@ function BulkAnalysis() {
 
         contentParts.push({ type: 'text', text: prompt });
 
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [{ role: 'user', content: contentParts }]
-          })
-        });
+        // Add timeout for bulk analysis too
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          if (errorData.error?.type === 'prohibited_content') {
-            throw new Error(errorData.error.message);
-          }
-          throw new Error(errorData.error?.message || `API error: ${response.status}`);
-        }
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: contentParts }]
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
 
-        const data = await response.json();
-
-        // Parse Claude's response
-        const textContent = data.content.find(c => c.type === 'text')?.text || '';
-        const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-
-        if (jsonMatch) {
-          const parsedResult = JSON.parse(jsonMatch[0]);
-          // Format result to match expected structure
-          const formattedResult = {
-            pricing: {
-              prices: [
-                parsedResult.suggestedPriceRange?.min || 0,
-                parsedResult.pricingStrategy?.listingPrice || parsedResult.suggestedPriceRange?.optimal || 0,
-                parsedResult.suggestedPriceRange?.max || 0
-              ]
+          if (!response.ok) {
+            const errorData = await response.json();
+            if (errorData.error?.type === 'prohibited_content') {
+              throw new Error(errorData.error.message);
             }
-          };
-          updateItem(item.id, 'result', formattedResult);
-          updateItem(item.id, 'error', null);
-        } else {
-          throw new Error('Unable to parse pricing data');
-        }
+            throw new Error(errorData.error?.message || `API error: ${response.status}`);
+          }
 
-        setCompletedCount(prev => prev + 1);
+          const data = await response.json();
+
+          // Parse Claude's response
+          const textContent = data.content.find(c => c.type === 'text')?.text || '';
+          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+
+          if (jsonMatch) {
+            const parsedResult = JSON.parse(jsonMatch[0]);
+            // Format result to match expected structure
+            const formattedResult = {
+              pricing: {
+                prices: [
+                  parsedResult.suggestedPriceRange?.min || 0,
+                  parsedResult.pricingStrategy?.listingPrice || parsedResult.suggestedPriceRange?.optimal || 0,
+                  parsedResult.suggestedPriceRange?.max || 0
+                ]
+              }
+            };
+            updateItem(item.id, 'result', formattedResult);
+            updateItem(item.id, 'error', null);
+          } else {
+            throw new Error('Unable to parse pricing data');
+          }
+
+          setCompletedCount(prev => prev + 1);
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Request timed out. Try fewer or smaller images.');
+          }
+          throw fetchError;
+        }
       } catch (err) {
         updateItem(item.id, 'error', err.message);
       } finally {
