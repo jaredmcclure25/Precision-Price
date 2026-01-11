@@ -665,13 +665,14 @@ Provide pricing analysis in this exact JSON structure:
         detailedError.parseAttempt = jsonMatch[0].substring(0, 500); // First 500 chars
         throw detailedError;
       }
-    } catch (fetchError) {
-      // Handle timeout and network errors
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        throw new Error('Request timed out after 60 seconds. The backend may be processing a large request. Please try again with fewer or smaller images.');
+      } catch (fetchError) {
+        // Handle timeout and network errors
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timed out after 60 seconds. The backend may be processing a large request. Please try again with fewer or smaller images.');
+        }
+        throw fetchError;
       }
-      throw fetchError;
     } catch (err) {
       setError(err.message || 'Failed to analyze pricing');
 
