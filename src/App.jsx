@@ -193,12 +193,9 @@ export default function MarketplacePricer() {
       file.name.toLowerCase().endsWith('.heif')
     );
 
-    // Process all files in parallel for faster HEIC conversion
+    // Process images like Instagram/Facebook: Keep original format, create thumbnail for preview only
     const processPromises = newImages.map(async (file) => {
       try {
-        let processedFile = file;
-
-        // Check if file is HEIC/HEIF and convert to JPEG
         const isHEIC = file.type === 'image/heic' ||
                        file.type === 'image/heif' ||
                        file.type === 'image/heic-sequence' ||
@@ -206,41 +203,49 @@ export default function MarketplacePricer() {
                        file.name.toLowerCase().endsWith('.heic') ||
                        file.name.toLowerCase().endsWith('.heif');
 
+        let previewDataURL;
+
         if (isHEIC) {
+          // For HEIC: Create small JPEG thumbnail for preview only (like Instagram)
           try {
-            const convertedBlob = await heic2any({
+            console.log(`📸 Creating thumbnail for HEIC: ${file.name}`);
+            const thumbnailBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
-              quality: 0.7  // Reduced from 0.9 for faster conversion
+              quality: 0.3  // Very low quality, small size - just for preview
             });
 
-            // Handle array of blobs (heic2any can return array)
-            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            const blob = Array.isArray(thumbnailBlob) ? thumbnailBlob[0] : thumbnailBlob;
 
-            // Create a new File object with JPEG type
-            processedFile = new File(
-              [blob],
-              file.name.replace(/\.heic$/i, '.jpg'),
-              { type: 'image/jpeg' }
-            );
+            // Convert thumbnail to dataURL for preview
+            previewDataURL = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+
+            console.log(`✅ Thumbnail created for ${file.name}`);
           } catch (conversionError) {
-            console.error('HEIC conversion failed:', conversionError);
-            throw new Error(`${file.name}: HEIC conversion failed`);
+            console.error('Thumbnail creation failed:', conversionError);
+            // Use a placeholder image if thumbnail fails
+            previewDataURL = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" fill="%23999">Photo</text></svg>';
           }
+        } else {
+          // For other formats: Use as-is for preview
+          previewDataURL = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
         }
 
-        // Read the processed file and return promise
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve({ file: processedFile, preview: reader.result });
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(processedFile);
-        });
+        // Return original file for upload (backend will handle it)
+        return { file: file, preview: previewDataURL };
       } catch (err) {
         console.error('Error processing image:', err);
-        throw new Error(`${file.name}: Processing failed`);
+        throw new Error(`${file.name}: ${err.message || 'Processing failed'}`);
       }
     });
 
@@ -334,6 +339,9 @@ export default function MarketplacePricer() {
         if (img.file.type === 'image/png') mediaType = 'image/png';
         else if (img.file.type === 'image/webp') mediaType = 'image/webp';
         else if (img.file.type === 'image/gif') mediaType = 'image/gif';
+        else if (img.file.type === 'image/heic' || img.file.type === 'image/heif') mediaType = img.file.type;
+        else if (img.file.name.toLowerCase().endsWith('.heic')) mediaType = 'image/heic';
+        else if (img.file.name.toLowerCase().endsWith('.heif')) mediaType = 'image/heif';
 
         contentParts.push({
           type: 'image',
@@ -462,21 +470,39 @@ Provide pricing analysis in this exact JSON structure:
 
       console.log('📡 Sending request to API:', apiUrl);
 
-      // Create abort controller for timeout (60 seconds)
+      // Create abort controller for timeout (180 seconds for mobile photo uploads)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+      let response;
+      let retryCount = 0;
+      const maxRetries = 2;
+
+      // Retry logic with exponential backoff
+      while (retryCount <= maxRetries) {
+        try {
+          response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: contentParts }]
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          console.log('📥 Received API response, status:', response.status);
+          break; // Success, exit retry loop
+        } catch (fetchErr) {
+          retryCount++;
+          if (fetchErr.name === 'AbortError' || retryCount > maxRetries) {
+            throw fetchErr; // Don't retry timeout or if max retries exceeded
+          }
+          console.log(`⚠️ Request failed, retrying (${retryCount}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+        }
+      }
 
       try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [{ role: 'user', content: contentParts }]
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        console.log('📥 Received API response, status:', response.status);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -669,7 +695,7 @@ Provide pricing analysis in this exact JSON structure:
         // Handle timeout and network errors
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          throw new Error('Request timed out after 60 seconds. The backend may be processing a large request. Please try again with fewer or smaller images.');
+          throw new Error('Request timed out after 3 minutes. Please check your internet connection and try again. If the issue persists, try with fewer photos.');
         }
         throw fetchError;
       }
@@ -3272,36 +3298,51 @@ function BulkAnalysis() {
       updateItem(id, 'imageLoading', true);
     }
 
-    // Process all files in parallel
+    // Process images like Instagram/Facebook: Keep original format, create thumbnail for preview only
     const processPromises = newImages.map(async (file) => {
       try {
-        let processedFile = file;
-
         const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
-                       file.name.toLowerCase().endsWith('.heic');
+                       file.name.toLowerCase().endsWith('.heic') ||
+                       file.name.toLowerCase().endsWith('.heif');
+
+        let previewDataURL;
 
         if (isHEIC) {
-          console.log('🔄 Converting HEIC to JPEG:', file.name);
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.7
-          });
+          try {
+            console.log(`📸 Creating thumbnail for HEIC: ${file.name}`);
+            const thumbnailBlob = await heic2any({
+              blob: file,
+              toType: 'image/jpeg',
+              quality: 0.3  // Very low quality, small size - just for preview
+            });
 
-          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-          processedFile = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
-          console.log('✅ HEIC converted successfully');
+            const blob = Array.isArray(thumbnailBlob) ? thumbnailBlob[0] : thumbnailBlob;
+
+            previewDataURL = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+
+            console.log(`✅ Thumbnail created for ${file.name}`);
+          } catch (conversionError) {
+            console.error('Thumbnail creation failed:', conversionError);
+            previewDataURL = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" fill="%23999">Photo</text></svg>';
+          }
+        } else {
+          previewDataURL = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
         }
 
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve({ file: processedFile, preview: reader.result });
-          reader.onerror = reject;
-          reader.readAsDataURL(processedFile);
-        });
+        return { file: file, preview: previewDataURL };
       } catch (err) {
         console.error('Error processing image:', err);
-        throw new Error(`${file.name}: Processing failed`);
+        throw new Error(`${file.name}: ${err.message || 'Processing failed'}`);
       }
     });
 
@@ -3360,6 +3401,9 @@ function BulkAnalysis() {
           if (img.file.type === 'image/png') mediaType = 'image/png';
           else if (img.file.type === 'image/webp') mediaType = 'image/webp';
           else if (img.file.type === 'image/gif') mediaType = 'image/gif';
+          else if (img.file.type === 'image/heic' || img.file.type === 'image/heif') mediaType = img.file.type;
+          else if (img.file.name.toLowerCase().endsWith('.heic')) mediaType = 'image/heic';
+          else if (img.file.name.toLowerCase().endsWith('.heif')) mediaType = 'image/heif';
 
           contentParts.push({
             type: 'image',
@@ -3379,20 +3423,38 @@ function BulkAnalysis() {
 
         contentParts.push({ type: 'text', text: prompt });
 
-        // Add timeout for bulk analysis too
+        // Add timeout for bulk analysis (180 seconds for mobile photo uploads)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+        let response;
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        // Retry logic with exponential backoff
+        while (retryCount <= maxRetries) {
+          try {
+            response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: [{ role: 'user', content: contentParts }]
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            break; // Success, exit retry loop
+          } catch (fetchErr) {
+            retryCount++;
+            if (fetchErr.name === 'AbortError' || retryCount > maxRetries) {
+              throw fetchErr;
+            }
+            console.log(`⚠️ Request failed for item ${item.itemName}, retrying (${retryCount}/${maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
+        }
 
         try {
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [{ role: 'user', content: contentParts }]
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
 
           if (!response.ok) {
             const errorData = await response.json();
@@ -3430,7 +3492,7 @@ function BulkAnalysis() {
         } catch (fetchError) {
           clearTimeout(timeoutId);
           if (fetchError.name === 'AbortError') {
-            throw new Error('Request timed out. Try fewer or smaller images.');
+            throw new Error('Request timed out after 3 minutes. Please check your internet connection and try again. If the issue persists, try with fewer photos.');
           }
           throw fetchError;
         }
