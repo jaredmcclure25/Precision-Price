@@ -127,14 +127,6 @@ export default function MarketplacePricer() {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const resultsRef = useRef(null);
 
-  const tips = [
-    "📸 Pro Tip: Upload photos from multiple angles for 23% more accurate pricing!",
-    "⏰ Best time to list: Thursday evenings get 40% more views",
-    "💡 Items with original packaging sell 30% faster",
-    "🎯 Price within 5% of our suggestion for best results",
-    "📊 Adding 3+ photos increases sale probability by 60%"
-  ];
-
 
   useEffect(() => {
     loadUserProfile();
@@ -148,11 +140,6 @@ export default function MarketplacePricer() {
     else if (['dashboard', 'history', 'achievements', 'leaderboard', 'feedback-dashboard'].includes(view)) setMainTab('dashboard');
     else if (['shipping'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
-
-    const tipInterval = setInterval(() => {
-      setCurrentTipIndex(prev => (prev + 1) % tips.length);
-    }, 10000);
-    return () => clearInterval(tipInterval);
   }, [view]);
 
   const loadUserProfile = async () => {
@@ -1162,20 +1149,6 @@ Provide pricing analysis in this exact JSON structure:
         </div>
       )}
 
-      {/* Rotating Tips Banner */}
-      {showTip && view === 'pricing' && (
-        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-4 shadow-lg">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Zap className="w-6 h-6 animate-pulse" />
-              <p className="font-semibold text-lg">{tips[currentTipIndex]}</p>
-            </div>
-            <button onClick={() => setShowTip(false)} className="text-white hover:text-gray-200 active:text-gray-300 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="p-6">
         {view === 'pricing' && (
