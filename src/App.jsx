@@ -2542,69 +2542,262 @@ function BugReportModal({error, onClose, onSubmit}) {
 
 function Leaderboard() {
   const [leaders, setLeaders] = useState([]);
+  const [activeTab, setActiveTab] = useState('week');
+  const [activeCategory, setActiveCategory] = useState('value');
+  const [userRank, setUserRank] = useState(null);
 
   useEffect(() => {
     loadLeaderboard();
-  }, []);
+  }, [activeTab, activeCategory]);
+
+  const generateRealisticLeaders = (timeframe) => {
+    const firstNames = ['Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Avery', 'Quinn', 'Sam', 'Jamie'];
+    const lastInitials = 'ABCDEFGHJKLMNPQRSTUVWXYZ'.split('');
+
+    const timeMultiplier = timeframe === 'week' ? 0.2 : timeframe === 'month' ? 0.7 : 1;
+    const count = 10;
+
+    return Array.from({ length: count }, (_, i) => {
+      const baseSales = Math.floor((50 - i * 3) * timeMultiplier) + Math.floor(Math.random() * 5);
+      const baseEarnings = Math.floor(baseSales * (25 + Math.random() * 60));
+
+      return {
+        name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastInitials[Math.floor(Math.random() * lastInitials.length)]}.`,
+        sales: Math.max(1, baseSales),
+        earnings: Math.max(50, baseEarnings),
+        accuracy: Math.floor(70 + Math.random() * 28),
+        quickSales: Math.floor(baseSales * 0.3),
+        streak: Math.floor(Math.random() * (timeframe === 'week' ? 7 : timeframe === 'month' ? 20 : 50)) + 1,
+        movement: Math.floor(Math.random() * 5) - 2
+      };
+    });
+  };
 
   const loadLeaderboard = async () => {
     try {
+      // Load user profile to include in rankings
+      const userStored = await window.storage.get('userprofile');
+      const userProfile = userStored?.value ? JSON.parse(userStored.value) : null;
+
+      // Check for custom stored leaderboard data
       const stored = await window.storage.get('leaderboard', true);
+
+      let leaderData;
       if (stored && stored.value) {
-        setLeaders(JSON.parse(stored.value));
+        // Use stored data if available (backward compatible)
+        leaderData = JSON.parse(stored.value);
       } else {
-        // Demo data
-        setLeaders([
-          { name: 'Sarah M.', earnings: 2340, sales: 45 },
-          { name: 'Mike T.', earnings: 1890, sales: 38 },
-          { name: 'Jennifer K.', earnings: 1650, sales: 32 },
-          { name: 'David R.', earnings: 1420, sales: 28 },
-          { name: 'Lisa P.', earnings: 1200, sales: 24 }
-        ]);
+        // Generate realistic data based on timeframe
+        leaderData = generateRealisticLeaders(activeTab);
+      }
+
+      setLeaders(leaderData);
+
+      // Calculate user's rank if they have activity
+      if (userProfile && (userProfile.itemsSold > 0 || userProfile.totalEarnings > 0)) {
+        const userScore = activeCategory === 'value' ? (userProfile.totalEarnings || 0)
+                        : activeCategory === 'accuracy' ? (userProfile.accurateCount || 0)
+                        : activeCategory === 'speed' ? (userProfile.quickSales || 0)
+                        : (userProfile.itemsSold || 0);
+
+        const usersAbove = leaderData.filter(l => {
+          const leaderScore = activeCategory === 'value' ? l.earnings
+                            : activeCategory === 'accuracy' ? (l.accuracy || 0)
+                            : activeCategory === 'speed' ? (l.quickSales || 0)
+                            : l.sales;
+          return leaderScore > userScore;
+        }).length;
+
+        setUserRank({
+          rank: usersAbove + 1,
+          score: userScore,
+          movement: Math.floor(Math.random() * 3) - 1
+        });
+      } else {
+        setUserRank(null);
       }
     } catch (e) {
-      setLeaders([]);
+      console.error('Error loading leaderboard:', e);
+      setLeaders(generateRealisticLeaders(activeTab));
     }
   };
 
+  const getCategoryInfo = () => {
+    switch (activeCategory) {
+      case 'value': return { icon: '💰', name: 'Top Value Creators', metric: 'earnings', suffix: 'earned' };
+      case 'accuracy': return { icon: '🎯', name: 'Most Accurate', metric: 'accuracy', suffix: 'accurate' };
+      case 'speed': return { icon: '⚡', name: 'Fastest Sellers', metric: 'quickSales', suffix: 'quick sales' };
+      case 'volume': return { icon: '📦', name: 'Volume Leaders', metric: 'sales', suffix: 'sold' };
+      default: return { icon: '🏆', name: 'Leaderboard', metric: 'earnings', suffix: 'earned' };
+    }
+  };
+
+  const category = getCategoryInfo();
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl shadow-xl p-8 text-white mb-6">
+    <div className="max-w-6xl mx-auto">
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-2xl shadow-xl p-6 sm:p-8 text-white mb-6">
         <div className="flex items-center gap-4">
-          <Trophy className="w-16 h-16" />
+          <Trophy className="w-12 h-12 sm:w-16 sm:h-16" />
           <div>
-            <h2 className="text-3xl font-bold">Top Sellers Leaderboard</h2>
-            <p className="text-lg">See how you rank against other Precision Prices users!</p>
+            <h2 className="text-2xl sm:text-3xl font-bold">Leaderboard</h2>
+            <p className="text-sm sm:text-lg opacity-90">Compete with the best sellers</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-8">
-        <div className="space-y-4">
+      {/* Timeframe Tabs */}
+      <div className="bg-white rounded-xl shadow-md p-2 mb-4">
+        <div className="flex gap-2">
+          {[
+            { id: 'week', label: 'This Week' },
+            { id: 'month', label: 'This Month' },
+            { id: 'alltime', label: 'All-Time' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
+                activeTab === tab.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { id: 'value', icon: '💰', label: 'Value' },
+            { id: 'accuracy', icon: '🎯', label: 'Accuracy' },
+            { id: 'speed', icon: '⚡', label: 'Speed' },
+            { id: 'volume', icon: '📦', label: 'Volume' }
+          ].map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`p-3 rounded-lg text-center transition ${
+                activeCategory === cat.id
+                  ? 'bg-indigo-50 border-2 border-indigo-500'
+                  : 'bg-gray-50 border border-gray-200 hover:border-indigo-300'
+              }`}
+            >
+              <div className="text-2xl mb-1">{cat.icon}</div>
+              <div className={`text-xs font-semibold ${activeCategory === cat.id ? 'text-indigo-700' : 'text-gray-700'}`}>
+                {cat.label}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* User Rank Card */}
+      {userRank && (
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg p-4 mb-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm opacity-90">Your Rank</div>
+              <div className="text-3xl font-bold">
+                #{userRank.rank}
+                {userRank.movement !== 0 && (
+                  <span className="text-lg ml-2">
+                    {userRank.movement > 0 ? `↑${userRank.movement}` : userRank.movement < 0 ? `↓${Math.abs(userRank.movement)}` : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold">
+                {activeCategory === 'accuracy' ? `${userRank.score}%` : activeCategory === 'value' ? `$${userRank.score}` : userRank.score}
+              </div>
+              <div className="text-xs opacity-90">{category.suffix}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard */}
+      <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6">
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <span>{category.icon}</span>
+          <span>{category.name}</span>
+        </h3>
+
+        <div className="space-y-3">
           {leaders.map((leader, idx) => (
-            <div key={idx} className={`flex items-center justify-between p-4 rounded-lg ${idx === 0 ? 'bg-yellow-50 border-2 border-yellow-400' : idx === 1 ? 'bg-gray-100 border-2 border-gray-400' : idx === 2 ? 'bg-orange-50 border-2 border-orange-400' : 'bg-gray-50'}`}>
-              <div className="flex items-center gap-4">
-                <div className="text-3xl font-bold w-12 text-center">
+            <div
+              key={idx}
+              className={`flex items-center justify-between p-4 rounded-xl transition-all ${
+                idx === 0
+                  ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400'
+                  : idx === 1
+                  ? 'bg-gray-100 border-2 border-gray-400'
+                  : idx === 2
+                  ? 'bg-orange-50 border-2 border-orange-300'
+                  : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              <div className="flex items-center gap-3 sm:gap-4 flex-1">
+                <div className="text-2xl sm:text-3xl font-bold w-10 sm:w-12 text-center flex-shrink-0">
                   {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
                 </div>
-                <div>
-                  <p className="font-bold text-lg">{leader.name}</p>
-                  <p className="text-sm text-gray-600">{leader.sales} items sold</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-base sm:text-lg truncate">{leader.name}</p>
+                    {leader.movement && leader.movement !== 0 && (
+                      <span className={`text-sm font-semibold ${leader.movement > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {leader.movement > 0 ? `↑${leader.movement}` : `↓${Math.abs(leader.movement)}`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs text-gray-600 mt-1">
+                    <span>📦 {leader.sales} sold</span>
+                    {leader.streak > 0 && <span>🔥 {leader.streak}-day</span>}
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-600">${leader.earnings}</p>
-                <p className="text-xs text-gray-600">extra earned</p>
+              <div className="text-right flex-shrink-0 ml-2">
+                {activeCategory === 'value' && (
+                  <>
+                    <p className="text-lg sm:text-2xl font-bold text-green-600">${leader.earnings}</p>
+                    <p className="text-xs text-gray-600">earned</p>
+                  </>
+                )}
+                {activeCategory === 'accuracy' && (
+                  <>
+                    <p className="text-lg sm:text-2xl font-bold text-indigo-600">{leader.accuracy}%</p>
+                    <p className="text-xs text-gray-600">accurate</p>
+                  </>
+                )}
+                {activeCategory === 'speed' && (
+                  <>
+                    <p className="text-lg sm:text-2xl font-bold text-orange-600">{leader.quickSales}</p>
+                    <p className="text-xs text-gray-600">quick</p>
+                  </>
+                )}
+                {activeCategory === 'volume' && (
+                  <>
+                    <p className="text-lg sm:text-2xl font-bold text-purple-600">{leader.sales}</p>
+                    <p className="text-xs text-gray-600">sold</p>
+                  </>
+                )}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 p-6 bg-indigo-50 rounded-lg border-2 border-indigo-200">
-          <p className="text-center text-indigo-900 font-semibold">
-            🎯 Your Rank: Keep selling to climb the leaderboard!
-          </p>
-        </div>
+        {!userRank && (
+          <div className="mt-6 p-6 bg-indigo-50 rounded-lg border-2 border-indigo-200 text-center">
+            <p className="text-indigo-900 font-semibold">
+              🎯 Start selling to join the leaderboard!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
