@@ -26,6 +26,44 @@ import FeedbackDashboard from './components/FeedbackDashboard';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
+// Helper function to compress images using canvas
+async function compressImageBlob(blob, quality = 0.7, maxWidth = 1920) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      // Scale down if too large
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (compressedBlob) => {
+          if (compressedBlob) {
+            resolve(compressedBlob);
+          } else {
+            reject(new Error('Canvas compression failed'));
+          }
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
   const { logoutSite } = useSiteAuth();
@@ -208,25 +246,43 @@ export default function MarketplacePricer() {
         if (isHEIC) {
           // Convert HEIC to JPEG (required by Anthropic API)
           try {
-            console.log(`🔄 Converting HEIC to JPEG: ${file.name}`);
+            console.log(`🔄 Converting HEIC to JPEG: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
             const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
-              quality: 0.85  // Good balance of quality and speed
+              quality: 0.6  // Lower quality to reduce file size
             });
 
-            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            let blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            console.log(`  Converted to ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+
+            // Compress further if still > 2MB
+            if (blob.size > 2 * 1024 * 1024) {
+              console.log(`  📦 Compressing further...`);
+              blob = await compressImageBlob(blob, 0.7, 1920);
+              console.log(`  ✅ Final size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+            } else {
+              console.log(`  ✅ Size OK, no further compression needed`);
+            }
 
             uploadFile = new File(
               [blob],
               file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
               { type: 'image/jpeg' }
             );
-
-            console.log(`✅ HEIC converted: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
           } catch (conversionError) {
             console.error('HEIC conversion failed:', conversionError);
             throw new Error(`${file.name}: HEIC conversion failed. Please try a different photo format.`);
+          }
+        } else if (file.size > 2 * 1024 * 1024) {
+          // Compress large non-HEIC images
+          try {
+            console.log(`📦 Compressing ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            const compressed = await compressImageBlob(file, 0.7, 1920);
+            uploadFile = new File([compressed], file.name, { type: file.type });
+            console.log(`✅ Compressed to ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
+          } catch (compressError) {
+            console.warn('Compression failed, using original:', compressError);
           }
         }
 
@@ -3304,25 +3360,43 @@ function BulkAnalysis() {
         if (isHEIC) {
           // Convert HEIC to JPEG (required by Anthropic API)
           try {
-            console.log(`🔄 Converting HEIC to JPEG: ${file.name}`);
+            console.log(`🔄 Converting HEIC to JPEG: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
             const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
-              quality: 0.85  // Good balance of quality and speed
+              quality: 0.6  // Lower quality to reduce file size
             });
 
-            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            let blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            console.log(`  Converted to ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+
+            // Compress further if still > 2MB
+            if (blob.size > 2 * 1024 * 1024) {
+              console.log(`  📦 Compressing further...`);
+              blob = await compressImageBlob(blob, 0.7, 1920);
+              console.log(`  ✅ Final size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+            } else {
+              console.log(`  ✅ Size OK, no further compression needed`);
+            }
 
             uploadFile = new File(
               [blob],
               file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
               { type: 'image/jpeg' }
             );
-
-            console.log(`✅ HEIC converted: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
           } catch (conversionError) {
             console.error('HEIC conversion failed:', conversionError);
             throw new Error(`${file.name}: HEIC conversion failed. Please try a different photo format.`);
+          }
+        } else if (file.size > 2 * 1024 * 1024) {
+          // Compress large non-HEIC images
+          try {
+            console.log(`📦 Compressing ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            const compressed = await compressImageBlob(file, 0.7, 1920);
+            uploadFile = new File([compressed], file.name, { type: file.type });
+            console.log(`✅ Compressed to ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
+          } catch (compressError) {
+            console.warn('Compression failed, using original:', compressError);
           }
         }
 
