@@ -26,6 +26,44 @@ import FeedbackDashboard from './components/FeedbackDashboard';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
+// Badge System - 5 Levels of Achievement
+const BADGES = {
+  // Level 1 — Onboarding & Early Wins (Confidence Builders)
+  'getting-started': { name: 'Getting Started', icon: '🚀', desc: 'Completed your first price analysis', level: 1, requirement: (p) => p.analysisCount >= 1 },
+  'market-explorer': { name: 'Market Explorer', icon: '🧭', desc: 'Analyzed 3 items', level: 1, requirement: (p) => p.analysisCount >= 3 },
+  'first-flip': { name: 'First Flip', icon: '💰', desc: 'Sold your first item using an AI price', level: 1, requirement: (p) => p.itemsSold >= 1 },
+  'quick-learner': { name: 'Quick Learner', icon: '⚡', desc: 'Completed 3 analyses in one day', level: 1, requirement: (p) => p.analysesInOneDay >= 3 },
+  'streak-starter': { name: 'Streak Starter', icon: '🔥', desc: 'Used the app 3 days in a row', level: 1, requirement: (p) => p.streak >= 3 },
+
+  // Level 2 — Engagement & Habit Formation
+  'power-user': { name: 'Power User', icon: '📊', desc: 'Analyzed 10 items', level: 2, requirement: (p) => p.analysisCount >= 10 },
+  'dialed-in': { name: 'Dialed In', icon: '🎯', desc: 'Achieved price accuracy within 5% (3 times)', level: 2, requirement: (p) => p.accurateCount >= 3 },
+  'listing-pro': { name: 'Listing Pro', icon: '📸', desc: 'Uploaded photos for 10 items', level: 2, requirement: (p) => p.photosUploaded >= 10 },
+  'speed-seller': { name: 'Speed Seller', icon: '⏱️', desc: 'Sold an item within 48 hours of listing', level: 2, requirement: (p) => p.quickSales >= 1 },
+  'consistent': { name: 'Consistent', icon: '🔥', desc: '7-day usage streak', level: 2, requirement: (p) => p.streak >= 7 },
+
+  // Level 3 — Skill & Performance
+  'perfect-pricer': { name: 'Perfect Pricer', icon: '🎖️', desc: 'Achieved price accuracy within 5% (5 times)', level: 3, requirement: (p) => p.accurateCount >= 5 },
+  'market-reader': { name: 'Market Reader', icon: '📈', desc: 'Adjusted prices and improved sale speed', level: 3, requirement: (p) => p.priceAdjustments >= 3 },
+  'side-hustler': { name: 'Side Hustler', icon: '💸', desc: 'Earned $250 extra using AI pricing', level: 3, requirement: (p) => p.totalEarnings >= 250 },
+  'data-driven': { name: 'Data-Driven', icon: '🧠', desc: 'Used insights to optimize 10 listings', level: 3, requirement: (p) => p.insightsUsed >= 10 },
+  'repeat-seller': { name: 'Repeat Seller', icon: '🔁', desc: 'Sold 5 items total', level: 3, requirement: (p) => p.itemsSold >= 5 },
+
+  // Level 4 — Monetization & Mastery
+  'big-earner': { name: 'Big Earner', icon: '💎', desc: 'Earned $1,000 extra', level: 4, requirement: (p) => p.totalEarnings >= 1000 },
+  'volume-seller': { name: 'Volume Seller', icon: '📦', desc: 'Sold 20 items', level: 4, requirement: (p) => p.itemsSold >= 20 },
+  'price-strategist': { name: 'Price Strategist', icon: '📉', desc: 'Optimized prices based on demand trends', level: 4, requirement: (p) => p.strategicPricing >= 5 },
+  'sniper': { name: 'Sniper', icon: '🎯', desc: 'Hit 5% accuracy on 3 consecutive listings', level: 4, requirement: (p) => p.consecutiveAccurate >= 3 },
+  'on-fire': { name: 'On Fire', icon: '🔥', desc: '14-day streak', level: 4, requirement: (p) => p.streak >= 14 },
+
+  // Level 5 — Authority & Power User Status
+  'market-master': { name: 'Market Master', icon: '👑', desc: 'Earned $5,000+ using AI pricing', level: 5, requirement: (p) => p.totalEarnings >= 5000 },
+  'pricing-savant': { name: 'Pricing Savant', icon: '🏆', desc: 'Maintained 5% accuracy across 20 listings', level: 5, requirement: (p) => p.accurateCount >= 20 },
+  'marketplace-insider': { name: 'Marketplace Insider', icon: '📊', desc: 'Used advanced pricing insights', level: 5, requirement: (p) => p.advancedInsights >= 10 },
+  'scaling-up': { name: 'Scaling Up', icon: '🚀', desc: 'Sold 50+ items', level: 5, requirement: (p) => p.itemsSold >= 50 },
+  'trusted-seller': { name: 'Trusted Seller', icon: '🌟', desc: 'High sell-through rate + repeat buyers', level: 5, requirement: (p) => p.itemsSold >= 25 && p.accurateCount >= 15 }
+};
+
 // Helper function to compress images using canvas
 async function compressImageBlob(blob, quality = 0.7, maxWidth = 1920) {
   return new Promise((resolve, reject) => {
@@ -144,27 +182,52 @@ export default function MarketplacePricer() {
 
   const updateUserProfile = async (updates) => {
     const updated = { ...userProfile, ...updates };
-    
-    // Check for new badges
+
+    // Initialize new tracking fields if missing
+    if (!updated.itemsSold) updated.itemsSold = 0;
+    if (!updated.accurateCount) updated.accurateCount = 0;
+    if (!updated.photosUploaded) updated.photosUploaded = 0;
+    if (!updated.quickSales) updated.quickSales = 0;
+    if (!updated.priceAdjustments) updated.priceAdjustments = 0;
+    if (!updated.insightsUsed) updated.insightsUsed = 0;
+    if (!updated.strategicPricing) updated.strategicPricing = 0;
+    if (!updated.consecutiveAccurate) updated.consecutiveAccurate = 0;
+    if (!updated.advancedInsights) updated.advancedInsights = 0;
+    if (!updated.analysesInOneDay) updated.analysesInOneDay = 0;
+
+    // Check all badges for new unlocks
     const newBadges = [];
-    if (updated.analysisCount === 1 && !updated.badges.includes('first-analysis')) {
-      newBadges.push({ id: 'first-analysis', name: 'First Steps', icon: '🎯', desc: 'Completed first analysis' });
-    }
-    if (updated.analysisCount === 10 && !updated.badges.includes('power-user')) {
-      newBadges.push({ id: 'power-user', name: 'Power User', icon: '⚡', desc: 'Analyzed 10 items' });
-    }
-    if (updated.perfectPrices === 5 && !updated.badges.includes('perfect-pricer')) {
-      newBadges.push({ id: 'perfect-pricer', name: 'Perfect Pricer', icon: '🎖️', desc: 'Within 5% accuracy 5 times' });
-    }
-    
+    Object.keys(BADGES).forEach(badgeId => {
+      const badge = BADGES[badgeId];
+      if (!updated.badges.includes(badgeId) && badge.requirement(updated)) {
+        newBadges.push({ id: badgeId, ...badge });
+      }
+    });
+
     if (newBadges.length > 0) {
       updated.badges = [...updated.badges, ...newBadges.map(b => b.id)];
-      // Show badge notification
-      newBadges.forEach(badge => {
-        setTimeout(() => alert(`🎉 New Badge Unlocked: ${badge.icon} ${badge.name}!`), 500);
+
+      // Update user level based on badges earned
+      const level1Count = updated.badges.filter(b => BADGES[b]?.level === 1).length;
+      const level2Count = updated.badges.filter(b => BADGES[b]?.level === 2).length;
+      const level3Count = updated.badges.filter(b => BADGES[b]?.level === 3).length;
+      const level4Count = updated.badges.filter(b => BADGES[b]?.level === 4).length;
+      const level5Count = updated.badges.filter(b => BADGES[b]?.level === 5).length;
+
+      if (level5Count >= 3) updated.level = 5;
+      else if (level4Count >= 3) updated.level = 4;
+      else if (level3Count >= 3) updated.level = 3;
+      else if (level2Count >= 3) updated.level = 2;
+      else updated.level = 1;
+
+      // Show badge notifications
+      newBadges.forEach((badge, index) => {
+        setTimeout(() => {
+          alert(`🎉 New Badge Unlocked!\n\n${badge.icon} ${badge.name}\n${badge.desc}\n\nLevel ${badge.level} Achievement`);
+        }, 500 * (index + 1));
       });
     }
-    
+
     await window.storage.set('userprofile', JSON.stringify(updated));
     setUserProfile(updated);
   };
@@ -306,6 +369,11 @@ export default function MarketplacePricer() {
       const processedImages = await Promise.all(processPromises);
       setImages(prev => [...prev, ...processedImages]);
       console.log('✅ Images uploaded successfully:', processedImages.length);
+
+      // Track photos uploaded for badges
+      if (userProfile) {
+        await updateUserProfile({ photosUploaded: (userProfile.photosUploaded || 0) + processedImages.length });
+      }
     } catch (err) {
       console.error('❌ Image upload error:', err);
       errors.push(err.message);
@@ -2215,44 +2283,83 @@ function ItemHistory() {
 }
 
 function Achievements({userProfile}) {
-  const allBadges = [
-    { id: 'first-analysis', name: 'First Steps', icon: '🎯', desc: 'Completed first analysis', unlocked: userProfile?.badges?.includes('first-analysis') },
-    { id: 'power-user', name: 'Power User', icon: '⚡', desc: 'Analyzed 10 items', unlocked: userProfile?.badges?.includes('power-user') },
-    { id: 'perfect-pricer', name: 'Perfect Pricer', icon: '🎖️', desc: 'Within 5% accuracy 5 times', unlocked: userProfile?.badges?.includes('perfect-pricer') },
-    { id: 'first-sale', name: 'First Sale', icon: '💰', desc: 'Sold your first item', unlocked: false },
-    { id: 'streak-7', name: 'On Fire', icon: '🔥', desc: '7 day streak', unlocked: false },
-    { id: 'earnings-1000', name: 'Big Earner', icon: '💎', desc: 'Earned $1,000 extra', unlocked: false }
-  ];
+  // Group badges by level
+  const badgesByLevel = {
+    1: Object.keys(BADGES).filter(id => BADGES[id].level === 1),
+    2: Object.keys(BADGES).filter(id => BADGES[id].level === 2),
+    3: Object.keys(BADGES).filter(id => BADGES[id].level === 3),
+    4: Object.keys(BADGES).filter(id => BADGES[id].level === 4),
+    5: Object.keys(BADGES).filter(id => BADGES[id].level === 5)
+  };
+
+  const totalBadges = Object.keys(BADGES).length;
+  const unlockedCount = userProfile?.badges?.length || 0;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <div className="bg-white rounded-2xl shadow-xl p-8">
-        <h2 className="text-2xl font-bold mb-6">Your Achievements</h2>
-        
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium">Level {userProfile?.level || 1}</p>
-            <p className="text-sm text-gray-600">{userProfile?.analysisCount || 0}/50</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Your Achievements</h2>
+              <p className="text-gray-600 mt-1">Progress through 5 levels of mastery</p>
+            </div>
+            <div className="text-right">
+              <div className="text-4xl font-bold text-indigo-600">Level {userProfile?.level || 1}</div>
+              <p className="text-sm text-gray-600">{unlockedCount}/{totalBadges} badges</p>
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div className="bg-indigo-600 h-3 rounded-full" style={{width: `${((userProfile?.analysisCount || 0) / 50) * 100}%`}}></div>
+
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 h-4 rounded-full transition-all duration-500"
+                 style={{width: `${(unlockedCount / totalBadges) * 100}%`}}></div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
-          {allBadges.map(badge => (
-            <div key={badge.id} className={`p-6 rounded-lg border-2 text-center ${badge.unlocked ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-400' : 'bg-gray-50 border-gray-300 opacity-50'}`}>
-              <div className="text-5xl mb-2">{badge.icon}</div>
-              <p className="font-bold text-gray-900">{badge.name}</p>
-              <p className="text-sm text-gray-600">{badge.desc}</p>
-              {badge.unlocked && (
-                <div className="mt-2">
-                  <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                </div>
-              )}
+        {[1, 2, 3, 4, 5].map(level => (
+          <div key={level} className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`px-4 py-2 rounded-lg font-bold ${level <= (userProfile?.level || 1) ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
+                Level {level}
+              </div>
+              <h3 className="text-xl font-semibold text-gray-700">
+                {level === 1 && "Onboarding & Early Wins"}
+                {level === 2 && "Engagement & Habit Formation"}
+                {level === 3 && "Skill & Performance"}
+                {level === 4 && "Monetization & Mastery"}
+                {level === 5 && "Authority & Power User"}
+              </h3>
             </div>
-          ))}
-        </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {badgesByLevel[level].map(badgeId => {
+                const badge = BADGES[badgeId];
+                const unlocked = userProfile?.badges?.includes(badgeId);
+
+                return (
+                  <div key={badgeId}
+                       className={`p-4 rounded-xl border-2 text-center transition-all ${
+                         unlocked
+                           ? 'bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-50 border-yellow-400 shadow-md'
+                           : 'bg-gray-50 border-gray-200 opacity-60 grayscale'
+                       }`}>
+                    <div className="text-4xl mb-2">{badge.icon}</div>
+                    <p className="font-bold text-sm text-gray-900 mb-1">{badge.name}</p>
+                    <p className="text-xs text-gray-600 mb-2">{badge.desc}</p>
+                    {unlocked && (
+                      <div className="flex justify-center">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      </div>
+                    )}
+                    {!unlocked && (
+                      <div className="text-xs text-gray-400 mt-1">🔒 Locked</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
