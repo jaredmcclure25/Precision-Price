@@ -1388,30 +1388,8 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         feedbackSubmitted={feedbackSubmitted}
         submitFeedback={submitFeedback}
         resultsRef={resultsRef}
-        onNewAnalysis={(e) => {
-          if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-
-          console.log('New Analysis clicked - clearing form');
-
-          // Scroll to top
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-
-          // Clear all state immediately
-          setResult(null);
-          setItemName('');
-          setCondition('good');
-          setLocation('');
-          setAdditionalDetails('');
-          setImages([]);
-          setError(null);
-          setShowFeedback(false);
-          setFeedbackSubmitted(false);
-          setFormKey(prev => prev + 1); // Force form reset
-
-          console.log('Form cleared');
+        onNewAnalysis={() => {
+          window.location.reload();
         }}
         currentListingId={currentListingId}
         handleFeedbackSubmit={handleFeedbackSubmit}
