@@ -1399,6 +1399,13 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
             <div className="mt-6 pt-6 border-t border-indigo-200">
               <p className="text-sm text-gray-600 italic">Our AI analyzes millions of listings to give you the perfect price point</p>
             </div>
+            <button
+              onClick={() => setView('referral')}
+              className="mt-6 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              <Share2 className="w-5 h-5" />
+              Refer a Friend & Earn Rewards
+            </button>
           </div>
         </div>
       </div>
@@ -2782,6 +2789,116 @@ function Leaderboard() {
   );
 }
 
+function ReferralProgram({userProfile}) {
+  const [referralCode, setReferralCode] = useState('');
+  const [referrals, setReferrals] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    loadReferralData();
+  }, []);
+
+  const loadReferralData = async () => {
+    try {
+      const stored = await window.storage.get('referraldata');
+      if (stored && stored.value) {
+        const data = JSON.parse(stored.value);
+        setReferralCode(data.code);
+        setReferrals(data.count);
+      } else {
+        const newCode = 'SMART' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        setReferralCode(newCode);
+        await window.storage.set('referraldata', JSON.stringify({ code: newCode, count: 0 }));
+      }
+    } catch (e) {
+      const newCode = 'SMART' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      setReferralCode(newCode);
+    }
+  };
+
+  const copyReferralLink = () => {
+    const link = `https://precisionprices.app?ref=${referralCode}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareViaEmail = () => {
+    const subject = 'Get Better Prices on Facebook Marketplace!';
+    const body = `Hey! I've been using Precision Prices to price my Facebook Marketplace items and it's amazing. I've earned an extra $${Math.abs(userProfile?.totalEarnings || 0)}!\n\nUse my referral code ${referralCode} to get your first month free:\nhttps://precisionprices.app?ref=${referralCode}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl shadow-xl p-8 text-white">
+        <h2 className="text-3xl font-bold mb-2">Refer Friends, Get Rewards! 🎁</h2>
+        <p className="text-lg">Give your friends 1 month free, get 1 month free for each referral</p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-xl p-8">
+        <h3 className="text-2xl font-bold mb-4">Your Referral Stats</h3>
+        
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="text-center p-6 bg-green-50 rounded-xl">
+            <Users className="w-12 h-12 text-green-600 mx-auto mb-2" />
+            <div className="text-4xl font-bold text-green-900">{referrals}</div>
+            <div className="text-sm text-green-700">Friends Referred</div>
+          </div>
+          
+          <div className="text-center p-6 bg-purple-50 rounded-xl">
+            <Award className="w-12 h-12 text-purple-600 mx-auto mb-2" />
+            <div className="text-4xl font-bold text-purple-900">{referrals}</div>
+            <div className="text-sm text-purple-700">Free Months Earned</div>
+          </div>
+          
+          <div className="text-center p-6 bg-blue-50 rounded-xl">
+            <DollarSign className="w-12 h-12 text-blue-600 mx-auto mb-2" />
+            <div className="text-4xl font-bold text-blue-900">${(referrals * 4.99).toFixed(2)}</div>
+            <div className="text-sm text-blue-700">Value Saved</div>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block font-medium mb-2">Your Referral Code</label>
+          <div className="flex gap-3">
+            <input type="text" value={referralCode} readOnly className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-lg text-center" />
+            <button onClick={copyReferralLink} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">
+              {copied ? '✓ Copied!' : 'Copy Link'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <button onClick={shareViaEmail} className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">
+            <Send className="w-5 h-5" />Share via Email
+          </button>
+          <button onClick={() => {
+            const text = `Check out Precision Prices! Use code ${referralCode} for 1 month free: https://precisionprices.app?ref=${referralCode}`;
+            if (navigator.share) {
+              navigator.share({ title: 'Precision Prices Referral', text });
+            } else {
+              navigator.clipboard.writeText(text);
+              alert('Copied to clipboard!');
+            }
+          }} className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold">
+            <Share2 className="w-5 h-5" />Share on Social
+          </button>
+        </div>
+
+        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
+          <h4 className="font-bold text-yellow-900 mb-2">🎉 How It Works</h4>
+          <ul className="space-y-2 text-yellow-800">
+            <li>✓ Share your unique referral code with friends</li>
+            <li>✓ They get their first month FREE ($4.99 value)</li>
+            <li>✓ You get 1 month FREE for each friend who signs up</li>
+            <li>✓ Unlimited referrals = unlimited free months!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 function SecurePayments() {
