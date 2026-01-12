@@ -1205,8 +1205,9 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-indigo-600 mb-2">Sell smart, sell fast, make money!</h1>
-        <p className="text-lg text-gray-600">AI-powered pricing to maximize your profits</p>
+        <h1 className="text-4xl font-bold text-indigo-600 mb-2">Precision Prices</h1>
+        <p className="text-xl text-gray-700 font-semibold mb-1">Sell smarter, buy fair, with AI-powered precision pricing</p>
+        <p className="text-lg text-gray-600">Get instant fair market value recommendations to sell faster online</p>
       </div>
 
       {/* Two Column Layout */}
