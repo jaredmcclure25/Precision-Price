@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import { useSiteAuth } from './PasswordProtection';
@@ -1053,7 +1053,7 @@ Provide pricing analysis in this exact JSON structure:
               <div className="text-white flex-1 md:flex-initial">
                 <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-1 sm:gap-2">
                   <span>Precision Prices</span>
-                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-gold" />
+                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
                 </h1>
                 {userProfile && (
                   <p className="text-[10px] sm:text-xs text-emerald-100 truncate">Level {userProfile.level} • {userProfile.badges.length} Badges</p>
@@ -1164,7 +1164,7 @@ Provide pricing analysis in this exact JSON structure:
 
       {/* Rotating Tips Banner */}
       {showTip && view === 'pricing' && (
-        <div className="bg-gradient-to-r from-gold to-gold/80 text-white px-6 py-4 shadow-lg">
+        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-4 shadow-lg">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Zap className="w-6 h-6 animate-pulse" />
@@ -1187,7 +1187,7 @@ Provide pricing analysis in this exact JSON structure:
                   onClick={() => setAnalysisMode('single')}
                   className={`px-6 py-2 rounded-lg font-medium transition-all ${
                     analysisMode === 'single'
-                      ? 'bg-navy text-white shadow-md'
+                      ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -1197,7 +1197,7 @@ Provide pricing analysis in this exact JSON structure:
                   onClick={() => setAnalysisMode('bulk')}
                   className={`px-6 py-2 rounded-lg font-medium transition-all ${
                     analysisMode === 'bulk'
-                      ? 'bg-navy text-white shadow-md'
+                      ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -1232,7 +1232,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-navy mb-2">Sell smart, sell fast, make money!</h1>
+        <h1 className="text-4xl font-bold text-indigo-600 mb-2">Sell smart, sell fast, make money!</h1>
         <p className="text-lg text-gray-600">AI-powered pricing to maximize your profits</p>
       </div>
 
@@ -1243,13 +1243,13 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-charcoal">AI-Powered Pricing Analysis</h2>
+                <h2 className="text-2xl font-bold text-gray-900">AI-Powered Pricing Analysis</h2>
                 <p className="text-gray-600">Upload up to 5 photos for best results</p>
               </div>
               {userProfile && (
                 <div className="text-right">
                   <p className="text-sm text-gray-600">Analyses</p>
-                  <p className="text-2xl font-bold text-navy">{userProfile.analysisCount}</p>
+                  <p className="text-2xl font-bold text-indigo-600">{userProfile.analysisCount}</p>
                 </div>
               )}
             </div>
@@ -1258,7 +1258,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
                 {images.length < 5 && !imageLoading && (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center hover:border-teal transition cursor-pointer active:border-navy min-h-[120px] flex items-center justify-center">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center hover:border-indigo-400 transition cursor-pointer active:border-indigo-500 min-h-[120px] flex items-center justify-center">
                     <input
                       key={formKey}
                       type="file"
@@ -1277,12 +1277,12 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                   </div>
                 )}
                 {imageLoading && (
-                  <div className="border-2 border-navy bg-soft-gray rounded-lg p-4 sm:p-6 md:p-8 text-center touch-none min-h-[200px] flex flex-col justify-center">
-                    <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-navy mx-auto mb-4 animate-spin" />
-                    <p className="text-navy font-bold mb-2 text-base sm:text-lg">Loading image...</p>
-                    <p className="text-sm sm:text-base text-charcoal">This may take a few seconds</p>
-                    <div className="mt-4 sm:mt-5 w-full max-w-xs mx-auto bg-gray-300 rounded-full h-2.5 overflow-hidden">
-                      <div className="bg-navy h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
+                  <div className="border-2 border-indigo-500 bg-indigo-50 rounded-lg p-4 sm:p-6 md:p-8 text-center touch-none min-h-[200px] flex flex-col justify-center">
+                    <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-indigo-600 mx-auto mb-4 animate-spin" />
+                    <p className="text-indigo-700 font-bold mb-2 text-base sm:text-lg">Loading image...</p>
+                    <p className="text-sm sm:text-base text-indigo-600">This may take a few seconds</p>
+                    <div className="mt-4 sm:mt-5 w-full max-w-xs mx-auto bg-indigo-200 rounded-full h-2.5 overflow-hidden">
+                      <div className="bg-indigo-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
                     </div>
                   </div>
                 )}
@@ -1305,7 +1305,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 <input type="text" value={itemName} onChange={(e) => {
                   const sanitized = InputValidation.sanitizeText(e.target.value, 200);
                   setItemName(sanitized);
-                }} placeholder="e.g., iPhone 13" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy" />
+                }} placeholder="e.g., iPhone 13" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
                 <div className="text-xs text-gray-500 mt-1">
                   {itemName.length}/200 characters
                 </div>
@@ -1314,7 +1314,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Condition *</label>
-                  <select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy">
+                  <select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <option value="new">New</option>
                     <option value="like-new">Like New</option>
                     <option value="good">Good</option>
@@ -1330,7 +1330,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                     // Additional path traversal protection
                     value = value.replace(/\.\./g, '').replace(/[\/\\]/g, '');
                     setLocation(value);
-                  }} placeholder="e.g., New York, NY 10001" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy" />
+                  }} placeholder="e.g., New York, NY 10001" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
                   <div className="text-xs text-gray-500 mt-1">
                     Including ZIP code helps us give you precise local pricing • {location.length}/100 characters
                   </div>
@@ -1342,7 +1342,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 <textarea value={additionalDetails} onChange={(e) => {
                   const sanitized = InputValidation.sanitizeText(e.target.value, 1000);
                   setAdditionalDetails(sanitized);
-                }} placeholder="e.g., Original box included" rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy" />
+                }} placeholder="e.g., Original box included" rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
                 <div className="text-xs text-gray-500 mt-1">
                   {additionalDetails.length}/1000 characters
                 </div>
@@ -1355,7 +1355,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 </div>
               )}
 
-              <button onClick={analyzePricing} disabled={loading} className="w-full bg-navy hover:bg-navy/90 active:bg-navy/80 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px]">
+              <button onClick={analyzePricing} disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px]">
                 {loading ? <><Loader2 className="w-5 h-5 animate-spin" />Analyzing...</> : <><Search className="w-5 h-5" />Analyze Pricing</>}
               </button>
             </div>
@@ -1364,40 +1364,47 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
 
         {/* Right Column - How to Use Summary (1/3 width) */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-soft-gray to-soft-gray rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
-            <h3 className="text-xl font-bold text-charcoal mb-4">How to Use</h3>
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">How to Use</h3>
             <div className="space-y-6">
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-navy text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   1
                 </div>
                 <div>
-                  <h4 className="font-semibold text-charcoal mb-1">Upload Photos</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Upload Photos</h4>
                   <p className="text-sm text-gray-600">Add up to 5 clear photos of your item from different angles for best results</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-navy text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   2
                 </div>
                 <div>
-                  <h4 className="font-semibold text-charcoal mb-1">Fill in Details</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Fill in Details</h4>
                   <p className="text-sm text-gray-600">Provide item name, condition, location, and any additional details that help describe your item</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-navy text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   3
                 </div>
                 <div>
-                  <h4 className="font-semibold text-charcoal mb-1">Get AI Pricing</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Get AI Pricing</h4>
                   <p className="text-sm text-gray-600">Click "Analyze Pricing" and receive instant AI-powered price recommendations optimized for quick sales</p>
                 </div>
               </div>
             </div>
-            <div className="mt-6 pt-6 border-t border-navy/20">
+            <div className="mt-6 pt-6 border-t border-indigo-200">
               <p className="text-sm text-gray-600 italic">Our AI analyzes millions of listings to give you the perfect price point</p>
             </div>
+            <button
+              onClick={() => setView('referral')}
+              className="mt-6 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              <Share2 className="w-5 h-5" />
+              Refer a Friend & Earn Rewards
+            </button>
           </div>
         </div>
       </div>
@@ -1461,18 +1468,18 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Item Analysis</h2>
           <div className="flex gap-2 flex-wrap">
-            <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-navy hover:bg-navy/90 active:bg-navy/80 text-white rounded-lg touch-manipulation">
+            <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white rounded-lg touch-manipulation">
               <Search className="w-4 h-4" />New Analysis
             </button>
             <button
               type="button"
               onClick={() => setShowTransactionModal(true)}
-              className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-teal hover:bg-teal/90 active:bg-teal/80 text-white rounded-lg touch-manipulation"
+              className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white rounded-lg touch-manipulation"
             >
               <CheckCircle className="w-4 h-4" />
               Report Sale
             </button>
-            <button type="button" onClick={shareSuccess} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-teal hover:bg-teal/90 active:bg-teal/80 text-white rounded-lg touch-manipulation">
+            <button type="button" onClick={shareSuccess} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg touch-manipulation">
               <Share2 className="w-4 h-4" />Share
             </button>
           </div>
@@ -1482,9 +1489,9 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           <div><p className="text-sm text-gray-600">Category</p><p className="text-lg font-semibold">{result.itemIdentification.category}</p></div>
         </div>
         {result.imageAnalysis && (
-          <div className="mt-4 p-4 bg-soft-gray rounded-lg">
-            <p className="text-sm font-medium text-navy">Image Analysis</p>
-            <p className="text-navy">{result.imageAnalysis}</p>
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm font-medium text-blue-900">Image Analysis</p>
+            <p className="text-blue-800">{result.imageAnalysis}</p>
           </div>
         )}
       </div>
@@ -1520,15 +1527,15 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
         )}
 
         {/* Pricing Strategy Details */}
-        <div className="mt-6 bg-gradient-to-r from-navy/10 to-teal/10 border border-navy/20 rounded-lg p-4">
-          <h3 className="font-semibold text-navy mb-3 flex items-center gap-2">
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
             Listing Strategy
           </h3>
           <div className="space-y-2">
-            <p className="text-navy"><strong>Suggested List Price:</strong> <span className="font-mono">${result.pricingStrategy.listingPrice}</span></p>
-            <p className="text-navy"><strong>Don't Go Below:</strong> <span className="font-mono">${result.pricingStrategy.minimumAcceptable}</span></p>
-            <p className="text-sm text-navy mt-3 p-3 bg-white bg-opacity-50 rounded">{result.pricingStrategy.reasoning}</p>
+            <p className="text-blue-800"><strong>Suggested List Price:</strong> ${result.pricingStrategy.listingPrice}</p>
+            <p className="text-blue-800"><strong>Don't Go Below:</strong> ${result.pricingStrategy.minimumAcceptable}</p>
+            <p className="text-sm text-blue-700 mt-3 p-3 bg-white bg-opacity-50 rounded">{result.pricingStrategy.reasoning}</p>
           </div>
         </div>
       </div>
@@ -1582,7 +1589,7 @@ function Dashboard({stats, userProfile, onUpdateItem}) {
   if (!stats || !userProfile) {
     return (
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-navy" />
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
       </div>
     );
   }
@@ -1596,7 +1603,7 @@ function Dashboard({stats, userProfile, onUpdateItem}) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold mb-2">You're Crushing It! 🎉</h2>
-            <p className="text-lg">You've earned an estimated <span className="font-bold text-2xl font-mono">${Math.abs(userProfile.totalEarnings).toFixed(2)}</span> using Precision Prices</p>
+            <p className="text-lg">You've earned an estimated <span className="font-bold text-2xl">${Math.abs(userProfile.totalEarnings).toFixed(2)}</span> using Precision Prices</p>
           </div>
           <Trophy className="w-20 h-20 opacity-50" />
         </div>
@@ -1604,9 +1611,9 @@ function Dashboard({stats, userProfile, onUpdateItem}) {
 
       <div className="grid md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <Users className="w-10 h-10 text-navy mb-2" />
-          <div className="text-4xl font-bold text-navy">{stats.total}</div>
-          <div className="text-sm text-navy">Items Analyzed</div>
+          <Users className="w-10 h-10 text-blue-600 mb-2" />
+          <div className="text-4xl font-bold text-blue-900">{stats.total}</div>
+          <div className="text-sm text-blue-700">Items Analyzed</div>
         </div>
         
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -1616,15 +1623,15 @@ function Dashboard({stats, userProfile, onUpdateItem}) {
         </div>
         
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <TrendingUp className="w-10 h-10 text-navy mb-2" />
-          <div className="text-4xl font-bold text-navy">{conversionRate}%</div>
-          <div className="text-sm text-navy">Conversion Rate</div>
+          <TrendingUp className="w-10 h-10 text-indigo-600 mb-2" />
+          <div className="text-4xl font-bold text-indigo-900">{conversionRate}%</div>
+          <div className="text-sm text-indigo-700">Conversion Rate</div>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <Award className="w-10 h-10 text-teal mb-2" />
-          <div className="text-4xl font-bold text-teal">{userProfile.perfectPrices}</div>
-          <div className="text-sm text-teal">Perfect Prices</div>
+          <Award className="w-10 h-10 text-purple-600 mb-2" />
+          <div className="text-4xl font-bold text-purple-900">{userProfile.perfectPrices}</div>
+          <div className="text-sm text-purple-700">Perfect Prices</div>
         </div>
       </div>
 
@@ -1676,10 +1683,10 @@ function RecentActivityItem({ item, index, onUpdate }) {
 
   if (isEditing) {
     return (
-      <div className="p-4 bg-soft-gray rounded-lg border-2 border-navy/30">
+      <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
         <div className="mb-3">
           <p className="font-medium mb-2">{item.itemName}</p>
-          <p className="text-sm text-gray-600">Suggested: <span className="font-mono">${item.suggestedPrice}</span></p>
+          <p className="text-sm text-gray-600">Suggested: ${item.suggestedPrice}</p>
         </div>
 
         <div className="space-y-3">
@@ -1690,7 +1697,7 @@ function RecentActivityItem({ item, index, onUpdate }) {
                 onClick={() => setEditData({ ...editData, wasSold: true })}
                 className={`flex-1 px-4 py-3 min-h-[44px] rounded text-sm font-medium transition touch-manipulation ${
                   editData.wasSold
-                    ? 'bg-teal text-white active:bg-teal/90'
+                    ? 'bg-green-500 text-white active:bg-green-600'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                 }`}
               >
@@ -1700,7 +1707,7 @@ function RecentActivityItem({ item, index, onUpdate }) {
                 onClick={() => setEditData({ ...editData, wasSold: false })}
                 className={`flex-1 px-4 py-3 min-h-[44px] rounded text-sm font-medium transition touch-manipulation ${
                   !editData.wasSold
-                    ? 'bg-gold text-white active:bg-gold/90'
+                    ? 'bg-orange-500 text-white active:bg-orange-600'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                 }`}
               >
@@ -1717,7 +1724,7 @@ function RecentActivityItem({ item, index, onUpdate }) {
                 value={editData.actualPrice}
                 onChange={(e) => setEditData({ ...editData, actualPrice: e.target.value })}
                 placeholder="Enter sale price"
-                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-navy"
+                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
               />
             </div>
           )}
@@ -1729,7 +1736,7 @@ function RecentActivityItem({ item, index, onUpdate }) {
                 onClick={() => setEditData({ ...editData, wasFair: true })}
                 className={`flex-1 px-4 py-3 min-h-[44px] rounded text-sm font-medium transition flex items-center justify-center gap-1 touch-manipulation ${
                   editData.wasFair
-                    ? 'bg-teal text-white active:bg-teal/90'
+                    ? 'bg-green-500 text-white active:bg-green-600'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                 }`}
               >
@@ -1751,13 +1758,13 @@ function RecentActivityItem({ item, index, onUpdate }) {
           <div className="flex gap-2 pt-2">
             <button
               onClick={handleSave}
-              className="flex-1 bg-navy hover:bg-navy/90 text-white px-4 py-2 rounded font-medium flex items-center justify-center gap-2"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium flex items-center justify-center gap-2"
             >
               <Save className="w-4 h-4" /> Save
             </button>
             <button
               onClick={handleCancel}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-charcoal px-4 py-2 rounded font-medium"
+              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-medium"
             >
               Cancel
             </button>
@@ -1772,13 +1779,13 @@ function RecentActivityItem({ item, index, onUpdate }) {
       <div className="flex-1">
         <p className="font-medium">{item.itemName}</p>
         <p className="text-sm text-gray-600">
-          Suggested: <span className="font-mono">${item.suggestedPrice}</span>
-          {item.actualPrice && <span> | Sold: <span className="font-mono">${Math.abs(item.actualPrice)}</span></span>}
+          Suggested: ${item.suggestedPrice}
+          {item.actualPrice && ` | Sold: $${Math.abs(item.actualPrice)}`}
         </p>
       </div>
       <div className="flex gap-2 items-center">
         {item.wasSold && <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Sold</span>}
-        {!item.wasSold && <span className="px-3 py-1 bg-gold/20 text-gold text-sm font-medium rounded-full">Listed</span>}
+        {!item.wasSold && <span className="px-3 py-1 bg-orange-100 text-orange-800 text-sm font-medium rounded-full">Listed</span>}
         {item.wasFair && <ThumbsUp className="w-5 h-5 text-green-600" />}
         {item.wasFair === false && <ThumbsDown className="w-5 h-5 text-red-600" />}
         <button
@@ -1893,7 +1900,7 @@ function Subscription() {
     <div className="max-w-7xl mx-auto">
       {/* Trial Limit Banner */}
       {isGuestMode && userProfile && userProfile.analysisCount >= 5 && (
-        <div className="bg-gradient-to-r from-gold to-red-600 text-white p-6 rounded-2xl shadow-xl mb-8">
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-6 rounded-2xl shadow-xl mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold mb-2">Trial Limit Reached</h3>
@@ -1903,7 +1910,7 @@ function Subscription() {
           </div>
           <button
             onClick={() => setShowAuthModal(true)}
-            className="mt-4 bg-white text-gold px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition"
+            className="mt-4 bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition"
           >
             Create Free Account
           </button>
@@ -1911,7 +1918,7 @@ function Subscription() {
       )}
 
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-charcoal mb-4">Choose Your Plan</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Unlock powerful features to maximize your selling potential. All plans include a 14-day money-back guarantee.
         </p>
@@ -1937,21 +1944,21 @@ function Subscription() {
           <div
             key={plan.id}
             className={`relative bg-white rounded-2xl shadow-xl overflow-hidden transition-all hover:scale-105 ${
-              plan.bestValue ? 'ring-4 ring-navy' : ''
+              plan.bestValue ? 'ring-4 ring-indigo-600' : ''
             }`}
           >
             {plan.bestValue && (
-              <div className="absolute top-0 right-0 bg-gradient-to-r from-navy to-teal text-white px-6 py-2 rounded-bl-2xl font-bold text-sm">
+              <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-bl-2xl font-bold text-sm">
                 BEST VALUE
               </div>
             )}
 
             <div className="p-8">
-              <h3 className="text-2xl font-bold text-charcoal mb-2">{plan.name}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
 
               <div className="mb-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold font-mono text-charcoal">{plan.price}</span>
+                  <span className="text-5xl font-bold text-gray-900">{plan.price}</span>
                   <span className="text-gray-600">{plan.period}</span>
                 </div>
                 {plan.pricePerMonth && (
@@ -1968,7 +1975,7 @@ function Subscription() {
                 onClick={() => handleSubscribe(plan.id)}
                 className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all mb-6 ${
                   plan.bestValue
-                    ? 'bg-gradient-to-r from-navy to-teal hover:from-navy/90 hover:to-teal/90 text-white shadow-lg hover:shadow-xl'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl'
                     : 'bg-gray-900 hover:bg-gray-800 text-white'
                 }`}
               >
@@ -1988,50 +1995,50 @@ function Subscription() {
         ))}
       </div>
 
-      <div className="bg-gradient-to-br from-soft-gray to-soft-gray rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold text-charcoal mb-6 text-center">Why Subscribe?</h2>
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-8 mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Why Subscribe?</h2>
         <div className="grid md:grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="w-16 h-16 bg-navy rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Zap className="w-8 h-8 text-white" />
             </div>
-            <h3 className="font-bold text-charcoal mb-2">Lightning Fast</h3>
+            <h3 className="font-bold text-gray-900 mb-2">Lightning Fast</h3>
             <p className="text-gray-600">Get instant pricing recommendations powered by advanced AI</p>
           </div>
           <div className="text-center">
-            <div className="w-16 h-16 bg-teal rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <TrendingUp className="w-8 h-8 text-white" />
             </div>
-            <h3 className="font-bold text-charcoal mb-2">Maximize Profits</h3>
+            <h3 className="font-bold text-gray-900 mb-2">Maximize Profits</h3>
             <p className="text-gray-600">Price items optimally to sell faster and earn more</p>
           </div>
           <div className="text-center">
-            <div className="w-16 h-16 bg-navy rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h3 className="font-bold text-charcoal mb-2">Risk Free</h3>
+            <h3 className="font-bold text-gray-900 mb-2">Risk Free</h3>
             <p className="text-gray-600">14-day money-back guarantee, cancel anytime</p>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-xl p-8">
-        <h2 className="text-2xl font-bold text-charcoal mb-6 text-center">Frequently Asked Questions</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Frequently Asked Questions</h2>
         <div className="space-y-6 max-w-3xl mx-auto">
           <div>
-            <h3 className="font-bold text-charcoal mb-2">Can I cancel anytime?</h3>
+            <h3 className="font-bold text-gray-900 mb-2">Can I cancel anytime?</h3>
             <p className="text-gray-600">Yes! You can cancel your subscription at any time. No questions asked.</p>
           </div>
           <div>
-            <h3 className="font-bold text-charcoal mb-2">What payment methods do you accept?</h3>
+            <h3 className="font-bold text-gray-900 mb-2">What payment methods do you accept?</h3>
             <p className="text-gray-600">We accept all major credit cards, PayPal, and digital wallets through our secure payment processor.</p>
           </div>
           <div>
-            <h3 className="font-bold text-charcoal mb-2">Is there a free trial?</h3>
+            <h3 className="font-bold text-gray-900 mb-2">Is there a free trial?</h3>
             <p className="text-gray-600">All plans come with a 14-day money-back guarantee, which works just like a free trial!</p>
           </div>
           <div>
-            <h3 className="font-bold text-charcoal mb-2">Can I upgrade or downgrade my plan?</h3>
+            <h3 className="font-bold text-gray-900 mb-2">Can I upgrade or downgrade my plan?</h3>
             <p className="text-gray-600">Absolutely! You can change your plan at any time, and we'll prorate the difference.</p>
           </div>
         </div>
@@ -2082,8 +2089,8 @@ function Community() {
         <h2 className="text-2xl font-bold mb-6">Community Forum</h2>
         
         <div className="mb-6">
-          <textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} placeholder="Share your success story, ask a question, or give pricing tips..." rows={4} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy" />
-          <button onClick={submitPost} className="mt-2 bg-navy hover:bg-navy/90 text-white px-6 py-2 rounded-lg flex items-center gap-2">
+          <textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} placeholder="Share your success story, ask a question, or give pricing tips..." rows={4} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+          <button onClick={submitPost} className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg flex items-center gap-2">
             <Send className="w-4 h-4" />Post
           </button>
         </div>
@@ -2098,7 +2105,7 @@ function Community() {
             posts.map(post => (
               <div key={post.id} className="p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-navy rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
                     {post.author[0]}
                   </div>
                   <div>
@@ -2114,7 +2121,7 @@ function Community() {
       </div>
 
       {/* Success Stories */}
-      <div className="bg-gradient-to-r from-teal to-gold rounded-2xl shadow-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl shadow-xl p-8 text-white">
         <h3 className="text-2xl font-bold mb-4">⭐ Success Stories</h3>
         <div className="space-y-4">
           <div className="bg-white bg-opacity-20 p-4 rounded-lg">
@@ -2155,7 +2162,7 @@ function ItemHistory() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-navy" />
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
       </div>
     );
   }
@@ -2176,7 +2183,7 @@ function ItemHistory() {
     <div className="max-w-6xl mx-auto">
       <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
         <div className="flex items-center gap-3 mb-6">
-          <History className="w-8 h-8 text-navy" />
+          <History className="w-8 h-8 text-indigo-600" />
           <h2 className="text-3xl font-bold">Analysis History</h2>
         </div>
         <p className="text-gray-600 mb-6">View all your previously analyzed items and their pricing recommendations.</p>
@@ -2187,7 +2194,7 @@ function ItemHistory() {
           <div key={item.id || index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-charcoal">{item.itemName}</h3>
+                <h3 className="text-xl font-bold text-gray-800">{item.itemName}</h3>
                 <div className="flex gap-4 mt-2 text-sm text-gray-600">
                   {item.category && (
                     <span className="flex items-center gap-1">
@@ -2219,15 +2226,15 @@ function ItemHistory() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="text-sm text-gray-600">Minimum</div>
-                <div className="text-2xl font-bold font-mono">${item.priceRange?.min || 'N/A'}</div>
+                <div className="text-2xl font-bold">${item.priceRange?.min || 'N/A'}</div>
               </div>
-              <div className="bg-soft-gray p-4 rounded-lg border-2 border-navy/20">
-                <div className="text-sm text-navy">Suggested Price</div>
-                <div className="text-3xl font-bold text-navy font-mono">${item.suggestedPrice}</div>
+              <div className="bg-indigo-50 p-4 rounded-lg border-2 border-indigo-200">
+                <div className="text-sm text-indigo-600">Suggested Price</div>
+                <div className="text-3xl font-bold text-indigo-600">${item.suggestedPrice}</div>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="text-sm text-gray-600">Maximum</div>
-                <div className="text-2xl font-bold font-mono">${item.priceRange?.max || 'N/A'}</div>
+                <div className="text-2xl font-bold">${item.priceRange?.max || 'N/A'}</div>
               </div>
             </div>
 
@@ -2241,13 +2248,13 @@ function ItemHistory() {
                 )}
                 {item.marketInsights.competitionLevel && (
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-gold" />
+                    <Users className="w-4 h-4 text-orange-600" />
                     <span className="text-gray-600">Competition: <span className="font-medium capitalize">{item.marketInsights.competitionLevel}</span></span>
                   </div>
                 )}
                 {item.location && (
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-navy" />
+                    <MapPin className="w-4 h-4 text-blue-600" />
                     <span className="text-gray-600">{item.location}</span>
                   </div>
                 )}
@@ -2279,17 +2286,17 @@ function Achievements({userProfile}) {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-3xl font-bold text-charcoal">Your Achievements</h2>
+              <h2 className="text-3xl font-bold text-gray-900">Your Achievements</h2>
               <p className="text-gray-600 mt-1">Progress through 5 levels of mastery</p>
             </div>
             <div className="text-right">
-              <div className="text-4xl font-bold text-navy">Level {userProfile?.level || 1}</div>
+              <div className="text-4xl font-bold text-indigo-600">Level {userProfile?.level || 1}</div>
               <p className="text-sm text-gray-600">{unlockedCount}/{totalBadges} badges</p>
             </div>
           </div>
 
           <div className="w-full bg-gray-200 rounded-full h-4">
-            <div className="bg-gradient-to-r from-navy to-teal h-4 rounded-full transition-all duration-500"
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 h-4 rounded-full transition-all duration-500"
                  style={{width: `${(unlockedCount / totalBadges) * 100}%`}}></div>
           </div>
         </div>
@@ -2297,7 +2304,7 @@ function Achievements({userProfile}) {
         {[1, 2, 3, 4, 5].map(level => (
           <div key={level} className="mb-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`px-4 py-2 rounded-lg font-bold ${level <= (userProfile?.level || 1) ? 'bg-soft-gray text-navy' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`px-4 py-2 rounded-lg font-bold ${level <= (userProfile?.level || 1) ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
                 Level {level}
               </div>
               <h3 className="text-xl font-semibold text-gray-700">
@@ -2318,11 +2325,11 @@ function Achievements({userProfile}) {
                   <div key={badgeId}
                        className={`p-4 rounded-xl border-2 text-center transition-all ${
                          unlocked
-                           ? 'bg-gradient-to-br from-gold/10 via-gold/20 to-gold/10 border-gold shadow-md'
+                           ? 'bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-50 border-yellow-400 shadow-md'
                            : 'bg-gray-50 border-gray-200 opacity-60 grayscale'
                        }`}>
                     <div className="text-4xl mb-2">{badge.icon}</div>
-                    <p className="font-bold text-sm text-charcoal mb-1">{badge.name}</p>
+                    <p className="font-bold text-sm text-gray-900 mb-1">{badge.name}</p>
                     <p className="text-xs text-gray-600 mb-2">{badge.desc}</p>
                     {unlocked && (
                       <div className="flex justify-center">
@@ -2375,7 +2382,7 @@ function FeedbackForm({onSubmit}) {
           <p className="font-medium mb-3">Did you sell it?</p>
           <div className="flex gap-4">
             <button type="button" onClick={() => setWasSold(true)} className={`flex-1 py-3 rounded-lg border-2 transition ${wasSold === true ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 hover:border-green-300'}`}>Yes, Sold!</button>
-            <button type="button" onClick={() => setWasSold(false)} className={`flex-1 py-3 rounded-lg border-2 transition ${wasSold === false ? 'border-gold bg-gold/10 text-gold' : 'border-gray-300 hover:border-gold/30'}`}>Not Yet</button>
+            <button type="button" onClick={() => setWasSold(false)} className={`flex-1 py-3 rounded-lg border-2 transition ${wasSold === false ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-300 hover:border-orange-300'}`}>Not Yet</button>
           </div>
         </div>
 
@@ -2507,7 +2514,7 @@ function BugReportModal({error, onClose, onSubmit}) {
           <button onClick={() => onSubmit(description, error)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold">
             Submit Report
           </button>
-          <button onClick={onClose} className="flex-1 bg-gray-200 hover:bg-gray-300 text-charcoal py-3 rounded-lg font-semibold">
+          <button onClick={onClose} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-semibold">
             Cancel
           </button>
         </div>
@@ -2614,7 +2621,7 @@ function Leaderboard() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="bg-gradient-to-r from-teal via-navy to-navy rounded-2xl shadow-xl p-6 sm:p-8 text-white mb-6">
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-2xl shadow-xl p-6 sm:p-8 text-white mb-6">
         <div className="flex items-center gap-4">
           <Trophy className="w-12 h-12 sm:w-16 sm:h-16" />
           <div>
@@ -2637,7 +2644,7 @@ function Leaderboard() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
                 activeTab === tab.id
-                  ? 'bg-navy text-white'
+                  ? 'bg-indigo-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -2661,12 +2668,12 @@ function Leaderboard() {
               onClick={() => setActiveCategory(cat.id)}
               className={`p-3 rounded-lg text-center transition ${
                 activeCategory === cat.id
-                  ? 'bg-soft-gray border-2 border-navy'
-                  : 'bg-gray-50 border border-gray-200 hover:border-navy/30'
+                  ? 'bg-indigo-50 border-2 border-indigo-500'
+                  : 'bg-gray-50 border border-gray-200 hover:border-indigo-300'
               }`}
             >
               <div className="text-2xl mb-1">{cat.icon}</div>
-              <div className={`text-xs font-semibold ${activeCategory === cat.id ? 'text-navy' : 'text-gray-700'}`}>
+              <div className={`text-xs font-semibold ${activeCategory === cat.id ? 'text-indigo-700' : 'text-gray-700'}`}>
                 {cat.label}
               </div>
             </button>
@@ -2712,11 +2719,11 @@ function Leaderboard() {
               key={idx}
               className={`flex items-center justify-between p-4 rounded-xl transition-all ${
                 idx === 0
-                  ? 'bg-gradient-to-r from-gold/10 to-gold/20 border-2 border-gold'
+                  ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400'
                   : idx === 1
                   ? 'bg-gray-100 border-2 border-gray-400'
                   : idx === 2
-                  ? 'bg-gold/10 border-2 border-gold/30'
+                  ? 'bg-orange-50 border-2 border-orange-300'
                   : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
               }`}
             >
@@ -2742,25 +2749,25 @@ function Leaderboard() {
               <div className="text-right flex-shrink-0 ml-2">
                 {activeCategory === 'value' && (
                   <>
-                    <p className="text-lg sm:text-2xl font-bold font-mono text-green-600">${leader.earnings}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-green-600">${leader.earnings}</p>
                     <p className="text-xs text-gray-600">earned</p>
                   </>
                 )}
                 {activeCategory === 'accuracy' && (
                   <>
-                    <p className="text-lg sm:text-2xl font-bold text-navy">{leader.accuracy}%</p>
+                    <p className="text-lg sm:text-2xl font-bold text-indigo-600">{leader.accuracy}%</p>
                     <p className="text-xs text-gray-600">accurate</p>
                   </>
                 )}
                 {activeCategory === 'speed' && (
                   <>
-                    <p className="text-lg sm:text-2xl font-bold text-gold">{leader.quickSales}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-orange-600">{leader.quickSales}</p>
                     <p className="text-xs text-gray-600">quick</p>
                   </>
                 )}
                 {activeCategory === 'volume' && (
                   <>
-                    <p className="text-lg sm:text-2xl font-bold text-teal">{leader.sales}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-purple-600">{leader.sales}</p>
                     <p className="text-xs text-gray-600">sold</p>
                   </>
                 )}
@@ -2770,8 +2777,8 @@ function Leaderboard() {
         </div>
 
         {!userRank && (
-          <div className="mt-6 p-6 bg-soft-gray rounded-lg border-2 border-navy/20 text-center">
-            <p className="text-navy font-semibold">
+          <div className="mt-6 p-6 bg-indigo-50 rounded-lg border-2 border-indigo-200 text-center">
+            <p className="text-indigo-900 font-semibold">
               🎯 Start selling to join the leaderboard!
             </p>
           </div>
@@ -2781,6 +2788,116 @@ function Leaderboard() {
   );
 }
 
+function ReferralProgram({userProfile}) {
+  const [referralCode, setReferralCode] = useState('');
+  const [referrals, setReferrals] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    loadReferralData();
+  }, []);
+
+  const loadReferralData = async () => {
+    try {
+      const stored = await window.storage.get('referraldata');
+      if (stored && stored.value) {
+        const data = JSON.parse(stored.value);
+        setReferralCode(data.code);
+        setReferrals(data.count);
+      } else {
+        const newCode = 'SMART' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        setReferralCode(newCode);
+        await window.storage.set('referraldata', JSON.stringify({ code: newCode, count: 0 }));
+      }
+    } catch (e) {
+      const newCode = 'SMART' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      setReferralCode(newCode);
+    }
+  };
+
+  const copyReferralLink = () => {
+    const link = `https://precisionprices.app?ref=${referralCode}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareViaEmail = () => {
+    const subject = 'Get Better Prices on Facebook Marketplace!';
+    const body = `Hey! I've been using Precision Prices to price my Facebook Marketplace items and it's amazing. I've earned an extra $${Math.abs(userProfile?.totalEarnings || 0)}!\n\nUse my referral code ${referralCode} to get your first month free:\nhttps://precisionprices.app?ref=${referralCode}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl shadow-xl p-8 text-white">
+        <h2 className="text-3xl font-bold mb-2">Refer Friends, Get Rewards! 🎁</h2>
+        <p className="text-lg">Give your friends 1 month free, get 1 month free for each referral</p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-xl p-8">
+        <h3 className="text-2xl font-bold mb-4">Your Referral Stats</h3>
+        
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="text-center p-6 bg-green-50 rounded-xl">
+            <Users className="w-12 h-12 text-green-600 mx-auto mb-2" />
+            <div className="text-4xl font-bold text-green-900">{referrals}</div>
+            <div className="text-sm text-green-700">Friends Referred</div>
+          </div>
+          
+          <div className="text-center p-6 bg-purple-50 rounded-xl">
+            <Award className="w-12 h-12 text-purple-600 mx-auto mb-2" />
+            <div className="text-4xl font-bold text-purple-900">{referrals}</div>
+            <div className="text-sm text-purple-700">Free Months Earned</div>
+          </div>
+          
+          <div className="text-center p-6 bg-blue-50 rounded-xl">
+            <DollarSign className="w-12 h-12 text-blue-600 mx-auto mb-2" />
+            <div className="text-4xl font-bold text-blue-900">${(referrals * 4.99).toFixed(2)}</div>
+            <div className="text-sm text-blue-700">Value Saved</div>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block font-medium mb-2">Your Referral Code</label>
+          <div className="flex gap-3">
+            <input type="text" value={referralCode} readOnly className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-lg text-center" />
+            <button onClick={copyReferralLink} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">
+              {copied ? '✓ Copied!' : 'Copy Link'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <button onClick={shareViaEmail} className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">
+            <Send className="w-5 h-5" />Share via Email
+          </button>
+          <button onClick={() => {
+            const text = `Check out Precision Prices! Use code ${referralCode} for 1 month free: https://precisionprices.app?ref=${referralCode}`;
+            if (navigator.share) {
+              navigator.share({ title: 'Precision Prices Referral', text });
+            } else {
+              navigator.clipboard.writeText(text);
+              alert('Copied to clipboard!');
+            }
+          }} className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold">
+            <Share2 className="w-5 h-5" />Share on Social
+          </button>
+        </div>
+
+        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
+          <h4 className="font-bold text-yellow-900 mb-2">🎉 How It Works</h4>
+          <ul className="space-y-2 text-yellow-800">
+            <li>✓ Share your unique referral code with friends</li>
+            <li>✓ They get their first month FREE ($4.99 value)</li>
+            <li>✓ You get 1 month FREE for each friend who signs up</li>
+            <li>✓ Unlimited referrals = unlimited free months!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 function SecurePayments() {
@@ -2942,22 +3059,22 @@ function SecurePayments() {
       <div className="grid md:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-lg text-center">
           <Shield className="w-10 h-10 text-green-600 mx-auto mb-2" />
-          <p className="font-bold text-charcoal">Buyer Protection</p>
+          <p className="font-bold text-gray-900">Buyer Protection</p>
           <p className="text-sm text-gray-600">Funds held until delivery</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-lg text-center">
-          <Lock className="w-10 h-10 text-navy mx-auto mb-2" />
-          <p className="font-bold text-charcoal">Seller Security</p>
+          <Lock className="w-10 h-10 text-blue-600 mx-auto mb-2" />
+          <p className="font-bold text-gray-900">Seller Security</p>
           <p className="text-sm text-gray-600">Payment guaranteed</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-lg text-center">
-          <FileText className="w-10 h-10 text-teal mx-auto mb-2" />
-          <p className="font-bold text-charcoal">Blockchain Verified</p>
+          <FileText className="w-10 h-10 text-purple-600 mx-auto mb-2" />
+          <p className="font-bold text-gray-900">Blockchain Verified</p>
           <p className="text-sm text-gray-600">100% transparent</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-lg text-center">
-          <Award className="w-10 h-10 text-gold mx-auto mb-2" />
-          <p className="font-bold text-charcoal">Dispute Support</p>
+          <Award className="w-10 h-10 text-orange-600 mx-auto mb-2" />
+          <p className="font-bold text-gray-900">Dispute Support</p>
           <p className="text-sm text-gray-600">Fair resolution</p>
         </div>
       </div>
@@ -2967,7 +3084,7 @@ function SecurePayments() {
         <button
           onClick={() => setActiveTab('escrow')}
           className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-            activeTab === 'escrow' ? 'bg-teal text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            activeTab === 'escrow' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           <Shield className="w-5 h-5" />
@@ -2976,7 +3093,7 @@ function SecurePayments() {
         <button
           onClick={() => setActiveTab('blockchain')}
           className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-            activeTab === 'blockchain' ? 'bg-teal text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            activeTab === 'blockchain' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           <FileText className="w-5 h-5" />
@@ -2985,7 +3102,7 @@ function SecurePayments() {
         <button
           onClick={() => setActiveTab('fees')}
           className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-            activeTab === 'fees' ? 'bg-teal text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            activeTab === 'fees' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           <DollarSign className="w-5 h-5" />
@@ -3001,7 +3118,7 @@ function SecurePayments() {
               <h3 className="text-2xl font-bold">Your Escrow Transactions</h3>
               <button
                 onClick={() => setCreateTransaction(!createTransaction)}
-                className="px-6 py-3 bg-teal hover:bg-teal/90 text-white font-semibold rounded-lg flex items-center gap-2"
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg flex items-center gap-2"
               >
                 <Lock className="w-5 h-5" />
                 Create Escrow
@@ -3094,13 +3211,13 @@ function SecurePayments() {
                 <div className="flex gap-3">
                   <button
                     onClick={createEscrowTransaction}
-                    className="flex-1 bg-teal hover:bg-teal/90 text-white py-3 rounded-lg font-semibold"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold"
                   >
                     Create Escrow Transaction
                   </button>
                   <button
                     onClick={() => setCreateTransaction(false)}
-                    className="px-6 bg-gray-200 hover:bg-gray-300 text-charcoal py-3 rounded-lg font-semibold"
+                    className="px-6 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-semibold"
                   >
                     Cancel
                   </button>
@@ -3118,20 +3235,20 @@ function SecurePayments() {
                 {transactions.map((tx) => (
                   <div key={tx.id} className={`p-6 rounded-xl border-2 ${
                     tx.status === 'completed' ? 'bg-green-50 border-green-300' :
-                    tx.status === 'pending' ? 'bg-gold/10 border-gold/30' :
+                    tx.status === 'pending' ? 'bg-yellow-50 border-yellow-300' :
                     'bg-red-50 border-red-300'
                   }`}>
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h4 className="text-xl font-bold text-charcoal">{tx.itemName}</h4>
+                        <h4 className="text-xl font-bold text-gray-900">{tx.itemName}</h4>
                         <p className="text-sm text-gray-600">Transaction ID: {tx.id}</p>
                         <p className="text-sm text-gray-600">Created: {new Date(tx.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold font-mono text-green-700">${tx.amount}</div>
+                        <div className="text-2xl font-bold text-green-700">${tx.amount}</div>
                         <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
                           tx.status === 'completed' ? 'bg-green-200 text-green-800' :
-                          tx.status === 'pending' ? 'bg-gold/20 text-gold' :
+                          tx.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
                           'bg-red-200 text-red-800'
                         }`}>
                           {tx.status.toUpperCase()}
@@ -3174,7 +3291,7 @@ function SecurePayments() {
                         {!tx.sellerShipped && (
                           <button
                             onClick={() => updateTransactionStatus(tx.id, { sellerShipped: true })}
-                            className="flex-1 bg-navy hover:bg-navy/90 text-white py-2 rounded-lg text-sm font-medium"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium"
                           >
                             Mark as Shipped
                           </button>
@@ -3182,7 +3299,7 @@ function SecurePayments() {
                         {!tx.buyerConfirmed && (
                           <button
                             onClick={() => updateTransactionStatus(tx.id, { buyerConfirmed: true })}
-                            className="flex-1 bg-teal hover:bg-teal/90 text-white py-2 rounded-lg text-sm font-medium"
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium"
                           >
                             Confirm Delivery
                           </button>
@@ -3204,7 +3321,7 @@ function SecurePayments() {
           </div>
 
           {/* How Escrow Works */}
-          <div className="bg-gradient-to-r from-navy to-teal rounded-2xl shadow-xl p-8 text-white">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-6">🛡️ How Secure Escrow Works</h3>
             <div className="grid md:grid-cols-4 gap-4">
               <div className="bg-white bg-opacity-20 p-4 rounded-lg">
@@ -3236,7 +3353,7 @@ function SecurePayments() {
       {activeTab === 'blockchain' && (
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex items-center gap-3 mb-6">
-            <FileText className="w-8 h-8 text-teal" />
+            <FileText className="w-8 h-8 text-purple-600" />
             <div>
               <h3 className="text-2xl font-bold">Public Blockchain Ledger</h3>
               <p className="text-gray-600">100% transparent, immutable transaction history</p>
@@ -3251,17 +3368,17 @@ function SecurePayments() {
           ) : (
             <div className="space-y-4">
               {blockchainLedger.map((block, idx) => (
-                <div key={idx} className="bg-gradient-to-r from-teal/10 to-gold/10 border-2 border-teal/30 rounded-xl p-6">
+                <div key={idx} className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="bg-teal text-white px-3 py-1 rounded-lg font-bold text-sm">
+                        <div className="bg-purple-600 text-white px-3 py-1 rounded-lg font-bold text-sm">
                           Block #{block.blockNumber}
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           block.status === 'completed' ? 'bg-green-200 text-green-800' :
-                          block.status === 'pending' ? 'bg-gold/20 text-gold' :
-                          'bg-gray-200 text-charcoal'
+                          block.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
+                          'bg-gray-200 text-gray-800'
                         }`}>
                           {block.status}
                         </span>
@@ -3307,20 +3424,20 @@ function SecurePayments() {
             </div>
           )}
 
-          <div className="mt-8 bg-soft-gray border-2 border-teal/30 rounded-xl p-6">
-            <h4 className="font-bold text-teal mb-3">🔐 Blockchain Benefits</h4>
+          <div className="mt-8 bg-purple-50 border-2 border-purple-300 rounded-xl p-6">
+            <h4 className="font-bold text-purple-900 mb-3">🔐 Blockchain Benefits</h4>
             <div className="grid md:grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="font-semibold text-teal mb-1">✓ Immutable</p>
-                <p className="text-teal">Records cannot be altered or deleted</p>
+                <p className="font-semibold text-purple-900 mb-1">✓ Immutable</p>
+                <p className="text-purple-800">Records cannot be altered or deleted</p>
               </div>
               <div>
-                <p className="font-semibold text-teal mb-1">✓ Transparent</p>
-                <p className="text-teal">All transactions publicly verifiable</p>
+                <p className="font-semibold text-purple-900 mb-1">✓ Transparent</p>
+                <p className="text-purple-800">All transactions publicly verifiable</p>
               </div>
               <div>
-                <p className="font-semibold text-teal mb-1">✓ Secure</p>
-                <p className="text-teal">Cryptographically protected</p>
+                <p className="font-semibold text-purple-900 mb-1">✓ Secure</p>
+                <p className="text-purple-800">Cryptographically protected</p>
               </div>
             </div>
           </div>
@@ -3335,19 +3452,19 @@ function SecurePayments() {
           <FeeCalculator calculateFees={calculateFees} />
 
           <div className="mt-8 grid md:grid-cols-2 gap-6">
-            <div className="bg-soft-gray border-2 border-navy/30 rounded-xl p-6">
-              <h4 className="font-bold text-navy mb-3">💰 Our Fees</h4>
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-6">
+              <h4 className="font-bold text-blue-900 mb-3">💰 Our Fees</h4>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-navy">Platform Fee:</span>
-                  <span className="font-bold text-navy">2.5%</span>
+                  <span className="text-blue-800">Platform Fee:</span>
+                  <span className="font-bold text-blue-900">2.5%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-navy">Payment Processing:</span>
-                  <span className="font-bold text-navy">2.9% + $0.30</span>
+                  <span className="text-blue-800">Payment Processing:</span>
+                  <span className="font-bold text-blue-900">2.9% + $0.30</span>
                 </div>
-                <div className="border-t border-navy/30 pt-2 mt-2">
-                  <p className="text-navy text-xs">
+                <div className="border-t border-blue-300 pt-2 mt-2">
+                  <p className="text-blue-800 text-xs">
                     Our 2.5% platform fee covers: secure escrow, blockchain verification, buyer/seller protection, dispute resolution, and 24/7 support.
                   </p>
                 </div>
@@ -3405,14 +3522,14 @@ function FeeCalculator({ calculateFees }) {
             onChange={(e) => setAmount(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && calculate()}
             placeholder="Enter sale amount"
-            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy text-lg"
+            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"
           />
         </div>
         <div className="flex items-end">
           <button
             onClick={calculate}
             disabled={!amount}
-            className="px-8 py-3 bg-navy hover:bg-navy/90 disabled:bg-gray-400 text-white font-semibold rounded-lg"
+            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg"
           >
             Calculate
           </button>
@@ -3425,27 +3542,27 @@ function FeeCalculator({ calculateFees }) {
           <div className="space-y-3">
             <div className="flex justify-between items-center p-3 bg-white rounded-lg">
               <span className="text-gray-700">Item Sale Price</span>
-              <span className="text-2xl font-bold font-mono text-charcoal">${fees.subtotal}</span>
+              <span className="text-2xl font-bold text-gray-900">${fees.subtotal}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Platform Fee (2.5%)</span>
-              <span className="font-bold font-mono text-red-600">-${fees.platformFee}</span>
+              <span className="font-bold text-red-600">-${fees.platformFee}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Payment Processing (2.9% + $0.30)</span>
-              <span className="font-bold font-mono text-red-600">-${fees.paymentProcessing}</span>
+              <span className="font-bold text-red-600">-${fees.paymentProcessing}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Total Fees</span>
-              <span className="font-bold font-mono text-red-600">-${fees.totalFees}</span>
+              <span className="font-bold text-red-600">-${fees.totalFees}</span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-teal text-white rounded-lg">
+            <div className="flex justify-between items-center p-4 bg-green-600 text-white rounded-lg">
               <span className="text-lg font-semibold">You Receive</span>
-              <span className="text-3xl font-bold font-mono">${fees.sellerReceives}</span>
+              <span className="text-3xl font-bold">${fees.sellerReceives}</span>
             </div>
           </div>
-          <div className="mt-4 p-3 bg-soft-gray rounded-lg">
-            <p className="text-sm text-navy">
+          <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+            <p className="text-sm text-blue-900">
               💡 <strong>Note:</strong> Buyer pays ${fees.buyerPays}. You keep {((parseFloat(fees.sellerReceives) / parseFloat(fees.subtotal)) * 100).toFixed(1)}% of the sale price.
             </p>
           </div>
@@ -3771,7 +3888,7 @@ function BulkAnalysis() {
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-navy mb-2">Analyze Multiple Items at Once!</h1>
+        <h1 className="text-4xl font-bold text-indigo-600 mb-2">Analyze Multiple Items at Once!</h1>
         <p className="text-lg text-gray-600">Perfect for vendors - get AI pricing for all your inventory</p>
       </div>
 
@@ -3782,13 +3899,13 @@ function BulkAnalysis() {
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-charcoal">Bulk Analysis</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Bulk Analysis</h2>
                 <p className="text-gray-600">Add multiple items and analyze them all at once</p>
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={addItem}
-                  className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition"
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
                   <Package className="w-4 h-4" />
                   Add Item
@@ -3805,7 +3922,7 @@ function BulkAnalysis() {
                     </button>
                     <button
                       onClick={exportResults}
-                      className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                     >
                       <Download className="w-4 h-4" />
                       Export CSV
@@ -3816,12 +3933,12 @@ function BulkAnalysis() {
             </div>
 
         {loading && (
-          <div className="bg-soft-gray border border-navy/20 rounded-lg p-4 mb-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-navy" />
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
               <div>
-                <p className="font-semibold text-navy">Analyzing items...</p>
-                <p className="text-sm text-navy">Completed: {completedCount} / {items.length}</p>
+                <p className="font-semibold text-blue-900">Analyzing items...</p>
+                <p className="text-sm text-blue-700">Completed: {completedCount} / {items.length}</p>
               </div>
             </div>
           </div>
@@ -3834,7 +3951,7 @@ function BulkAnalysis() {
             <p className="text-gray-500 mb-6">Click "Add Item" to start analyzing multiple items</p>
             <button
               onClick={addItem}
-              className="px-6 py-3 bg-navy text-white rounded-lg hover:bg-navy/90 transition"
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
             >
               Add Your First Item
             </button>
@@ -3844,7 +3961,7 @@ function BulkAnalysis() {
             {items.map((item, index) => (
               <div key={item.id} className="border border-gray-200 rounded-xl p-6 bg-gray-50">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-charcoal">Item #{index + 1}</h3>
+                  <h3 className="text-lg font-bold text-gray-900">Item #{index + 1}</h3>
                   <button
                     onClick={() => removeItem(item.id)}
                     className="text-red-600 hover:text-red-700"
@@ -3863,13 +3980,13 @@ function BulkAnalysis() {
                         accept="image/*,.heic,.heif"
                         multiple
                         onChange={(e) => handleImageUpload(item.id, e)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy text-sm"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
                       />
                     )}
                     {item.imageLoading && (
-                      <div className="border-2 border-navy bg-soft-gray rounded-lg p-4 text-center touch-none">
-                        <Loader2 className="w-8 h-8 text-navy mx-auto mb-2 animate-spin" />
-                        <p className="text-navy text-xs sm:text-sm font-medium">Image loading, may take a few seconds</p>
+                      <div className="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-4 text-center touch-none">
+                        <Loader2 className="w-8 h-8 text-indigo-500 mx-auto mb-2 animate-spin" />
+                        <p className="text-indigo-700 text-xs sm:text-sm font-medium">Image loading, may take a few seconds</p>
                       </div>
                     )}
                     {item.images.length > 0 && (
@@ -3898,7 +4015,7 @@ function BulkAnalysis() {
                       type="text"
                       value={item.itemName}
                       onChange={(e) => updateItem(item.id, 'itemName', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       placeholder="e.g., iPhone 13 Pro"
                     />
                   </div>
@@ -3910,7 +4027,7 @@ function BulkAnalysis() {
                       <select
                         value={item.condition}
                         onChange={(e) => updateItem(item.id, 'condition', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="new">New</option>
                         <option value="like-new">Like New</option>
@@ -3927,7 +4044,7 @@ function BulkAnalysis() {
                         type="text"
                         value={item.location}
                         onChange={(e) => updateItem(item.id, 'location', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                         placeholder="ZIP code or city"
                       />
                     </div>
@@ -3940,7 +4057,7 @@ function BulkAnalysis() {
                       value={item.additionalDetails || ''}
                       onChange={(e) => updateItem(item.id, 'additionalDetails', e.target.value)}
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy resize-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
                       placeholder="Brand, model, defects, accessories included, etc."
                     />
                   </div>
@@ -3953,9 +4070,9 @@ function BulkAnalysis() {
                 )}
 
                 {item.loading && (
-                  <div className="mt-4 bg-soft-gray border border-navy/20 rounded-lg p-3 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-navy" />
-                    <p className="text-navy text-sm">Analyzing...</p>
+                  <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    <p className="text-blue-800 text-sm">Analyzing...</p>
                   </div>
                 )}
 
@@ -3969,30 +4086,30 @@ function BulkAnalysis() {
                       <div className="grid grid-cols-3 gap-4 mt-3">
                         <div>
                           <p className="text-xs text-gray-600">Low</p>
-                          <p className="text-lg font-bold font-mono text-charcoal">${item.result.pricing?.prices[0] || 0}</p>
+                          <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[0] || 0}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-600">Target</p>
-                          <p className="text-lg font-bold font-mono text-emerald-600">${item.result.pricing?.prices[1] || 0}</p>
+                          <p className="text-lg font-bold text-emerald-600">${item.result.pricing?.prices[1] || 0}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-600">High</p>
-                          <p className="text-lg font-bold font-mono text-charcoal">${item.result.pricing?.prices[2] || 0}</p>
+                          <p className="text-lg font-bold text-gray-900">${item.result.pricing?.prices[2] || 0}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Listing Strategy */}
                     {item.result.pricingStrategy && (
-                      <div className="bg-gradient-to-r from-navy/10 to-teal/10 border border-navy/20 rounded-lg p-4">
-                        <h3 className="font-semibold text-navy mb-3 flex items-center gap-2">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
                           <TrendingUp className="w-5 h-5" />
                           Listing Strategy
                         </h3>
                         <div className="space-y-2">
-                          <p className="text-navy text-sm"><strong>Suggested List Price:</strong> <span className="font-mono">${item.result.pricingStrategy.listingPrice}</span></p>
-                          <p className="text-navy text-sm"><strong>Don't Go Below:</strong> <span className="font-mono">${item.result.pricingStrategy.minimumAcceptable}</span></p>
-                          <p className="text-xs text-navy mt-2 p-2 bg-white bg-opacity-50 rounded">{item.result.pricingStrategy.reasoning}</p>
+                          <p className="text-blue-800 text-sm"><strong>Suggested List Price:</strong> ${item.result.pricingStrategy.listingPrice}</p>
+                          <p className="text-blue-800 text-sm"><strong>Don't Go Below:</strong> ${item.result.pricingStrategy.minimumAcceptable}</p>
+                          <p className="text-xs text-blue-700 mt-2 p-2 bg-white bg-opacity-50 rounded">{item.result.pricingStrategy.reasoning}</p>
                         </div>
                       </div>
                     )}
@@ -4001,7 +4118,7 @@ function BulkAnalysis() {
                     {!item.feedbackShown && (
                       <button
                         onClick={() => updateItem(item.id, 'feedbackShown', true)}
-                        className="w-full bg-gradient-to-r from-navy to-teal text-white py-3 px-4 rounded-lg hover:from-navy/90 hover:to-teal/90 transition font-medium flex items-center justify-center gap-2"
+                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-medium flex items-center justify-center gap-2"
                       >
                         <MessageCircle className="w-5 h-5" />
                         Help Us Improve
@@ -4012,7 +4129,7 @@ function BulkAnalysis() {
                     {item.feedbackShown && !item.feedbackSubmitted && (
                       <div className="bg-white border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-semibold text-charcoal">Help Us Improve</h3>
+                          <h3 className="font-semibold text-gray-900">Help Us Improve</h3>
                           <div className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-medium">
                             🎁 Earn rewards!
                           </div>
@@ -4025,7 +4142,7 @@ function BulkAnalysis() {
                                 onClick={() => updateItem(item.id, 'wasSold', true)}
                                 className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${
                                   item.wasSold === true
-                                    ? 'bg-teal text-white'
+                                    ? 'bg-green-500 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                               >
@@ -4035,7 +4152,7 @@ function BulkAnalysis() {
                                 onClick={() => updateItem(item.id, 'wasSold', false)}
                                 className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${
                                   item.wasSold === false
-                                    ? 'bg-gold text-white'
+                                    ? 'bg-orange-500 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                               >
@@ -4052,7 +4169,7 @@ function BulkAnalysis() {
                                 value={item.actualPrice || ''}
                                 onChange={(e) => updateItem(item.id, 'actualPrice', e.target.value)}
                                 placeholder="Enter sale price"
-                                className="w-full px-3 py-2 border rounded text-sm focus:ring-2 focus:ring-navy"
+                                className="w-full px-3 py-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500"
                               />
                             </div>
                           )}
@@ -4064,7 +4181,7 @@ function BulkAnalysis() {
                                 onClick={() => updateItem(item.id, 'wasFair', true)}
                                 className={`flex-1 px-3 py-2 rounded text-sm font-medium transition flex items-center justify-center gap-1 ${
                                   item.wasFair === true
-                                    ? 'bg-teal text-white'
+                                    ? 'bg-green-500 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                               >
@@ -4085,7 +4202,7 @@ function BulkAnalysis() {
 
                           <button
                             onClick={() => updateItem(item.id, 'feedbackSubmitted', true)}
-                            className="w-full bg-navy hover:bg-navy/90 text-white px-4 py-2 rounded font-medium text-sm"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-medium text-sm"
                           >
                             Submit Feedback
                           </button>
@@ -4113,33 +4230,33 @@ function BulkAnalysis() {
 
         {/* Right Column - How to Use Summary (1/3 width) */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-soft-gray to-soft-gray rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
-            <h3 className="text-xl font-bold text-charcoal mb-4">How Bulk Analysis Works</h3>
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">How Bulk Analysis Works</h3>
             <div className="space-y-6">
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-navy text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   1
                 </div>
                 <div>
-                  <h4 className="font-semibold text-charcoal mb-1">Add Items</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Add Items</h4>
                   <p className="text-sm text-gray-600">Click "Add Item" to create entries for all products you want to price</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-navy text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   2
                 </div>
                 <div>
-                  <h4 className="font-semibold text-charcoal mb-1">Fill Details</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Fill Details</h4>
                   <p className="text-sm text-gray-600">For each item, add photos, name, condition, and location</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-navy text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   3
                 </div>
                 <div>
-                  <h4 className="font-semibold text-charcoal mb-1">Analyze All</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Analyze All</h4>
                   <p className="text-sm text-gray-600">Click "Analyze All" to get AI pricing for every item simultaneously</p>
                 </div>
               </div>
@@ -4148,12 +4265,12 @@ function BulkAnalysis() {
                   4
                 </div>
                 <div>
-                  <h4 className="font-semibold text-charcoal mb-1">Export Results</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Export Results</h4>
                   <p className="text-sm text-gray-600">Download your pricing data as CSV for easy listing</p>
                 </div>
               </div>
             </div>
-            <div className="mt-6 pt-6 border-t border-navy/20">
+            <div className="mt-6 pt-6 border-t border-indigo-200">
               <p className="text-sm text-gray-600 italic">Perfect for vendors with multiple items to list!</p>
             </div>
             <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
@@ -4324,7 +4441,7 @@ function ShippingCalculator() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-navy to-teal rounded-2xl shadow-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl p-8 text-white">
         <div className="flex items-center gap-4">
           <Package className="w-16 h-16" />
           <div>
@@ -4340,7 +4457,7 @@ function ShippingCalculator() {
           onClick={() => setActiveTab('estimator')}
           className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
             activeTab === 'estimator'
-              ? 'bg-navy text-white'
+              ? 'bg-blue-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -4351,7 +4468,7 @@ function ShippingCalculator() {
           onClick={() => setActiveTab('container')}
           className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
             activeTab === 'container'
-              ? 'bg-navy text-white'
+              ? 'bg-blue-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -4362,7 +4479,7 @@ function ShippingCalculator() {
           onClick={() => setActiveTab('meetup')}
           className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
             activeTab === 'meetup'
-              ? 'bg-navy text-white'
+              ? 'bg-blue-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -4387,7 +4504,7 @@ function ShippingCalculator() {
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder="5.0"
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 
@@ -4399,7 +4516,7 @@ function ShippingCalculator() {
                       value={length}
                       onChange={(e) => setLength(e.target.value)}
                       placeholder="12"
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -4409,7 +4526,7 @@ function ShippingCalculator() {
                       value={width}
                       onChange={(e) => setWidth(e.target.value)}
                       placeholder="8"
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -4419,7 +4536,7 @@ function ShippingCalculator() {
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
                       placeholder="6"
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -4437,7 +4554,7 @@ function ShippingCalculator() {
                     onChange={(e) => setFromZip(e.target.value)}
                     placeholder="10001"
                     maxLength="5"
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 
@@ -4449,7 +4566,7 @@ function ShippingCalculator() {
                     onChange={(e) => setToZip(e.target.value)}
                     placeholder="90001"
                     maxLength="5"
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 
@@ -4458,7 +4575,7 @@ function ShippingCalculator() {
                   <select
                     value={shippingSpeed}
                     onChange={(e) => setShippingSpeed(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="ground">Ground (5-7 days)</option>
                     <option value="3day">3-Day</option>
@@ -4473,7 +4590,7 @@ function ShippingCalculator() {
           <button
             onClick={calculateShipping}
             disabled={calculating || !weight || !fromZip || !toZip}
-            className="w-full bg-navy hover:bg-navy/90 disabled:bg-gray-400 text-white font-semibold py-4 rounded-lg flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-lg flex items-center justify-center gap-2"
           >
             {calculating ? (
               <>
@@ -4492,7 +4609,7 @@ function ShippingCalculator() {
             <div className="mt-8 space-y-4">
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6">
                 <h4 className="text-xl font-bold text-green-900 mb-2">Estimated Cost</h4>
-                <div className="text-4xl font-bold font-mono text-green-700">${estimate.cost}</div>
+                <div className="text-4xl font-bold text-green-700">${estimate.cost}</div>
                 <p className="text-sm text-green-800 mt-2">
                   Billable Weight: {estimate.billableWeight} lbs • Delivery: {estimate.estimatedDays} business days
                 </p>
@@ -4501,15 +4618,15 @@ function ShippingCalculator() {
               <div className="grid md:grid-cols-3 gap-4">
                 {estimate.carriers.map((carrier, idx) => (
                   <div key={idx} className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                    <div className="font-semibold text-charcoal">{carrier.name}</div>
-                    <div className="text-2xl font-bold font-mono text-navy">${carrier.cost}</div>
+                    <div className="font-semibold text-gray-900">{carrier.name}</div>
+                    <div className="text-2xl font-bold text-blue-600">${carrier.cost}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="bg-soft-gray border border-navy/20 rounded-lg p-4">
-                <h5 className="font-semibold text-navy mb-2">💡 Pro Tips</h5>
-                <ul className="text-sm text-navy space-y-1">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h5 className="font-semibold text-blue-900 mb-2">💡 Pro Tips</h5>
+                <ul className="text-sm text-blue-800 space-y-1">
                   <li>• Consider adding signature confirmation for items over $50</li>
                   <li>• Purchase insurance for valuable items</li>
                   <li>• Use online shipping labels to save 10-20%</li>
@@ -4536,7 +4653,7 @@ function ShippingCalculator() {
                     value={length}
                     onChange={(e) => setLength(e.target.value)}
                     placeholder="Length"
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -4545,7 +4662,7 @@ function ShippingCalculator() {
                     value={width}
                     onChange={(e) => setWidth(e.target.value)}
                     placeholder="Width"
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -4554,7 +4671,7 @@ function ShippingCalculator() {
                     value={height}
                     onChange={(e) => setHeight(e.target.value)}
                     placeholder="Height"
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -4567,7 +4684,7 @@ function ShippingCalculator() {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="Weight in pounds"
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -4575,7 +4692,7 @@ function ShippingCalculator() {
           <button
             onClick={suggestContainer}
             disabled={!length || !width || !height}
-            className="w-full bg-navy hover:bg-navy/90 disabled:bg-gray-400 text-white font-semibold py-4 rounded-lg flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-lg flex items-center justify-center gap-2"
           >
             <Package className="w-5 h-5" />
             Find Perfect Box
@@ -4583,49 +4700,49 @@ function ShippingCalculator() {
 
           {boxSuggestion && (
             <div className="mt-8 space-y-6">
-              <div className="bg-gradient-to-r from-teal/10 to-gold/10 border-2 border-teal/30 rounded-xl p-6">
-                <h4 className="text-2xl font-bold text-teal mb-4">{boxSuggestion.name}</h4>
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-6">
+                <h4 className="text-2xl font-bold text-purple-900 mb-4">{boxSuggestion.name}</h4>
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <p className="text-sm text-teal font-medium">Dimensions</p>
-                    <p className="text-lg font-bold text-teal">{boxSuggestion.dimensions}</p>
+                    <p className="text-sm text-purple-700 font-medium">Dimensions</p>
+                    <p className="text-lg font-bold text-purple-900">{boxSuggestion.dimensions}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-teal font-medium">Max Weight</p>
-                    <p className="text-lg font-bold text-teal">{boxSuggestion.maxWeight}</p>
+                    <p className="text-sm text-purple-700 font-medium">Max Weight</p>
+                    <p className="text-lg font-bold text-purple-900">{boxSuggestion.maxWeight}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-teal font-medium">Box Cost</p>
-                    <p className="text-lg font-bold text-teal">{boxSuggestion.cost}</p>
+                    <p className="text-sm text-purple-700 font-medium">Box Cost</p>
+                    <p className="text-lg font-bold text-purple-900">{boxSuggestion.cost}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-teal font-medium">Total Packaging</p>
-                    <p className="text-lg font-bold text-teal">${boxSuggestion.totalPackagingCost}</p>
+                    <p className="text-sm text-purple-700 font-medium">Total Packaging</p>
+                    <p className="text-lg font-bold text-purple-900">${boxSuggestion.totalPackagingCost}</p>
                   </div>
                 </div>
-                <p className="text-teal">
+                <p className="text-purple-800">
                   <strong>Best for:</strong> {boxSuggestion.bestFor}
                 </p>
               </div>
 
               <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
-                <h5 className="font-bold text-charcoal mb-4">📦 Recommended Packing Materials</h5>
+                <h5 className="font-bold text-gray-900 mb-4">📦 Recommended Packing Materials</h5>
                 <div className="space-y-3">
                   {boxSuggestion.packingMaterials.map((material, idx) => (
                     <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-charcoal">{material.item}</p>
+                        <p className="font-medium text-gray-900">{material.item}</p>
                         <p className="text-sm text-gray-600">{material.amount}</p>
                       </div>
-                      <p className="font-bold text-navy">{material.cost}</p>
+                      <p className="font-bold text-blue-600">{material.cost}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-gold/10 border border-gold/30 rounded-lg p-4">
-                <h5 className="font-semibold text-charcoal mb-2">📝 Packing Tips</h5>
-                <ul className="text-sm text-gold space-y-1">
+              <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                <h5 className="font-semibold text-yellow-900 mb-2">📝 Packing Tips</h5>
+                <ul className="text-sm text-yellow-800 space-y-1">
                   <li>• Wrap fragile items individually with bubble wrap</li>
                   <li>• Fill empty spaces with packing peanuts or paper</li>
                   <li>• Seal all edges with quality packing tape</li>
@@ -4651,12 +4768,12 @@ function ShippingCalculator() {
                 value={meetupLocation}
                 onChange={(e) => setMeetupLocation(e.target.value)}
                 placeholder="Enter your city or ZIP code"
-                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-navy"
+                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={findMeetupSpots}
                 disabled={!meetupLocation}
-                className="px-6 py-3 bg-navy hover:bg-navy/90 disabled:bg-gray-400 text-white font-semibold rounded-lg flex items-center gap-2"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg flex items-center gap-2"
               >
                 <Navigation className="w-5 h-5" />
                 Find Spots
@@ -4673,13 +4790,13 @@ function ShippingCalculator() {
                     <div key={idx} className="bg-white p-4 rounded-lg border-2 border-gray-200 hover:border-green-400 transition">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h5 className="font-bold text-charcoal">{spot.name}</h5>
+                          <h5 className="font-bold text-gray-900">{spot.name}</h5>
                           <p className="text-sm text-gray-600">{spot.address}</p>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           spot.safety === 'Highest' ? 'bg-green-200 text-green-800' :
-                          spot.safety === 'High' ? 'bg-navy/20 text-navy' :
-                          'bg-gold/20 text-gold'
+                          spot.safety === 'High' ? 'bg-blue-200 text-blue-800' :
+                          'bg-yellow-200 text-yellow-800'
                         }`}>
                           {spot.safety} Safety
                         </span>
@@ -4705,9 +4822,9 @@ function ShippingCalculator() {
                 </div>
               </div>
 
-              <div className="bg-soft-gray border border-navy/20 rounded-lg p-4">
-                <h5 className="font-semibold text-navy mb-2">💬 Message Template</h5>
-                <div className="bg-white p-4 rounded border border-navy/20">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h5 className="font-semibold text-blue-900 mb-2">💬 Message Template</h5>
+                <div className="bg-white p-4 rounded border border-blue-200">
                   <p className="text-sm text-gray-700 italic">
                     "Hi! I'd like to meet at [Location] on [Day] at [Time]. It's a safe, public place with good lighting. Does that work for you?"
                   </p>
@@ -4718,7 +4835,7 @@ function ShippingCalculator() {
                     navigator.clipboard.writeText(template);
                     alert('Message template copied to clipboard!');
                   }}
-                  className="mt-3 px-4 py-2 bg-navy hover:bg-navy/90 text-white rounded-lg text-sm font-medium"
+                  className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
                 >
                   Copy Template
                 </button>
@@ -4729,7 +4846,7 @@ function ShippingCalculator() {
       )}
 
       {/* Comparison Tool */}
-      <div className="bg-gradient-to-r from-navy to-teal rounded-2xl shadow-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-xl p-8 text-white">
         <h3 className="text-2xl font-bold mb-4">💡 Shipping vs. Local Pickup</h3>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-white bg-opacity-20 p-6 rounded-xl">
