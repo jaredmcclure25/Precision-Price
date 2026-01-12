@@ -193,7 +193,7 @@ export default function MarketplacePricer() {
       file.name.toLowerCase().endsWith('.heif')
     );
 
-    // Process images like Instagram/Facebook: Keep original format, create thumbnail for preview only
+    // Process images: Convert HEIC to JPEG for API compatibility (Anthropic only supports jpeg/png/gif/webp)
     const processPromises = newImages.map(async (file) => {
       try {
         const isHEIC = file.type === 'image/heic' ||
@@ -203,46 +203,42 @@ export default function MarketplacePricer() {
                        file.name.toLowerCase().endsWith('.heic') ||
                        file.name.toLowerCase().endsWith('.heif');
 
-        let previewDataURL;
+        let uploadFile = file;
 
         if (isHEIC) {
-          // For HEIC: Create small JPEG thumbnail for preview only (like Instagram)
+          // Convert HEIC to JPEG (required by Anthropic API)
           try {
-            console.log(`📸 Creating thumbnail for HEIC: ${file.name}`);
-            const thumbnailBlob = await heic2any({
+            console.log(`🔄 Converting HEIC to JPEG: ${file.name}`);
+            const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
-              quality: 0.3  // Very low quality, small size - just for preview
+              quality: 0.85  // Good balance of quality and speed
             });
 
-            const blob = Array.isArray(thumbnailBlob) ? thumbnailBlob[0] : thumbnailBlob;
+            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
 
-            // Convert thumbnail to dataURL for preview
-            previewDataURL = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
+            uploadFile = new File(
+              [blob],
+              file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+              { type: 'image/jpeg' }
+            );
 
-            console.log(`✅ Thumbnail created for ${file.name}`);
+            console.log(`✅ HEIC converted: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
           } catch (conversionError) {
-            console.error('Thumbnail creation failed:', conversionError);
-            // Use a placeholder image if thumbnail fails
-            previewDataURL = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" fill="%23999">Photo</text></svg>';
+            console.error('HEIC conversion failed:', conversionError);
+            throw new Error(`${file.name}: HEIC conversion failed. Please try a different photo format.`);
           }
-        } else {
-          // For other formats: Use as-is for preview
-          previewDataURL = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
         }
 
-        // Return original file for upload (backend will handle it)
-        return { file: file, preview: previewDataURL };
+        // Read file to dataURL for both preview and upload
+        const dataURL = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadFile);
+        });
+
+        return { file: uploadFile, preview: dataURL };
       } catch (err) {
         console.error('Error processing image:', err);
         throw new Error(`${file.name}: ${err.message || 'Processing failed'}`);
@@ -335,13 +331,11 @@ export default function MarketplacePricer() {
           reader.readAsDataURL(img.file);
         });
 
+        // Anthropic API only supports: image/jpeg, image/png, image/gif, image/webp
         let mediaType = 'image/jpeg';
         if (img.file.type === 'image/png') mediaType = 'image/png';
         else if (img.file.type === 'image/webp') mediaType = 'image/webp';
         else if (img.file.type === 'image/gif') mediaType = 'image/gif';
-        else if (img.file.type === 'image/heic' || img.file.type === 'image/heif') mediaType = img.file.type;
-        else if (img.file.name.toLowerCase().endsWith('.heic')) mediaType = 'image/heic';
-        else if (img.file.name.toLowerCase().endsWith('.heif')) mediaType = 'image/heif';
 
         contentParts.push({
           type: 'image',
@@ -3298,48 +3292,49 @@ function BulkAnalysis() {
       updateItem(id, 'imageLoading', true);
     }
 
-    // Process images like Instagram/Facebook: Keep original format, create thumbnail for preview only
+    // Process images: Convert HEIC to JPEG for API compatibility (Anthropic only supports jpeg/png/gif/webp)
     const processPromises = newImages.map(async (file) => {
       try {
         const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
                        file.name.toLowerCase().endsWith('.heic') ||
                        file.name.toLowerCase().endsWith('.heif');
 
-        let previewDataURL;
+        let uploadFile = file;
 
         if (isHEIC) {
+          // Convert HEIC to JPEG (required by Anthropic API)
           try {
-            console.log(`📸 Creating thumbnail for HEIC: ${file.name}`);
-            const thumbnailBlob = await heic2any({
+            console.log(`🔄 Converting HEIC to JPEG: ${file.name}`);
+            const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
-              quality: 0.3  // Very low quality, small size - just for preview
+              quality: 0.85  // Good balance of quality and speed
             });
 
-            const blob = Array.isArray(thumbnailBlob) ? thumbnailBlob[0] : thumbnailBlob;
+            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
 
-            previewDataURL = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
+            uploadFile = new File(
+              [blob],
+              file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+              { type: 'image/jpeg' }
+            );
 
-            console.log(`✅ Thumbnail created for ${file.name}`);
+            console.log(`✅ HEIC converted: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
           } catch (conversionError) {
-            console.error('Thumbnail creation failed:', conversionError);
-            previewDataURL = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" fill="%23999">Photo</text></svg>';
+            console.error('HEIC conversion failed:', conversionError);
+            throw new Error(`${file.name}: HEIC conversion failed. Please try a different photo format.`);
           }
-        } else {
-          previewDataURL = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
         }
 
-        return { file: file, preview: previewDataURL };
+        // Read file to dataURL for both preview and upload
+        const dataURL = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadFile);
+        });
+
+        return { file: uploadFile, preview: dataURL };
       } catch (err) {
         console.error('Error processing image:', err);
         throw new Error(`${file.name}: ${err.message || 'Processing failed'}`);
@@ -3397,13 +3392,11 @@ function BulkAnalysis() {
             reader.readAsDataURL(img.file);
           });
 
+          // Anthropic API only supports: image/jpeg, image/png, image/gif, image/webp
           let mediaType = 'image/jpeg';
           if (img.file.type === 'image/png') mediaType = 'image/png';
           else if (img.file.type === 'image/webp') mediaType = 'image/webp';
           else if (img.file.type === 'image/gif') mediaType = 'image/gif';
-          else if (img.file.type === 'image/heic' || img.file.type === 'image/heif') mediaType = img.file.type;
-          else if (img.file.name.toLowerCase().endsWith('.heic')) mediaType = 'image/heic';
-          else if (img.file.name.toLowerCase().endsWith('.heif')) mediaType = 'image/heif';
 
           contentParts.push({
             type: 'image',
