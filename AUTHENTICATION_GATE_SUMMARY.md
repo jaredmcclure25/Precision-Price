@@ -1,5 +1,9 @@
 # Authentication Gate & Demand Tracking Implementation
 
+**Copyright © 2025 Jared McClure / PrecisionPrices.Com. All Rights Reserved.**
+
+---
+
 ## 🎯 Overview
 
 Successfully implemented a **conversion-optimized authentication gate** with social login to track real demand signals and convert guest users into authenticated users.
