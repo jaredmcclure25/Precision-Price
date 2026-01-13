@@ -8,7 +8,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
-import { useSiteAuth } from './PasswordProtection';
 import AuthPage from './AuthPage';
 import { db } from './firebase';
 import { collection, addDoc } from 'firebase/firestore';
@@ -104,7 +103,6 @@ async function compressImageBlob(blob, quality = 0.7, maxWidth = 1920) {
 
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
-  const { logoutSite } = useSiteAuth();
   const { sessionData, currentListingId, createListingRecord, handleFeedbackSubmit } = useFeedbackSystem();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
