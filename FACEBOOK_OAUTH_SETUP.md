@@ -43,22 +43,29 @@ This guide walks you through setting up Facebook Login for Precision Prices, ena
 
 ---
 
-### **Part 2: Add Facebook Login Product**
+### **Part 2: Configure Facebook Login Use Case**
 
-#### **5. Add Facebook Login**
-- On your app dashboard, find **"Add Products"** section
-- Locate **"Facebook Login"**
-- Click **"Set Up"**
+#### **5. Customize Your App Use Case**
+On your app dashboard, you'll see prestaged options:
+- **App customization and requirements**
+- **Authenticate and request data from users with Facebook Login** (this is what we need!)
+- **Review and complete testing requirements**
+- **Business verification**
+- **App Review**
 
-#### **6. Choose Platform**
-- Select **"Web"**
+Click on **"Customize"** or **"Get Started"** for the **"Authenticate and request data from users with Facebook Login"** use case.
 
-#### **7. Enter Site URL**
+#### **6. Configure Facebook Login**
+- You'll be guided through the Facebook Login configuration
+- Confirm you want to **use Facebook Login**
+- The system will automatically add Facebook Login as a product to your app
+
+#### **7. Add Your Website/Platform**
+- When prompted for your platform, select **"Web"**
 - **Site URL**: `https://precisionprices.com` (or your domain)
-- Click **"Save"**
-- Click **"Continue"**
+- Click **"Save"** and **"Continue"**
 
-You can skip the quickstart tutorial - we've already implemented the code!
+You can skip any quickstart tutorials - we've already implemented the code!
 
 ---
 
