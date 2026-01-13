@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from './AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function AuthPage({ onGuestMode }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,7 @@ export default function AuthPage({ onGuestMode }) {
   const [loading, setLoading] = useState(false);
 
   const { signup, login, signInWithGoogle, signInWithFacebook } = useAuth();
+  const navigate = useNavigate();
 
   const handleSocialLogin = async (provider) => {
     setError('');
@@ -205,6 +207,17 @@ export default function AuthPage({ onGuestMode }) {
             </div>
             {!isLogin && (
               <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
+            )}
+            {isLogin && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Forgot password?
+                </button>
+              </div>
             )}
           </div>
 
