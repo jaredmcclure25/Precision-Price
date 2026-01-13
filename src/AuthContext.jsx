@@ -62,7 +62,11 @@ export function AuthProvider({ children }) {
 
   // Send password reset email
   function resetPassword(email) {
-    return sendPasswordResetEmail(auth, email);
+    const actionCodeSettings = {
+      url: 'https://precisionprices.com/',
+      handleCodeInApp: false,
+    };
+    return sendPasswordResetEmail(auth, email, actionCodeSettings);
   }
 
   // Sign in with Google

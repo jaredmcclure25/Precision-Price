@@ -209,7 +209,7 @@ export default function AuthPage({ onGuestMode }) {
               <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
             )}
             {isLogin && (
-              <div className="flex justify-end">
+              <div className="flex justify-end mt-2">
                 <button
                   type="button"
                   onClick={() => navigate('/forgot-password')}
