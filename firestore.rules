@@ -151,6 +151,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ============================================================================
+    // FACEBOOK MARKETPLACE LISTINGS - PUBLIC SHAREABLE LISTINGS
+    // ============================================================================
+
+    // Listings collection - public shareable listings for Facebook Marketplace
+    match /listings/{listingId} {
+      // Anyone can read listings (public shareable links)
+      allow read: if true;
+
+      // Anyone (including guests) can create listings
+      allow create: if true;
+
+      // Only the owner or admin can update
+      allow update: if isAdmin() ||
+                       (request.auth != null &&
+                        resource.data.userId == request.auth.uid);
+
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

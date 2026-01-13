@@ -21,6 +21,7 @@ import { useFeedbackSystem } from './hooks/useFeedbackSystem';
 import MicroFeedback from './components/MicroFeedback';
 import TransactionOutcome from './components/TransactionOutcome';
 import FeedbackDashboard from './components/FeedbackDashboard';
+import FacebookMarketplaceButton from './components/FacebookMarketplaceButton';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
@@ -1180,7 +1181,7 @@ Provide pricing analysis in this exact JSON structure:
             </div>
 
             {analysisMode === 'single' ? (
-              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey}} />
+              <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey, currentUser}} />
             ) : (
               <BulkAnalysis />
             )}
@@ -1200,7 +1201,7 @@ Provide pricing analysis in this exact JSON structure:
   );
 }
 
-function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal}) {
+function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal, currentUser}) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
@@ -1395,12 +1396,20 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         currentListingId={currentListingId}
         handleFeedbackSubmit={handleFeedbackSubmit}
         userProfile={userProfile}
+        images={images}
+        itemDetails={{
+          itemName,
+          condition,
+          location,
+          additionalDetails
+        }}
+        currentUser={currentUser}
       />}
     </div>
   );
 }
 
-function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, userProfile}) {
+function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, userProfile, images, itemDetails, currentUser}) {
   const [showShare, setShowShare] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
 
@@ -1491,6 +1500,14 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           </div>
         </div>
       </div>
+
+      {/* Facebook Marketplace Integration */}
+      <FacebookMarketplaceButton
+        analysisResult={result}
+        images={images}
+        itemDetails={itemDetails}
+        userId={currentUser?.uid || 'guest'}
+      />
 
       {showFeedback && !feedbackSubmitted && <FeedbackForm onSubmit={submitFeedback} />}
 
