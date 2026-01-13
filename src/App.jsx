@@ -1082,8 +1082,8 @@ Provide pricing analysis in this exact JSON structure:
                 onClick={async () => {
                   // Logout from Firebase/guest (keeps site password active)
                   await logout();
-                  // Don't reload - this allows user to immediately log back in
-                  // They'll see the auth gate when they try to analyze items
+                  // Show auth gate immediately so user can sign back in
+                  setShowAuthGate(true);
                 }}
                 className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px]"
                 title={isGuestMode ? "Logout (Guest)" : currentUser?.email || "Logout"}
