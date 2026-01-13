@@ -13,7 +13,8 @@ import {
   FacebookAuthProvider,
   signOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc, query, orderBy, getDocs, limit } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -57,6 +58,11 @@ export function AuthProvider({ children }) {
   // Log in existing user
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
+  }
+
+  // Send password reset email
+  function resetPassword(email) {
+    return sendPasswordResetEmail(auth, email);
   }
 
   // Sign in with Google
@@ -316,6 +322,7 @@ export function AuthProvider({ children }) {
     isGuestMode,
     signup,
     login,
+    resetPassword,
     signInWithGoogle,
     signInWithFacebook,
     logout,
