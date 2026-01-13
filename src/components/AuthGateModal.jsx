@@ -1,15 +1,16 @@
 /**
- * Precision Prices - Authentication Page
+ * Precision Prices - Authentication Gate Modal
  * Copyright © 2025 Jared McClure / PrecisionPrices.Com
  * All Rights Reserved.
  */
 
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from './AuthContext';
+import { X, Lock, TrendingUp, CheckCircle, Mail, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '../AuthContext';
 
-export default function AuthPage({ onGuestMode }) {
-  const [isLogin, setIsLogin] = useState(true);
+export default function AuthGateModal({ onClose, attemptsUsed = 2 }) {
+  const [showAuthForm, setShowAuthForm] = useState(false);
+  const [isLogin, setIsLogin] = useState(false); // Default to signup
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -29,6 +30,7 @@ export default function AuthPage({ onGuestMode }) {
       } else if (provider === 'facebook') {
         await signInWithFacebook();
       }
+      // Modal will close automatically when auth state changes
     } catch (err) {
       console.error('Social login error:', err);
 
@@ -44,7 +46,7 @@ export default function AuthPage({ onGuestMode }) {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleEmailAuth = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -58,12 +60,14 @@ export default function AuthPage({ onGuestMode }) {
         }
         await signup(email, password, displayName);
       }
+      // Modal will close automatically when auth state changes
     } catch (err) {
       console.error('Auth error:', err);
 
       // User-friendly error messages
       if (err.code === 'auth/email-already-in-use') {
         setError('This email is already registered. Try logging in instead.');
+        setIsLogin(true);
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters.');
       } else if (err.code === 'auth/invalid-email') {
@@ -80,20 +84,99 @@ export default function AuthPage({ onGuestMode }) {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Precision Prices</h1>
-          <p className="text-gray-600">
-            {isLogin ? 'Welcome back!' : 'Create your account'}
+  if (!showAuthForm) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              You've Discovered the Power!
+            </h2>
+            <p className="text-gray-600">
+              You've used {attemptsUsed} of 2 free analyses. Create an account to continue!
+            </p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-gray-900">Unlimited Analyses</p>
+                <p className="text-sm text-gray-600">Price as many items as you want</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-gray-900">Track Your Success</p>
+                <p className="text-sm text-gray-600">See your earnings & sales history</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-gray-900">Shareable Listings</p>
+                <p className="text-sm text-gray-600">Create FB Marketplace-ready posts</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowAuthForm(true)}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105"
+          >
+            Continue with Free Account
+          </button>
+
+          <p className="text-xs text-gray-500 text-center mt-4">
+            100% Free • No credit card required
           </p>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative my-8">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {isLogin ? 'Welcome Back!' : 'Create Your Free Account'}
+          </h2>
+          <p className="text-gray-600 text-sm">
+            {isLogin ? 'Sign in to continue pricing' : 'Get unlimited AI pricing analyses'}
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
 
         {/* Social Login Buttons */}
         <div className="space-y-3 mb-6">
           <button
-            type="button"
             onClick={() => handleSocialLogin('google')}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -114,7 +197,6 @@ export default function AuthPage({ onGuestMode }) {
           </button>
 
           <button
-            type="button"
             onClick={() => handleSocialLogin('facebook')}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#1877f2] hover:bg-[#166fe5] text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -141,20 +223,20 @@ export default function AuthPage({ onGuestMode }) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Email Form */}
+        <form onSubmit={handleEmailAuth} className="space-y-4">
           {!isLogin && (
             <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Your Name
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  id="displayName"
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   placeholder="John Doe"
                   required={!isLogin}
                 />
@@ -163,17 +245,16 @@ export default function AuthPage({ onGuestMode }) {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email Address
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="you@example.com"
                 required
               />
@@ -181,57 +262,47 @@ export default function AuthPage({ onGuestMode }) {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="••••••••"
                 required
+                minLength={6}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-            {!isLogin && (
-              <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
-            )}
           </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                {isLogin ? 'Logging in...' : 'Creating account...'}
+                {isLogin ? 'Signing in...' : 'Creating account...'}
               </>
             ) : (
-              <>{isLogin ? 'Log In' : 'Create Account'}</>
+              <>{isLogin ? 'Sign In' : 'Create Free Account'}</>
             )}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-4 text-center">
           <button
             onClick={() => {
               setIsLogin(!isLogin);
@@ -239,27 +310,13 @@ export default function AuthPage({ onGuestMode }) {
             }}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium"
           >
-            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
+            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <button
-            onClick={onGuestMode}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors duration-200"
-          >
-            Continue as Guest
-          </button>
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Guest mode: Your data will only be saved in this browser
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <p className="text-xs text-gray-500 text-center">
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </p>
-        </div>
+        <p className="text-xs text-gray-500 text-center mt-4">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </p>
       </div>
     </div>
   );

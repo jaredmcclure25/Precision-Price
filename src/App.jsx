@@ -22,6 +22,7 @@ import MicroFeedback from './components/MicroFeedback';
 import TransactionOutcome from './components/TransactionOutcome';
 import FeedbackDashboard from './components/FeedbackDashboard';
 import FacebookMarketplaceButton from './components/FacebookMarketplaceButton';
+import AuthGateModal from './components/AuthGateModal';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
@@ -126,6 +127,7 @@ export default function MarketplacePricer() {
   const [shippingEstimate, setShippingEstimate] = useState(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
   const resultsRef = useRef(null);
 
 
@@ -375,14 +377,13 @@ export default function MarketplacePricer() {
 
   const analyzePricing = async () => {
     console.log('🎯 Analyze button clicked!');
-    // Check if guest user has exceeded 3 attempts
+    // Check if guest user has exceeded 2 attempts
     if (isGuestMode && userProfile) {
       const guestAttempts = userProfile.guestAttempts || 0;
 
-      if (guestAttempts >= 100) { // Temporarily increased limit for testing
+      if (guestAttempts >= 2) {
         console.log('❌ Guest limit reached');
-        setError('You\'ve reached the 3 free analysis limit. Please sign in or create an account to continue.');
-        setView('login');
+        setShowAuthGate(true);
         return;
       }
     }
@@ -1197,6 +1198,13 @@ Provide pricing analysis in this exact JSON structure:
         {/* {view === 'subscription' && <Subscription />} */}
       </div>
 
+      {/* Auth Gate Modal - Shown when guest hits 2 analysis limit */}
+      {showAuthGate && (
+        <AuthGateModal
+          onClose={() => setShowAuthGate(false)}
+          attemptsUsed={userProfile?.guestAttempts || 0}
+        />
+      )}
     </div>
   );
 }

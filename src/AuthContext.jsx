@@ -8,6 +8,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile
@@ -54,6 +57,66 @@ export function AuthProvider({ children }) {
   // Log in existing user
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
+  }
+
+  // Sign in with Google
+  async function signInWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const user = userCredential.user;
+
+    // Check if this is a new user
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      // Create user profile for new Google users
+      await setDoc(docRef, {
+        email: user.email,
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        provider: 'google',
+        createdAt: new Date().toISOString(),
+        badges: [],
+        streak: 0,
+        totalEarnings: 0,
+        analysisCount: 0,
+        perfectPrices: 0,
+        level: 1
+      });
+    }
+
+    return user;
+  }
+
+  // Sign in with Facebook
+  async function signInWithFacebook() {
+    const provider = new FacebookAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const user = userCredential.user;
+
+    // Check if this is a new user
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      // Create user profile for new Facebook users
+      await setDoc(docRef, {
+        email: user.email,
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        provider: 'facebook',
+        createdAt: new Date().toISOString(),
+        badges: [],
+        streak: 0,
+        totalEarnings: 0,
+        analysisCount: 0,
+        perfectPrices: 0,
+        level: 1
+      });
+    }
+
+    return user;
   }
 
   // Log out user
@@ -253,6 +316,8 @@ export function AuthProvider({ children }) {
     isGuestMode,
     signup,
     login,
+    signInWithGoogle,
+    signInWithFacebook,
     logout,
     enableGuestMode,
     updateUserProfile,
