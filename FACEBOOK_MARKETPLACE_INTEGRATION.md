@@ -1,5 +1,9 @@
 # Facebook Marketplace Integration - Implementation Guide
 
+**Copyright © 2025 Jared McClure / PrecisionPrices.Com. All Rights Reserved.**
+
+---
+
 ## Overview
 
 This document details the complete "Assistive Workflow" implementation for Facebook Marketplace integration with Precision Prices. This allows users to generate AI-powered pricing, create shareable listing pages, and easily post to Facebook Marketplace.
