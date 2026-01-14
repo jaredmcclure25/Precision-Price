@@ -1084,21 +1084,41 @@ Provide pricing analysis in this exact JSON structure:
                 </button>
               ))}
 
-              {/* Logout Button */}
-              <button
-                onClick={async () => {
-                  // Logout from Firebase/guest (keeps site password active)
-                  await logout();
-                  // Show auth gate immediately so user can sign back in or continue as guest
-                  setAuthGateFromLogout(true);
-                  setShowAuthGate(true);
-                }}
-                className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px]"
-                title={isGuestMode ? "Logout (Guest)" : currentUser?.email || "Logout"}
-              >
-                <LogOut className="w-5 h-5 md:w-4 md:h-4" />
-                <span className="hidden md:inline text-sm">Logout</span>
-              </button>
+              {/* Login/Signup for guests, Logout for logged-in users */}
+              {currentUser ? (
+                <button
+                  onClick={async () => {
+                    await logout();
+                    // Just logout - user continues as guest, no popup
+                  }}
+                  className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px]"
+                  title={currentUser?.email || "Logout"}
+                >
+                  <LogOut className="w-5 h-5 md:w-4 md:h-4" />
+                  <span className="hidden md:inline text-sm">Logout</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setAuthGateFromLogout(true);
+                      setShowAuthGate(true);
+                    }}
+                    className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-white text-emerald-600 hover:bg-emerald-50 transition-all font-semibold touch-manipulation min-h-[44px]"
+                  >
+                    <span className="text-sm">Login</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuthGateFromLogout(true);
+                      setShowAuthGate(true);
+                    }}
+                    className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-yellow-400 text-gray-900 hover:bg-yellow-300 transition-all font-semibold touch-manipulation min-h-[44px]"
+                  >
+                    <span className="text-sm">Sign Up Free</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
