@@ -11,10 +11,13 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   FacebookAuthProvider,
+  OAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  linkWithCredential,
+  fetchSignInMethodsForEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc, query, orderBy, getDocs, limit } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -23,11 +26,27 @@ const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
+// Helper function to get friendly provider name
+function getProviderName(providerId) {
+  switch (providerId) {
+    case 'google.com':
+      return 'Google';
+    case 'facebook.com':
+      return 'Facebook';
+    case 'password':
+      return 'email/password';
+    default:
+      return providerId;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGuestMode, setIsGuestMode] = useState(false);
+  const [pendingCredential, setPendingCredential] = useState(null);
+  const [pendingEmail, setPendingEmail] = useState(null);
 
   // Sign up new user
   async function signup(email, password, displayName) {
@@ -39,10 +58,22 @@ export function AuthProvider({ children }) {
       await updateProfile(user, { displayName });
     }
 
+    // If there was a pending credential, link it
+    if (pendingCredential) {
+      try {
+        await linkWithCredential(user, pendingCredential);
+        setPendingCredential(null);
+        setPendingEmail(null);
+      } catch (linkError) {
+        console.log('Could not link credential:', linkError);
+      }
+    }
+
     // Create user profile in Firestore
     await setDoc(doc(db, 'users', user.uid), {
       email: user.email,
       displayName: displayName || '',
+      providers: ['password'],
       createdAt: new Date().toISOString(),
       badges: [],
       streak: 0,
@@ -56,8 +87,35 @@ export function AuthProvider({ children }) {
   }
 
   // Log in existing user
-  function login(email, password) {
-    return signInWithEmailAndPassword(auth, email, password);
+  async function login(email, password) {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // If there was a pending credential, link it
+    if (pendingCredential) {
+      try {
+        await linkWithCredential(user, pendingCredential);
+        setPendingCredential(null);
+        setPendingEmail(null);
+
+        // Update providers list in Firestore
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const providers = data.providers || ['password'];
+          // Add the new provider from the linked credential
+          const newProvider = pendingCredential.providerId?.replace('.com', '') || 'unknown';
+          if (!providers.includes(newProvider)) {
+            await setDoc(docRef, { providers: [...providers, newProvider] }, { merge: true });
+          }
+        }
+      } catch (linkError) {
+        console.log('Could not link credential:', linkError);
+      }
+    }
+
+    return user;
   }
 
   // Send password reset email
@@ -72,61 +130,151 @@ export function AuthProvider({ children }) {
   // Sign in with Google
   async function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
-    const user = userCredential.user;
 
-    // Check if this is a new user
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
+    try {
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
 
-    if (!docSnap.exists()) {
-      // Create user profile for new Google users
-      await setDoc(docRef, {
-        email: user.email,
-        displayName: user.displayName || '',
-        photoURL: user.photoURL || '',
-        provider: 'google',
-        createdAt: new Date().toISOString(),
-        badges: [],
-        streak: 0,
-        totalEarnings: 0,
-        analysisCount: 0,
-        perfectPrices: 0,
-        level: 1
-      });
+      // If there was a pending credential, link it
+      if (pendingCredential) {
+        try {
+          await linkWithCredential(user, pendingCredential);
+          setPendingCredential(null);
+          setPendingEmail(null);
+        } catch (linkError) {
+          console.log('Could not link credential:', linkError);
+        }
+      }
+
+      // Check if this is a new user
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        // Create user profile for new Google users
+        await setDoc(docRef, {
+          email: user.email,
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          providers: ['google'],
+          createdAt: new Date().toISOString(),
+          badges: [],
+          streak: 0,
+          totalEarnings: 0,
+          analysisCount: 0,
+          perfectPrices: 0,
+          level: 1
+        });
+      } else {
+        // Update providers list if not already included
+        const data = docSnap.data();
+        const providers = data.providers || [data.provider || 'google'];
+        if (!providers.includes('google')) {
+          await setDoc(docRef, { providers: [...providers, 'google'] }, { merge: true });
+        }
+      }
+
+      return user;
+    } catch (error) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        // Save the pending credential for later linking
+        const credential = GoogleAuthProvider.credentialFromError(error);
+        const email = error.customData?.email;
+
+        if (credential && email) {
+          setPendingCredential(credential);
+          setPendingEmail(email);
+
+          // Get sign-in methods for this email
+          const methods = await fetchSignInMethodsForEmail(auth, email);
+
+          // Create a custom error with provider info
+          const customError = new Error(
+            `This email is already registered. Please sign in with ${getProviderName(methods[0])} first to link your accounts.`
+          );
+          customError.code = 'auth/account-exists-with-different-credential';
+          customError.existingProvider = methods[0];
+          customError.email = email;
+          throw customError;
+        }
+      }
+      throw error;
     }
-
-    return user;
   }
 
   // Sign in with Facebook
   async function signInWithFacebook() {
     const provider = new FacebookAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
-    const user = userCredential.user;
 
-    // Check if this is a new user
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
+    try {
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
 
-    if (!docSnap.exists()) {
-      // Create user profile for new Facebook users
-      await setDoc(docRef, {
-        email: user.email,
-        displayName: user.displayName || '',
-        photoURL: user.photoURL || '',
-        provider: 'facebook',
-        createdAt: new Date().toISOString(),
-        badges: [],
-        streak: 0,
-        totalEarnings: 0,
-        analysisCount: 0,
-        perfectPrices: 0,
-        level: 1
-      });
+      // If there was a pending credential, link it
+      if (pendingCredential) {
+        try {
+          await linkWithCredential(user, pendingCredential);
+          setPendingCredential(null);
+          setPendingEmail(null);
+        } catch (linkError) {
+          console.log('Could not link credential:', linkError);
+        }
+      }
+
+      // Check if this is a new user
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        // Create user profile for new Facebook users
+        await setDoc(docRef, {
+          email: user.email,
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          providers: ['facebook'],
+          createdAt: new Date().toISOString(),
+          badges: [],
+          streak: 0,
+          totalEarnings: 0,
+          analysisCount: 0,
+          perfectPrices: 0,
+          level: 1
+        });
+      } else {
+        // Update providers list if not already included
+        const data = docSnap.data();
+        const providers = data.providers || [data.provider || 'facebook'];
+        if (!providers.includes('facebook')) {
+          await setDoc(docRef, { providers: [...providers, 'facebook'] }, { merge: true });
+        }
+      }
+
+      return user;
+    } catch (error) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        // Save the pending credential for later linking
+        const credential = FacebookAuthProvider.credentialFromError(error);
+        const email = error.customData?.email;
+
+        if (credential && email) {
+          setPendingCredential(credential);
+          setPendingEmail(email);
+
+          // Get sign-in methods for this email
+          const methods = await fetchSignInMethodsForEmail(auth, email);
+
+          // Create a custom error with provider info
+          const customError = new Error(
+            `This email is already registered. Please sign in with ${getProviderName(methods[0])} first to link your accounts.`
+          );
+          customError.code = 'auth/account-exists-with-different-credential';
+          customError.existingProvider = methods[0];
+          customError.email = email;
+          throw customError;
+        }
+      }
+      throw error;
     }
-
-    return user;
   }
 
   // Log out user
@@ -372,10 +520,18 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
+  // Clear pending credential (for canceling linking flow)
+  function clearPendingCredential() {
+    setPendingCredential(null);
+    setPendingEmail(null);
+  }
+
   const value = {
     currentUser,
     userProfile,
     isGuestMode,
+    pendingCredential,
+    pendingEmail,
     signup,
     login,
     resetPassword,
@@ -388,7 +544,8 @@ export function AuthProvider({ children }) {
     getItemHistory,
     hasReachedGuestLimit,
     getCooldownRemaining,
-    startGuestCooldown
+    startGuestCooldown,
+    clearPendingCredential
   };
 
   return (
