@@ -4,8 +4,8 @@
  * All Rights Reserved.
  */
 
-import React, { useState } from 'react';
-import { X, Lock, TrendingUp, CheckCircle, Mail, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Lock, TrendingUp, CheckCircle, Mail, User, Eye, EyeOff, Loader2, AlertCircle, Clock } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
 export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOption = false }) {
@@ -17,8 +17,35 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOpti
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [cooldownTime, setCooldownTime] = useState(0);
 
-  const { signup, login, signInWithGoogle, signInWithFacebook, enableGuestMode } = useAuth();
+  const { signup, login, signInWithGoogle, signInWithFacebook, enableGuestMode, getCooldownRemaining, startGuestCooldown } = useAuth();
+
+  // Update cooldown timer every second
+  useEffect(() => {
+    const remaining = getCooldownRemaining();
+    setCooldownTime(remaining);
+
+    if (remaining > 0) {
+      const interval = setInterval(() => {
+        const newRemaining = getCooldownRemaining();
+        setCooldownTime(newRemaining);
+        if (newRemaining <= 0) {
+          clearInterval(interval);
+          onClose(); // Auto-close when cooldown expires
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [getCooldownRemaining, onClose]);
+
+  // Format milliseconds to hours:minutes:seconds
+  const formatCooldown = (ms) => {
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
 
   const handleSocialLogin = async (provider) => {
     setError('');
@@ -144,6 +171,29 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOpti
           >
             Continue with Free Account
           </button>
+
+          {/* Show cooldown timer if active, otherwise show wait option */}
+          {cooldownTime > 0 ? (
+            <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center">
+              <div className="flex items-center justify-center gap-2 text-gray-600 mb-2">
+                <Clock className="w-5 h-5" />
+                <span className="font-medium">Cooldown Active</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{formatCooldown(cooldownTime)}</p>
+              <p className="text-sm text-gray-500 mt-1">until 2 more free analyses</p>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                startGuestCooldown();
+                onClose();
+              }}
+              className="w-full mt-3 text-gray-600 hover:text-gray-800 font-medium py-2 px-6 transition flex items-center justify-center gap-2"
+            >
+              <Clock className="w-4 h-4" />
+              Wait 12 hours for 2 more free analyses
+            </button>
+          )}
 
           {showGuestOption && (
             <button
