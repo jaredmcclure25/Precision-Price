@@ -107,8 +107,12 @@ service cloud.firestore {
       allow read: if isAdmin() ||
                      (request.auth != null && resource.data.userId == request.auth.uid);
 
-      allow create, update: if request.auth != null &&
-                               resource.data.userId == request.auth.uid;
+      // Allow create for any authenticated user (request.resource for new docs)
+      allow create: if request.auth != null;
+
+      // Allow update only for the owner
+      allow update: if request.auth != null &&
+                       resource.data.userId == request.auth.uid;
 
       // Prevent deletion
       allow delete: if false;
