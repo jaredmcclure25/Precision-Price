@@ -38,6 +38,11 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOpti
         setError('Sign-in cancelled. Please try again.');
       } else if (err.code === 'auth/popup-blocked') {
         setError('Pop-up blocked. Please allow pop-ups and try again.');
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        // User already has an account with this email using a different sign-in method
+        setError('An account already exists with this email. Please sign in with the method you originally used (Google, Facebook, or email/password).');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        setError('Sign-in cancelled. Please try again.');
       } else {
         setError(err.message || 'Failed to sign in. Please try again.');
       }
