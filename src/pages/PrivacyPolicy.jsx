@@ -5,14 +5,25 @@
  */
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield } from 'lucide-react';
 
 export default function PrivacyPolicy({ onBack }) {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-8 px-4">
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8 md:p-12">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 mb-6 font-semibold"
         >
           <ArrowLeft className="w-5 h-5" />
