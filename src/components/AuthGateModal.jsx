@@ -341,6 +341,20 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOpti
           </button>
         </div>
 
+        {showGuestOption && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => {
+                enableGuestMode();
+                onClose();
+              }}
+              className="w-full text-gray-600 hover:text-gray-800 font-medium py-2 transition"
+            >
+              Continue as Guest (2 free analyses)
+            </button>
+          </div>
+        )}
+
         <p className="text-xs text-gray-500 text-center mt-4">
           By continuing, you agree to our Terms of Service and Privacy Policy
         </p>
