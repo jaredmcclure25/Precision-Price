@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
@@ -2147,9 +2147,11 @@ function Community() {
 }
 
 function ItemHistory() {
-  const { getItemHistory } = useAuth();
+  const { getItemHistory, updateUserProfile, currentUser } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [creatingListing, setCreatingListing] = useState(null); // Track which item is being created
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     loadHistory();
@@ -2164,6 +2166,54 @@ function ItemHistory() {
       console.error('Error loading history:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createListingForItem = async (item, index) => {
+    setCreatingListing(index);
+    try {
+      const { saveListing } = await import('./listingStorage');
+
+      // Prepare listing data from history item
+      const listingData = {
+        itemIdentification: {
+          name: item.itemName,
+          category: item.category,
+          brand: item.brand,
+          observedCondition: item.condition
+        },
+        pricingStrategy: {
+          listingPrice: item.suggestedPrice
+        },
+        suggestedPriceRange: item.priceRange,
+        marketInsights: item.marketInsights,
+        location: item.location,
+        condition: item.condition,
+      };
+
+      const listingId = await saveListing(listingData, currentUser?.uid || 'guest');
+      const listingUrl = `${window.location.origin}/item/${listingId}`;
+
+      // Update the item in history with the listing URL
+      const updatedHistory = [...history];
+      updatedHistory[index] = { ...item, listingUrl, listingId };
+      setHistory(updatedHistory);
+
+    } catch (error) {
+      console.error('Error creating listing:', error);
+      alert('Failed to create listing. Please try again.');
+    } finally {
+      setCreatingListing(null);
+    }
+  };
+
+  const copyListingUrl = async (url, itemId) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(itemId);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
     }
   };
 
@@ -2268,6 +2318,69 @@ function ItemHistory() {
                 )}
               </div>
             )}
+
+            {/* Listing URL Section */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              {item.listingUrl ? (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Link className="w-4 h-4 text-indigo-600" />
+                    <span className="font-medium">Shareable Listing:</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <input
+                      type="text"
+                      readOnly
+                      value={item.listingUrl}
+                      className="flex-1 min-w-0 text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-600 truncate"
+                    />
+                    <button
+                      onClick={() => copyListingUrl(item.listingUrl, item.id || index)}
+                      className="flex items-center gap-1 px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-sm font-medium"
+                    >
+                      {copiedId === (item.id || index) ? (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                    <a
+                      href={item.listingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition text-sm font-medium"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      View
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => createListingForItem(item, index)}
+                  disabled={creatingListing === index}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingListing === index ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating Listing...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4" />
+                      Create Shareable Listing
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
