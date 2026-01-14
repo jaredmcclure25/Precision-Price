@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import { X, Lock, TrendingUp, CheckCircle, Mail, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
-export default function AuthGateModal({ onClose, attemptsUsed = 2 }) {
+export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOption = false }) {
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isLogin, setIsLogin] = useState(false); // Default to signup
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2 }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signup, login, signInWithGoogle, signInWithFacebook } = useAuth();
+  const { signup, login, signInWithGoogle, signInWithFacebook, enableGuestMode } = useAuth();
 
   const handleSocialLogin = async (provider) => {
     setError('');
@@ -139,6 +139,18 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2 }) {
           >
             Continue with Free Account
           </button>
+
+          {showGuestOption && (
+            <button
+              onClick={() => {
+                enableGuestMode();
+                onClose();
+              }}
+              className="w-full mt-3 text-gray-600 hover:text-gray-800 font-medium py-2 px-6 transition"
+            >
+              Continue as Guest (2 free analyses)
+            </button>
+          )}
 
           <p className="text-xs text-gray-500 text-center mt-4">
             100% Free • No credit card required

@@ -320,15 +320,16 @@ export async function logAuth(authType, user) {
       });
     } catch (error) {
       // If document doesn't exist, create it
+      // Note: Use empty string fallbacks to avoid undefined values which Firestore rejects
       await addDoc(collection(db, 'user_stats'), {
-        userId,
-        userEmail: user.email,
+        userId: userId || '',
+        userEmail: user.email || '',
         totalSessions: 1,
         totalAnalyses: 0,
         totalImages: 0,
         firstSeen: serverTimestamp(),
         lastSeen: serverTimestamp(),
-        deviceTypes: [getDeviceInfo().type]
+        deviceTypes: [getDeviceInfo()?.type || 'unknown']
       });
     }
   }
