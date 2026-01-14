@@ -4,11 +4,11 @@
  * All Rights Reserved.
  */
 
-import React, { useState, useEffect } from 'react';
-import { X, Lock, TrendingUp, CheckCircle, Mail, User, Eye, EyeOff, Loader2, AlertCircle, Clock, Link } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Lock, TrendingUp, Mail, User, Eye, EyeOff, Loader2, AlertCircle, Link } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
-export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOption = false }) {
+export default function AuthGateModal({ onClose }) {
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isLogin, setIsLogin] = useState(false); // Default to signup
   const [email, setEmail] = useState('');
@@ -17,36 +17,9 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOpti
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [cooldownTime, setCooldownTime] = useState(0);
   const [linkingProvider, setLinkingProvider] = useState(null); // Track which provider to link
 
-  const { signup, login, signInWithGoogle, signInWithFacebook, enableGuestMode, getCooldownRemaining, startGuestCooldown, pendingCredential, pendingEmail, clearPendingCredential } = useAuth();
-
-  // Update cooldown timer every second
-  useEffect(() => {
-    const remaining = getCooldownRemaining();
-    setCooldownTime(remaining);
-
-    if (remaining > 0) {
-      const interval = setInterval(() => {
-        const newRemaining = getCooldownRemaining();
-        setCooldownTime(newRemaining);
-        if (newRemaining <= 0) {
-          clearInterval(interval);
-          onClose(); // Auto-close when cooldown expires
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [getCooldownRemaining, onClose]);
-
-  // Format milliseconds to hours:minutes:seconds
-  const formatCooldown = (ms) => {
-    const hours = Math.floor(ms / (1000 * 60 * 60));
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-    return `${hours}h ${minutes}m ${seconds}s`;
-  };
+  const { signup, login, signInWithGoogle, signInWithFacebook, pendingCredential, pendingEmail, clearPendingCredential } = useAuth();
 
   const handleSocialLogin = async (provider) => {
     setError('');
@@ -130,84 +103,26 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOpti
           </button>
 
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              You've Discovered the Power!
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Smarter Pricing Starts Here
+            </h1>
+            <h2 className="text-lg font-semibold text-emerald-600 mb-3">
+              Pricing Analysis Software for Smarter Price Optimization
             </h2>
             <p className="text-gray-600">
-              You've used {attemptsUsed} of 2 free analyses. Create an account to continue!
+              Analyze competitor pricing and maximize profit with data-driven insights.
             </p>
-          </div>
-
-          <div className="space-y-4 mb-6">
-            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Unlimited Analyses</p>
-                <p className="text-sm text-gray-600">Price as many items as you want</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Track Your Success</p>
-                <p className="text-sm text-gray-600">See your earnings & sales history</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Shareable Listings</p>
-                <p className="text-sm text-gray-600">Create FB Marketplace-ready posts</p>
-              </div>
-            </div>
           </div>
 
           <button
             onClick={() => setShowAuthForm(true)}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105"
           >
-            Continue with Free Account
+            Log in or Sign up Free
           </button>
-
-          {/* Show cooldown timer if active, otherwise show wait option */}
-          {cooldownTime > 0 ? (
-            <div className="mt-4 p-4 bg-gray-100 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-2 text-gray-600 mb-2">
-                <Clock className="w-5 h-5" />
-                <span className="font-medium">Cooldown Active</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCooldown(cooldownTime)}</p>
-              <p className="text-sm text-gray-500 mt-1">until 2 more free analyses</p>
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                startGuestCooldown();
-                onClose();
-              }}
-              className="w-full mt-3 text-gray-600 hover:text-gray-800 font-medium py-2 px-6 transition flex items-center justify-center gap-2"
-            >
-              <Clock className="w-4 h-4" />
-              Wait 12 hours for 2 more free analyses
-            </button>
-          )}
-
-          {showGuestOption && (
-            <button
-              onClick={() => {
-                enableGuestMode();
-                onClose();
-              }}
-              className="w-full mt-3 text-gray-600 hover:text-gray-800 font-medium py-2 px-6 transition"
-            >
-              Continue as Guest (2 free analyses)
-            </button>
-          )}
 
           <p className="text-xs text-gray-500 text-center mt-4">
             100% Free • No credit card required
@@ -452,20 +367,6 @@ export default function AuthGateModal({ onClose, attemptsUsed = 2, showGuestOpti
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>
         </div>
-
-        {showGuestOption && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <button
-              onClick={() => {
-                enableGuestMode();
-                onClose();
-              }}
-              className="w-full text-gray-600 hover:text-gray-800 font-medium py-2 transition"
-            >
-              Continue as Guest (2 free analyses)
-            </button>
-          </div>
-        )}
 
         <p className="text-xs text-gray-500 text-center mt-4">
           By continuing, you agree to our Terms of Service and Privacy Policy
