@@ -126,6 +126,7 @@ export default function MarketplacePricer() {
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
+  const [authGateFromLogout, setAuthGateFromLogout] = useState(false);
   const resultsRef = useRef(null);
 
 
@@ -1080,7 +1081,8 @@ Provide pricing analysis in this exact JSON structure:
                 onClick={async () => {
                   // Logout from Firebase/guest (keeps site password active)
                   await logout();
-                  // Show auth gate immediately so user can sign back in
+                  // Show auth gate immediately so user can sign back in or continue as guest
+                  setAuthGateFromLogout(true);
                   setShowAuthGate(true);
                 }}
                 className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px]"
@@ -1195,11 +1197,15 @@ Provide pricing analysis in this exact JSON structure:
         {/* {view === 'subscription' && <Subscription />} */}
       </div>
 
-      {/* Auth Gate Modal - Shown when guest hits 2 analysis limit */}
+      {/* Auth Gate Modal - Shown when guest hits 2 analysis limit or after logout */}
       {showAuthGate && (
         <AuthGateModal
-          onClose={() => setShowAuthGate(false)}
+          onClose={() => {
+            setShowAuthGate(false);
+            setAuthGateFromLogout(false);
+          }}
           attemptsUsed={userProfile?.guestAttempts || 0}
+          showGuestOption={authGateFromLogout}
         />
       )}
     </div>
