@@ -144,6 +144,14 @@ export default function MarketplacePricer() {
     else if (view === 'subscription') setMainTab('subscription');
   }, [view]);
 
+  // Auto-close auth gate when user signs in
+  useEffect(() => {
+    if (currentUser && showAuthGate) {
+      setShowAuthGate(false);
+      setAuthGateFromLogout(false);
+    }
+  }, [currentUser, showAuthGate]);
+
   const loadUserProfile = async () => {
     try {
       const stored = await window.storage.get('userprofile');
