@@ -8,6 +8,113 @@ import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'listings';
+const MAX_IMAGE_SIZE = 400000; // ~400KB max per image to stay well under Firestore 1MB limit
+
+/**
+ * Compress a base64 image to reduce size
+ * @param {string} base64Image - The base64 encoded image
+ * @param {number} maxWidth - Maximum width in pixels
+ * @param {number} quality - JPEG quality (0-1)
+ * @returns {Promise<string>} Compressed base64 image
+ */
+async function compressImage(base64Image, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    // If it's already small enough, return as-is
+    if (base64Image.length < MAX_IMAGE_SIZE) {
+      resolve(base64Image);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      // Calculate new dimensions
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      // Create canvas and draw resized image
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to JPEG with quality setting
+      let compressed = canvas.toDataURL('image/jpeg', quality);
+
+      // If still too large, reduce quality further
+      let currentQuality = quality;
+      while (compressed.length > MAX_IMAGE_SIZE && currentQuality > 0.1) {
+        currentQuality -= 0.1;
+        compressed = canvas.toDataURL('image/jpeg', currentQuality);
+      }
+
+      // If still too large, reduce dimensions
+      if (compressed.length > MAX_IMAGE_SIZE) {
+        const smallerWidth = Math.floor(width * 0.7);
+        const smallerHeight = Math.floor(height * 0.7);
+        canvas.width = smallerWidth;
+        canvas.height = smallerHeight;
+        ctx.drawImage(img, 0, 0, smallerWidth, smallerHeight);
+        compressed = canvas.toDataURL('image/jpeg', 0.6);
+      }
+
+      resolve(compressed);
+    };
+
+    img.onerror = () => {
+      // If image fails to load, return original (might not be a valid image)
+      resolve(base64Image);
+    };
+
+    img.src = base64Image;
+  });
+}
+
+/**
+ * Compress all images in a listing
+ * @param {Object} listing - The listing data
+ * @returns {Promise<Object>} Listing with compressed images
+ */
+async function compressListingImages(listing) {
+  const compressed = { ...listing };
+
+  // Compress single image if present
+  if (compressed.image && typeof compressed.image === 'string' && compressed.image.startsWith('data:')) {
+    compressed.image = await compressImage(compressed.image);
+  }
+
+  // Compress images array if present
+  if (compressed.images && Array.isArray(compressed.images)) {
+    compressed.images = await Promise.all(
+      compressed.images.map(async (img) => {
+        if (typeof img === 'string' && img.startsWith('data:')) {
+          return await compressImage(img);
+        }
+        return img;
+      })
+    );
+  }
+
+  // Compress uploadedImages array if present
+  if (compressed.uploadedImages && Array.isArray(compressed.uploadedImages)) {
+    compressed.uploadedImages = await Promise.all(
+      compressed.uploadedImages.map(async (img) => {
+        if (typeof img === 'string' && img.startsWith('data:')) {
+          return await compressImage(img);
+        }
+        return img;
+      })
+    );
+  }
+
+  return compressed;
+}
 
 /**
  * Generate a unique listing ID
@@ -27,10 +134,13 @@ export async function saveListing(listing, userId = 'guest') {
     const listingId = generateListingId();
     const timestamp = new Date().toISOString();
 
+    // Compress images before saving to stay under Firestore 1MB limit
+    const compressedListing = await compressListingImages(listing);
+
     const listingData = {
       id: listingId,
       userId: userId || 'guest',
-      ...listing,
+      ...compressedListing,
       createdAt: timestamp,
       updatedAt: timestamp,
       isPublic: true, // Make listings public by default for sharing
