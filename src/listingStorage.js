@@ -137,9 +137,15 @@ export async function saveListing(listing, userId = 'guest') {
     // Compress images before saving to stay under Firestore 1MB limit
     const compressedListing = await compressListingImages(listing);
 
+    // Extract itemName for Firestore security rules validation
+    const itemName = compressedListing.itemIdentification?.name ||
+                     compressedListing.itemName ||
+                     'Untitled Item';
+
     const listingData = {
       id: listingId,
       userId: userId || 'guest',
+      itemName: itemName, // Required by Firestore security rules
       ...compressedListing,
       createdAt: timestamp,
       updatedAt: timestamp,
