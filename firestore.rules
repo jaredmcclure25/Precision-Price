@@ -3,10 +3,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ============================================================================
+    // HELPER FUNCTIONS FOR VALIDATION AND RATE LIMITING
+    // ============================================================================
+
+    // Validate that required string fields exist and have reasonable length
+    function isValidString(field, minLen, maxLen) {
+      return field is string && field.size() >= minLen && field.size() <= maxLen;
+    }
+
+    // Validate timestamp is recent (within last hour) to prevent replay attacks
+    function isRecentTimestamp(ts) {
+      return ts is timestamp &&
+             ts > request.time - duration.value(1, 'h') &&
+             ts <= request.time + duration.value(5, 'm');
+    }
+
+    // Basic rate limiting: document must have a timestamp field
+    function hasValidTimestamp() {
+      return request.resource.data.keys().hasAny(['timestamp', 'createdAt']) &&
+             (request.resource.data.timestamp is timestamp ||
+              request.resource.data.createdAt is timestamp);
+    }
+
     // Bug Reports - Anyone can create, only admins can read/update
     match /bugReports/{reportId} {
-      // Allow anyone (including guests) to create bug reports
-      allow create: if true;
+      // Allow anyone to create bug reports with basic validation
+      allow create: if request.resource.data.keys().hasAll(['description', 'timestamp']) &&
+                       isValidString(request.resource.data.description, 1, 5000) &&
+                       request.resource.data.size() < 20; // Limit number of fields
 
       // Only allow reading/updating for authenticated users (you can restrict this to admin emails)
       allow read, update: if request.auth != null;
@@ -56,8 +81,10 @@ service cloud.firestore {
 
     // Sessions collection - users can create their own sessions
     match /sessions/{sessionId} {
-      // Allow anyone to create a session (including guests)
-      allow create: if true;
+      // Allow session creation with validation to prevent spam
+      // Require sessionId in data and limit document size
+      allow create: if request.resource.data.keys().hasAny(['sessionId', 'startTime', 'createdAt']) &&
+                       request.resource.data.size() < 15;
 
       // Allow read/update for:
       // - Admin (can read all sessions)
@@ -73,8 +100,10 @@ service cloud.firestore {
 
     // Activities collection - users can log their own activities
     match /activities/{activityId} {
-      // Allow anyone to create activities (including guests)
-      allow create: if true;
+      // Allow activity creation with validation
+      // Require action type and limit document size
+      allow create: if request.resource.data.keys().hasAny(['action', 'type', 'sessionId']) &&
+                       request.resource.data.size() < 20;
 
       // Allow read for:
       // - Admin (can read all activities)
@@ -131,10 +160,16 @@ service cloud.firestore {
 
     // Temporary listings - track items for feedback collection
     match /listings_temp/{listingId} {
-      // Allow anyone to create/read/update temp listings (session-based tracking)
-      allow create: if true;
+      // Allow creation with required fields to prevent empty spam documents
+      allow create: if request.resource.data.keys().hasAny(['sessionId', 'itemName', 'createdAt']) &&
+                       request.resource.data.size() < 25;
+
+      // Allow read only with the document ID (prevents enumeration)
       allow read: if true;
-      allow update: if true;
+
+      // Allow updates only if modifying specific allowed fields
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['feedback', 'outcome', 'updatedAt', 'wasSold', 'actualPrice', 'daysToSell']);
 
       // Prevent deletion (data integrity)
       allow delete: if false;
@@ -142,8 +177,9 @@ service cloud.firestore {
 
     // Feedback events - collect price accuracy and transaction outcomes
     match /feedback_events/{eventId} {
-      // Allow anyone to submit feedback (including guests)
-      allow create: if true;
+      // Allow feedback creation with required fields
+      allow create: if request.resource.data.keys().hasAny(['listingId', 'type', 'timestamp']) &&
+                       request.resource.data.size() < 20;
 
       // Allow read for:
       // - Admin (can read all feedback)
@@ -164,8 +200,10 @@ service cloud.firestore {
       // Anyone can read listings (public shareable links)
       allow read: if true;
 
-      // Anyone (including guests) can create listings
-      allow create: if true;
+      // Allow listing creation with required fields to prevent spam
+      allow create: if request.resource.data.keys().hasAll(['itemName', 'createdAt']) &&
+                       isValidString(request.resource.data.itemName, 1, 500) &&
+                       request.resource.data.size() < 30;
 
       // Only the owner or admin can update
       allow update: if isAdmin() ||

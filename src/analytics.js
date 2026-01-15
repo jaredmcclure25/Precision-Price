@@ -68,7 +68,6 @@ let activityBuffer = []; // Buffer for batch writes
  */
 export async function initializeSession(user = null) {
   if (ANALYTICS_DISABLED) {
-    console.log('📊 Analytics disabled - skipping session initialization');
     return null;
   }
   try {

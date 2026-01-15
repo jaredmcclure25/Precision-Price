@@ -33,7 +33,7 @@ export default function PasswordProtection({ children }) {
         setIsAuthenticated(true);
       }
     } catch (e) {
-      console.log('Auth check failed:', e);
+      // Auth check failed - continue as unauthenticated
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +48,7 @@ export default function PasswordProtection({ children }) {
       try {
         await window.storage.set('auth_token', 'authenticated');
       } catch (e) {
-        console.log('Failed to store auth:', e);
+        // Failed to store auth - continue anyway
       }
       setIsAuthenticated(true);
     } else {
@@ -61,7 +61,7 @@ export default function PasswordProtection({ children }) {
     try {
       await window.storage.remove('auth_token');
     } catch (e) {
-      console.log('Failed to remove auth:', e);
+      // Failed to remove auth - continue anyway
     }
     setIsAuthenticated(false);
     setPassword('');

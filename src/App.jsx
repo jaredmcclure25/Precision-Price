@@ -244,14 +244,12 @@ export default function MarketplacePricer() {
         setStats({ total: 0, sold: 0, accuracy: 0, recent: [] });
       }
     } catch (e) {
-      console.log('No feedback data yet');
       setStats({ total: 0, sold: 0, accuracy: 0, recent: [] });
     }
   };
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    console.log('📸 Image upload started, files:', files.length);
     if (files.length === 0) return;
 
     const errors = [];
@@ -304,7 +302,6 @@ export default function MarketplacePricer() {
         if (isHEIC) {
           // Convert HEIC to JPEG (required by Anthropic API)
           try {
-            console.log(`🔄 Converting HEIC to JPEG: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
             const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
@@ -312,15 +309,10 @@ export default function MarketplacePricer() {
             });
 
             let blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-            console.log(`  Converted to ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
 
             // Compress further if still > 2MB
             if (blob.size > 2 * 1024 * 1024) {
-              console.log(`  📦 Compressing further...`);
               blob = await compressImageBlob(blob, 0.7, 1920);
-              console.log(`  ✅ Final size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
-            } else {
-              console.log(`  ✅ Size OK, no further compression needed`);
             }
 
             uploadFile = new File(
@@ -335,12 +327,10 @@ export default function MarketplacePricer() {
         } else if (file.size > 2 * 1024 * 1024) {
           // Compress large non-HEIC images
           try {
-            console.log(`📦 Compressing ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
             const compressed = await compressImageBlob(file, 0.7, 1920);
             uploadFile = new File([compressed], file.name, { type: file.type });
-            console.log(`✅ Compressed to ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
           } catch (compressError) {
-            console.warn('Compression failed, using original:', compressError);
+            // Compression failed, use original file
           }
         }
 
@@ -354,7 +344,6 @@ export default function MarketplacePricer() {
 
         return { file: uploadFile, preview: dataURL };
       } catch (err) {
-        console.error('Error processing image:', err);
         throw new Error(`${file.name}: ${err.message || 'Processing failed'}`);
       }
     });
@@ -363,14 +352,12 @@ export default function MarketplacePricer() {
     try {
       const processedImages = await Promise.all(processPromises);
       setImages(prev => [...prev, ...processedImages]);
-      console.log('✅ Images uploaded successfully:', processedImages.length);
 
       // Track photos uploaded for badges
       if (userProfile) {
         await updateUserProfile({ photosUploaded: (userProfile.photosUploaded || 0) + processedImages.length });
       }
     } catch (err) {
-      console.error('❌ Image upload error:', err);
       errors.push(err.message);
       setError(errors.join('; '));
     } finally {
@@ -383,13 +370,11 @@ export default function MarketplacePricer() {
   };
 
   const analyzePricing = async () => {
-    console.log('🎯 Analyze button clicked!');
     // Check if guest user has exceeded 2 attempts
     if (isGuestMode && userProfile) {
       const guestAttempts = userProfile.guestAttempts || 0;
 
       if (guestAttempts >= 2) {
-        console.log('❌ Guest limit reached');
         setShowAuthGate(true);
         return;
       }
@@ -397,7 +382,6 @@ export default function MarketplacePricer() {
 
     // Validate inputs before API call
     if (images.length === 0 && !itemName.trim()) {
-      console.log('❌ No image or item name provided');
       setError('Please provide either an image or item name');
       return;
     }
@@ -427,7 +411,6 @@ export default function MarketplacePricer() {
       return;
     }
 
-    console.log('🔍 Starting price analysis...');
     setLoading(true);
     setError(null);
     setResult(null);
@@ -463,7 +446,6 @@ export default function MarketplacePricer() {
 
       // Parse location for regional pricing intelligence
       const locationData = parseLocation(location);
-      console.log('📍 Parsed location data:', locationData);
       const locationDesc = getLocationDescription(locationData);
       const locationInsight = getLocationPricingInsight(locationData);
 
@@ -485,7 +467,7 @@ export default function MarketplacePricer() {
 
         realPricingData = await getComparableItems(itemName, guessedCategory, locationData);
       } catch (e) {
-        console.log('Could not query database (might be empty or category unknown):', e);
+        // Database query failed - continue with AI-only pricing
       }
 
       // Get current date for seasonal context
@@ -580,8 +562,6 @@ Provide pricing analysis in this exact JSON structure:
         ? `http://${window.location.hostname}:3001/api/analyze`
         : '/api/analyze';
 
-      console.log('📡 Sending request to API:', apiUrl);
-
       // Create abort controller for timeout (180 seconds for mobile photo uploads)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 180000);
@@ -602,14 +582,12 @@ Provide pricing analysis in this exact JSON structure:
             signal: controller.signal
           });
           clearTimeout(timeoutId);
-          console.log('📥 Received API response, status:', response.status);
           break; // Success, exit retry loop
         } catch (fetchErr) {
           retryCount++;
           if (fetchErr.name === 'AbortError' || retryCount > maxRetries) {
             throw fetchErr; // Don't retry timeout or if max retries exceeded
           }
-          console.log(`⚠️ Request failed, retrying (${retryCount}/${maxRetries})...`);
           await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
         }
       }
@@ -749,16 +727,13 @@ Provide pricing analysis in this exact JSON structure:
           parsedResult.dataSource = 'AI_only';
         }
 
-        console.log('✅ Analysis complete! Price:', parsedResult.suggestedPriceRange.optimal);
         setResult(parsedResult);
         setShowFeedback(true);
 
         // Create listing record for feedback tracking
         if (createListingRecord) {
-          createListingRecord(parsedResult).then(listingId => {
-            console.log('✅ Created listing for feedback:', listingId);
-          }).catch(err => {
-            console.warn('Could not create listing record:', err);
+          createListingRecord(parsedResult).catch(() => {
+            // Could not create listing record - continue anyway
           });
         }
 
@@ -794,9 +769,6 @@ Provide pricing analysis in this exact JSON structure:
 
         await updateUserProfile(updates);
       } catch (parseError) {
-        console.error('JSON parsing error:', parseError);
-        console.error('Attempted to parse:', jsonMatch[0]);
-
         // Create detailed error with parse information
         const detailedError = new Error('Could not parse pricing data. Please try again.');
         detailedError.originalError = parseError.message;
@@ -840,28 +812,17 @@ Provide pricing analysis in this exact JSON structure:
 
       // Send to Firebase silently in background
       try {
-        console.log('🐛 Attempting to log error to Firebase bugReports...');
-        const docRef = await addDoc(collection(db, 'bugReports'), autoBugReport);
-        console.log('✅ Error automatically logged to Firebase with ID:', docRef.id);
+        await addDoc(collection(db, 'bugReports'), autoBugReport);
       } catch (firebaseError) {
-        console.error('❌ Failed to auto-log error to Firebase:', firebaseError);
-        console.error('Firebase error details:', {
-          code: firebaseError.code,
-          message: firebaseError.message,
-          name: firebaseError.name
-        });
-
         // Fallback to localStorage
         try {
-          console.log('📦 Falling back to localStorage...');
           let bugs = [];
           const stored = await window.storage.get('bugreports', true);
           if (stored && stored.value) bugs = JSON.parse(stored.value);
           bugs.push(autoBugReport);
           await window.storage.set('bugreports', JSON.stringify(bugs), true);
-          console.log('✅ Bug report saved to localStorage');
         } catch (e) {
-          console.error('❌ Failed to save bug report to localStorage:', e);
+          // Failed to save bug report - continue anyway
         }
       }
     } finally {
@@ -943,9 +904,7 @@ Provide pricing analysis in this exact JSON structure:
 
           // Save to Firebase
           await addDoc(collection(db, 'soldPrices'), soldPriceData);
-          console.log('✅ Sold price saved to proprietary database');
         } catch (firebaseError) {
-          console.error('Failed to save to Firebase soldPrices:', firebaseError);
           // Don't fail the whole feedback submission if Firebase fails
         }
       }
@@ -985,7 +944,6 @@ Provide pricing analysis in this exact JSON structure:
         await loadStats();
       }
     } catch (err) {
-      console.error('Feedback error:', err);
       setFeedbackSubmitted(true);
     }
   };
@@ -1556,10 +1514,7 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           <MicroFeedback
             listingId={currentListingId}
             onFeedbackSubmit={async (feedbackData) => {
-              const result = await handleFeedbackSubmit(feedbackData, userProfile);
-              if (result.success) {
-                console.log('✅ Micro feedback submitted successfully');
-              }
+              await handleFeedbackSubmit(feedbackData, userProfile);
             }}
           />
         </div>
@@ -1582,7 +1537,6 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           onSubmit={async (outcomeData) => {
             const submitResult = await handleFeedbackSubmit(outcomeData, userProfile);
             if (submitResult.success) {
-              console.log('✅ Transaction outcome recorded');
               setShowTransactionModal(false);
             }
           }}
@@ -2556,8 +2510,6 @@ function FeedbackForm({onSubmit}) {
             e.preventDefault();
             e.stopPropagation();
 
-            console.log('Submit button clicked!', { wasFair, wasSold, actualPrice });
-
             // Validate required fields
             if (wasFair === null || wasSold === null) {
               alert('Please answer both questions before submitting.');
@@ -2583,11 +2535,8 @@ function FeedbackForm({onSubmit}) {
             const daysValue = daysToSell ? parseInt(daysToSell) : null;
 
             try {
-              console.log('Calling onSubmit with:', { wasFair, wasSold, priceValue, feedback, daysValue });
               await onSubmit(wasFair, wasSold, priceValue, feedback, daysValue);
-              console.log('Feedback submitted successfully!');
             } catch (error) {
-              console.error('Error submitting feedback:', error);
               alert('There was an error submitting your feedback. Please try again.');
             }
           }}
@@ -3766,7 +3715,6 @@ function BulkAnalysis() {
         if (isHEIC) {
           // Convert HEIC to JPEG (required by Anthropic API)
           try {
-            console.log(`🔄 Converting HEIC to JPEG: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
             const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
@@ -3774,15 +3722,10 @@ function BulkAnalysis() {
             });
 
             let blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-            console.log(`  Converted to ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
 
             // Compress further if still > 2MB
             if (blob.size > 2 * 1024 * 1024) {
-              console.log(`  📦 Compressing further...`);
               blob = await compressImageBlob(blob, 0.7, 1920);
-              console.log(`  ✅ Final size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
-            } else {
-              console.log(`  ✅ Size OK, no further compression needed`);
             }
 
             uploadFile = new File(
@@ -3791,18 +3734,15 @@ function BulkAnalysis() {
               { type: 'image/jpeg' }
             );
           } catch (conversionError) {
-            console.error('HEIC conversion failed:', conversionError);
             throw new Error(`${file.name}: HEIC conversion failed. Please try a different photo format.`);
           }
         } else if (file.size > 2 * 1024 * 1024) {
           // Compress large non-HEIC images
           try {
-            console.log(`📦 Compressing ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
             const compressed = await compressImageBlob(file, 0.7, 1920);
             uploadFile = new File([compressed], file.name, { type: file.type });
-            console.log(`✅ Compressed to ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
           } catch (compressError) {
-            console.warn('Compression failed, using original:', compressError);
+            // Compression failed, use original file
           }
         }
 
@@ -3816,7 +3756,6 @@ function BulkAnalysis() {
 
         return { file: uploadFile, preview: dataURL };
       } catch (err) {
-        console.error('Error processing image:', err);
         throw new Error(`${file.name}: ${err.message || 'Processing failed'}`);
       }
     });
@@ -3922,7 +3861,6 @@ function BulkAnalysis() {
             if (fetchErr.name === 'AbortError' || retryCount > maxRetries) {
               throw fetchErr;
             }
-            console.log(`⚠️ Request failed for item ${item.itemName}, retrying (${retryCount}/${maxRetries})...`);
             await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
           }
         }

@@ -28,8 +28,6 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
 
   // Format location display with ZIP code
   const formatLocation = () => {
-    console.log('🎯 BullseyePriceTarget locationData:', locationData);
-
     if (!locationData) return null;
 
     const parts = [];
@@ -37,9 +35,7 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
     if (locationData.state) parts.push(locationData.state);
     if (locationData.zipCode) parts.push(locationData.zipCode);
 
-    const formatted = parts.join(', ');
-    console.log('🎯 Formatted location display:', formatted);
-    return formatted;
+    return parts.join(', ');
   };
 
   const locationDisplay = formatLocation();
