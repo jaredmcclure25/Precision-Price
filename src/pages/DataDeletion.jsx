@@ -48,7 +48,7 @@ export default function DataDeletion() {
                 Option 1: Email Request (Recommended)
               </h3>
               <p className="text-gray-700 mb-4">
-                Send an email to <a href="mailto:contact@precisionprices.com" className="text-emerald-600 hover:text-emerald-700 font-semibold">contact@precisionprices.com</a> with:
+                Send an email to <a href="mailto:support@precisionprices.com" className="text-emerald-600 hover:text-emerald-700 font-semibold">support@precisionprices.com</a> with:
               </p>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>Subject line: <strong>"Data Deletion Request"</strong></li>
@@ -113,7 +113,7 @@ export default function DataDeletion() {
             </p>
             <div className="bg-emerald-50 p-4 rounded-lg">
               <p className="text-gray-700 font-semibold">Precision Prices</p>
-              <p className="text-gray-700">Email: <a href="mailto:contact@precisionprices.com" className="text-emerald-600 hover:text-emerald-700">contact@precisionprices.com</a></p>
+              <p className="text-gray-700">Email: <a href="mailto:support@precisionprices.com" className="text-emerald-600 hover:text-emerald-700">support@precisionprices.com</a></p>
               <p className="text-gray-700">Website: <a href="https://precisionprices.com" className="text-emerald-600 hover:text-emerald-700">precisionprices.com</a></p>
             </div>
           </section>
