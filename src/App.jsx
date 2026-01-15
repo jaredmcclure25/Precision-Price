@@ -3784,7 +3784,7 @@ function BulkAnalysis() {
     const apiUrl = import.meta.env.VITE_BACKEND_URL
       ? `${import.meta.env.VITE_BACKEND_URL}/api/analyze`
       : import.meta.env.DEV
-      ? 'http://localhost:3001/api/analyze'
+      ? `http://${window.location.hostname}:3001/api/analyze`
       : '/api/analyze';
 
     for (const item of items) {

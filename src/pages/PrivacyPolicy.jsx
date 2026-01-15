@@ -133,7 +133,7 @@ export default function PrivacyPolicy({ onBack }) {
               <li><strong>Opt-Out</strong> - Unsubscribe from marketing emails (transactional emails still sent)</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-3">
-              To exercise these rights, contact us at <a href="mailto:contact@precisionprices.com" className="text-emerald-600 hover:text-emerald-700 font-semibold">contact@precisionprices.com</a>.
+              To exercise these rights, contact us at <a href="mailto:support@precisionprices.com" className="text-emerald-600 hover:text-emerald-700 font-semibold">support@precisionprices.com</a>.
             </p>
           </section>
 
@@ -201,7 +201,7 @@ export default function PrivacyPolicy({ onBack }) {
             </p>
             <div className="bg-emerald-50 p-4 rounded-lg">
               <p className="text-gray-700 font-semibold">Precision Prices</p>
-              <p className="text-gray-700">Email: <a href="mailto:contact@precisionprices.com" className="text-emerald-600 hover:text-emerald-700">contact@precisionprices.com</a></p>
+              <p className="text-gray-700">Email: <a href="mailto:support@precisionprices.com" className="text-emerald-600 hover:text-emerald-700">support@precisionprices.com</a></p>
               <p className="text-gray-700">Website: <a href="https://precisionprices.com" className="text-emerald-600 hover:text-emerald-700">precisionprices.com</a></p>
             </div>
           </section>

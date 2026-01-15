@@ -125,7 +125,7 @@ export default function TermsOfService({ onBack }) {
             <p className="text-gray-700 leading-relaxed">
               We may suspend or terminate your access at any time for violation of these terms, fraudulent activity,
               or abusive behavior. You may terminate your account at any time by contacting us at
-              <a href="mailto:contact@precisionprices.com" className="text-emerald-600 hover:text-emerald-700 font-semibold"> contact@precisionprices.com</a>.
+              <a href="mailto:support@precisionprices.com" className="text-emerald-600 hover:text-emerald-700 font-semibold"> support@precisionprices.com</a>.
             </p>
           </section>
 
@@ -152,7 +152,7 @@ export default function TermsOfService({ onBack }) {
             </p>
             <div className="bg-emerald-50 p-4 rounded-lg mt-3">
               <p className="text-gray-700 font-semibold">Precision Prices</p>
-              <p className="text-gray-700">Email: <a href="mailto:contact@precisionprices.com" className="text-emerald-600 hover:text-emerald-700">contact@precisionprices.com</a></p>
+              <p className="text-gray-700">Email: <a href="mailto:support@precisionprices.com" className="text-emerald-600 hover:text-emerald-700">support@precisionprices.com</a></p>
               <p className="text-gray-700">Website: <a href="https://precisionprices.com" className="text-emerald-600 hover:text-emerald-700">precisionprices.com</a></p>
             </div>
           </section>
