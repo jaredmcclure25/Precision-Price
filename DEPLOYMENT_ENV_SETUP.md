@@ -1,6 +1,21 @@
 # Environment Variables Setup for Railway & Vercel
 
-## Current Configuration Status ✅
+## CRITICAL: Pre-Deployment Checklist
+
+Before deploying to production, ensure the following:
+
+1. **VITE_BACKEND_URL MUST be set on Vercel** - Without this, the frontend will fail to connect to your backend API. The localhost fallback only works in development mode.
+
+2. **Rotate your Anthropic API key** if it was ever exposed during development or review. Generate a new one at https://console.anthropic.com/ and update Railway.
+
+3. **Deploy Firestore security rules** before launch:
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+---
+
+## Current Configuration Status
 
 Your `.env` file contains all the necessary environment variables. Here's what needs to be configured on Railway (backend) and Vercel (frontend):
 

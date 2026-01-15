@@ -65,7 +65,7 @@ export function AuthProvider({ children }) {
         setPendingCredential(null);
         setPendingEmail(null);
       } catch (linkError) {
-        console.log('Could not link credential:', linkError);
+        // Could not link credential - continue anyway
       }
     }
 
@@ -111,7 +111,7 @@ export function AuthProvider({ children }) {
           }
         }
       } catch (linkError) {
-        console.log('Could not link credential:', linkError);
+        // Could not link credential - continue anyway
       }
     }
 
@@ -121,7 +121,7 @@ export function AuthProvider({ children }) {
   // Send password reset email
   function resetPassword(email) {
     const actionCodeSettings = {
-      url: 'https://precisionprices.com/',
+      url: window.location.origin + '/',
       handleCodeInApp: false,
     };
     return sendPasswordResetEmail(auth, email, actionCodeSettings);
@@ -142,7 +142,7 @@ export function AuthProvider({ children }) {
           setPendingCredential(null);
           setPendingEmail(null);
         } catch (linkError) {
-          console.log('Could not link credential:', linkError);
+          // Could not link credential - continue anyway
         }
       }
 
@@ -217,7 +217,7 @@ export function AuthProvider({ children }) {
           setPendingCredential(null);
           setPendingEmail(null);
         } catch (linkError) {
-          console.log('Could not link credential:', linkError);
+          // Could not link credential - continue anyway
         }
       }
 

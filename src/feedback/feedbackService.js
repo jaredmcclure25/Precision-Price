@@ -39,8 +39,6 @@ export async function submitFeedback(feedbackData, sessionData, userProfile = nu
       createdAt: new Date() // Firestore timestamp
     });
 
-    console.log('✅ Feedback submitted:', docRef.id);
-
     // Also update temp listing stage if applicable
     if (feedbackData.stage) {
       try {
@@ -50,7 +48,7 @@ export async function submitFeedback(feedbackData, sessionData, userProfile = nu
           lastFeedbackAt: new Date()
         }, { merge: true });
       } catch (error) {
-        console.warn('Could not update listing stage:', error);
+        // Could not update listing stage - continue anyway
       }
     }
 
