@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
