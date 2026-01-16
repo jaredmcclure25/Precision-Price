@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DollarSign, TrendingUp, Package, MapPin, Eye, Share2, ExternalLink, Copy, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, Package, MapPin, Eye, Share2, ExternalLink, Copy, CheckCircle, Loader2, AlertCircle, MessageSquare } from 'lucide-react';
 import { getListing, formatForFacebookMarketplace, incrementShareCount } from '../listingStorage';
 
 export default function ListingPage() {
@@ -139,6 +139,17 @@ export default function ListingPage() {
     }
   };
 
+  // Navigate back to analysis with listing data to enable feedback
+  const handleBackToAnalysis = () => {
+    navigate('/', {
+      state: {
+        returnFromListing: true,
+        listingId: listingId,
+        listingData: listing
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -182,13 +193,24 @@ export default function ListingPage() {
           >
             ← Back to Precision Prices
           </button>
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Share</span>
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Back to Analysis button - allows providing feedback */}
+            <button
+              onClick={handleBackToAnalysis}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition"
+              title="Return to your analysis to provide feedback"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Give Feedback</span>
+            </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Share</span>
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}
