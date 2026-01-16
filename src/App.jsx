@@ -1423,15 +1423,8 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
               </div>
             </div>
             <div className="mt-6 pt-6 border-t border-indigo-200">
-              <p className="text-sm text-gray-600 italic">Our AI analyzes millions of listings to give you the perfect price point</p>
+              <p className="text-sm text-gray-600 italic">Our AI analyzes local listings and gives you the confidence to buy and sell with confidence.</p>
             </div>
-            <button
-              onClick={() => setView('referral')}
-              className="mt-6 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-            >
-              <Share2 className="w-5 h-5" />
-              Refer a Friend & Earn Rewards
-            </button>
           </div>
         </div>
       </div>
