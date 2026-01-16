@@ -1423,7 +1423,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
               </div>
             </div>
             <div className="mt-6 pt-6 border-t border-indigo-200">
-              <p className="text-sm text-gray-600 italic">Our AI analyzes local listings and gives you the confidence to buy and sell with confidence.</p>
+              <p className="text-sm text-gray-600 italic">Our AI analyzes local listings to help you price smarter.</p>
             </div>
           </div>
         </div>
