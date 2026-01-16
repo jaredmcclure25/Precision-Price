@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
@@ -104,6 +105,7 @@ async function compressImageBlob(blob, quality = 0.7, maxWidth = 1920) {
 export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
   const { sessionData, currentListingId, createListingRecord, handleFeedbackSubmit } = useFeedbackSystem();
+  const routerLocation = useLocation();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
   const [analysisMode, setAnalysisMode] = useState('single'); // 'single' or 'bulk'
@@ -151,6 +153,59 @@ export default function MarketplacePricer() {
       setAuthGateFromLogout(false);
     }
   }, [currentUser, showAuthGate]);
+
+  // Handle return from listing page - restore analysis to allow feedback
+  useEffect(() => {
+    if (routerLocation.state?.returnFromListing && routerLocation.state?.listingData) {
+      const listingData = routerLocation.state.listingData;
+
+      // Reconstruct the analysis result from the listing data
+      const restoredResult = {
+        itemIdentification: listingData.itemIdentification,
+        pricingStrategy: listingData.pricingStrategy,
+        marketInsights: listingData.marketInsights,
+        suggestedPriceRange: listingData.suggestedPriceRange,
+        optimizationTips: listingData.optimizationTips,
+        comparableItems: listingData.comparableItems,
+      };
+
+      setResult(restoredResult);
+      setShowFeedback(true);
+      setFeedbackSubmitted(false);
+      setView('pricing');
+
+      // Restore images if available
+      if (listingData.images && listingData.images.length > 0) {
+        const restoredImages = listingData.images.map((img, idx) => ({
+          preview: img,
+          file: null // Original file not available
+        }));
+        setImages(restoredImages);
+      }
+
+      // Restore item details
+      if (listingData.itemIdentification?.name) {
+        setItemName(listingData.itemIdentification.name);
+      }
+      if (listingData.condition) {
+        setCondition(listingData.condition);
+      }
+      if (listingData.location) {
+        setLocation(listingData.location);
+      }
+      if (listingData.additionalDetails) {
+        setAdditionalDetails(listingData.additionalDetails);
+      }
+
+      // Scroll to results after a short delay
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+
+      // Clear the state to prevent re-triggering on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [routerLocation.state]);
 
   const loadUserProfile = async () => {
     try {
