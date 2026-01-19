@@ -1,26 +1,53 @@
 # Precision Prices
 
-**Copyright © 2025 Jared McClure / PrecisionPrices.Com. All Rights Reserved.**
+**AI-Powered Marketplace Pricing Intelligence**
+
+[![Live](https://img.shields.io/badge/Live-precisionprices.com-10B981?style=flat-square)](https://precisionprices.com)
 
 ---
 
-## 🎯 AI-Powered Marketplace Pricing Tool
+## The Problem
 
-Precision Prices helps sellers price their items optimally using advanced AI market analysis. Get instant, accurate pricing recommendations for any item you want to sell online.
+Selling on Facebook Marketplace or eBay? You've probably asked: *"What should I price this for?"*
 
-### ✨ Features
+Existing tools only track Amazon prices — they don't help with **local marketplaces** where pricing varies by region, condition, and demand.
 
-- 🤖 **AI Price Analysis** - Upload photos, get instant pricing using Claude AI
-- 📊 **Market Insights** - Real-time demand and competition analysis
-- 🎯 **Optimal Pricing** - Min/max/optimal price recommendations
-- 📱 **Facebook Marketplace Integration** - Create shareable listings with one click
-- 🔗 **Public Listing Pages** - SEO-optimized pages at `/item/{id}`
-- 📈 **Analytics & Tracking** - View counts, share counts, conversion metrics
-- 🔐 **Authentication** - Google, Facebook, and Email login options
-- 👤 **Guest Mode** - Try 2 analyses before signing up
-- 💾 **History & Dashboard** - Track all your priced items
+## The Solution
 
-### 🚀 Quick Start
+Upload a photo, describe your item, and get an instant AI-powered price recommendation based on:
+
+- **Hyperlocal market data** — What items actually sell for in your area
+- **Condition-based adjustments** — Fair prices for new, used, and refurbished
+- **Real-time market signals** — Supply and demand in your region
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **AI Price Analysis** | Upload photos, get instant pricing via Claude AI |
+| **Hyperlocal Pricing** | Prices adjusted for your geographic area |
+| **Facebook Marketplace Integration** | Create shareable listings with one click |
+| **Mobile-First** | Built for sellers on the go |
+| **Guest Mode** | Try before signing up |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 19, Vite, Tailwind CSS |
+| Backend | Express.js, Node.js |
+| Database | Firebase Firestore |
+| Auth | Firebase (Google, Facebook, Email) |
+| AI | Anthropic Claude API |
+| Hosting | Vercel (frontend), Railway (backend) |
+
+---
+
+## Development
 
 ```bash
 # Install dependencies
@@ -33,122 +60,25 @@ npm run dev
 npm run build
 ```
 
-### 📚 Documentation
+---
 
-- [Facebook Marketplace Integration](FACEBOOK_MARKETPLACE_INTEGRATION.md)
-- [Authentication Gate Setup](AUTHENTICATION_GATE_SUMMARY.md)
-- [Facebook OAuth Configuration](FACEBOOK_OAUTH_SETUP.md)
-
-### 🔧 Tech Stack
-
-- **Frontend**: React 19 + Vite
-- **Routing**: React Router DOM
-- **Styling**: Tailwind CSS
-- **Auth**: Firebase Authentication (Google, Facebook, Email/Password)
-- **Database**: Cloud Firestore
-- **Backend**: Express.js (Node.js)
-- **AI**: Anthropic Claude API
-- **Hosting**: Vercel
-- **Icons**: Lucide React
-
-### 🔐 Environment Variables
-
-Create a `.env` file:
-
-```bash
-# Firebase
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-
-# Anthropic AI
-ANTHROPIC_API_KEY=your_anthropic_key
-```
-
-### 📦 Project Structure
-
-```
-precision-prices/
-├── src/
-│   ├── components/         # Reusable React components
-│   │   ├── AuthGateModal.jsx
-│   │   ├── FacebookMarketplaceButton.jsx
-│   │   ├── BullseyePriceTarget.jsx
-│   │   └── ...
-│   ├── pages/             # Route pages
-│   │   ├── ListingPage.jsx
-│   │   ├── TermsOfService.jsx
-│   │   └── PrivacyPolicy.jsx
-│   ├── hooks/             # Custom React hooks
-│   ├── App.jsx            # Main application component
-│   ├── AuthContext.jsx    # Authentication context & state
-│   ├── firebase.js        # Firebase configuration
-│   ├── listingStorage.js  # Firestore listing operations
-│   └── main.jsx           # Application entry point
-├── public/                # Static assets
-├── server.js              # Express backend server
-└── firestore.rules        # Firestore security rules
-```
-
-### 🔥 Firebase Setup
-
-1. Create a Firebase project at https://console.firebase.google.com/
-2. Enable Authentication (Email, Google, Facebook)
-3. Create a Firestore database
-4. Deploy security rules: `firebase deploy --only firestore:rules`
-5. Add your Firebase config to `.env`
-
-See [FACEBOOK_OAUTH_SETUP.md](FACEBOOK_OAUTH_SETUP.md) for detailed Facebook Login configuration.
-
-### 🌐 Deployment
-
-**Vercel (Recommended):**
-```bash
-npm run build
-vercel --prod
-```
-
-**Railway:**
-```bash
-git push origin main
-# Auto-deploys via GitHub integration
-```
-
-### 📊 Analytics & Metrics
-
-Track these key demand signals:
-- Guest → Authenticated conversion rate
-- Analyses per user
-- 7-day retention rate
-- Share/export actions
-- Signup method preference (Google vs Facebook vs Email)
-
-### 🛡️ Security
-
-- All API keys in environment variables
-- Firebase security rules enforced
-- HTTPS required for OAuth
-- Input validation and sanitization
-- Content filtering for prohibited items
-
-### 📄 License
+## License
 
 **Proprietary and Confidential**
 
-Copyright © 2025 Jared McClure / PrecisionPrices.Com
-
-All rights reserved. Unauthorized copying, modification, distribution, or use of this software, via any medium, is strictly prohibited.
-
-### 👨‍💻 Author
-
-**Jared McClure**
-- Website: https://precisionprices.com
-- Email: contact@precisionprices.com
+Copyright © 2025 Jared McClure / PrecisionPrices.com. All rights reserved.
 
 ---
 
-**Built with ❤️ for marketplace sellers everywhere**
+## Author
 
+**Jared McClure**
+Army Signal Officer | Entrepreneur
+
+- Website: [precisionprices.com](https://precisionprices.com)
+- GitHub: [@jaredmcclure25](https://github.com/jaredmcclure25)
+- LinkedIn: [Jared McClure](https://linkedin.com/in/jaredmcclure)
+
+---
+
+*Built for marketplace sellers everywhere*
