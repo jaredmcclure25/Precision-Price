@@ -21,6 +21,9 @@ dist-ssr
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
 
+# Internal documentation (keep private)
+docs/internal/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
