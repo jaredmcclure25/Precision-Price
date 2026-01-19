@@ -487,11 +487,35 @@ export default function MarketplacePricer() {
           reader.readAsDataURL(img.file);
         });
 
+        // Detect actual image type from base64 magic bytes (more reliable than file.type on iOS)
         // Anthropic API only supports: image/jpeg, image/png, image/gif, image/webp
-        let mediaType = 'image/jpeg';
-        if (img.file.type === 'image/png') mediaType = 'image/png';
-        else if (img.file.type === 'image/webp') mediaType = 'image/webp';
-        else if (img.file.type === 'image/gif') mediaType = 'image/gif';
+        const detectImageType = (base64) => {
+          // Decode first few bytes to check magic numbers
+          const header = atob(base64.substring(0, 16));
+          const bytes = new Uint8Array([...header].map(c => c.charCodeAt(0)));
+
+          // PNG: 89 50 4E 47 (‰PNG)
+          if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+            return 'image/png';
+          }
+          // JPEG: FF D8 FF
+          if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+            return 'image/jpeg';
+          }
+          // GIF: 47 49 46 38 (GIF8)
+          if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+            return 'image/gif';
+          }
+          // WebP: 52 49 46 46 ... 57 45 42 50 (RIFF...WEBP)
+          if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+              bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+            return 'image/webp';
+          }
+          // Default to JPEG (safest fallback, most common)
+          return 'image/jpeg';
+        };
+
+        const mediaType = detectImageType(base64Data);
 
         contentParts.push({
           type: 'image',
@@ -3859,11 +3883,20 @@ function BulkAnalysis() {
             reader.readAsDataURL(img.file);
           });
 
+          // Detect actual image type from base64 magic bytes (more reliable than file.type on iOS)
           // Anthropic API only supports: image/jpeg, image/png, image/gif, image/webp
-          let mediaType = 'image/jpeg';
-          if (img.file.type === 'image/png') mediaType = 'image/png';
-          else if (img.file.type === 'image/webp') mediaType = 'image/webp';
-          else if (img.file.type === 'image/gif') mediaType = 'image/gif';
+          const detectImageType = (base64) => {
+            const header = atob(base64.substring(0, 16));
+            const bytes = new Uint8Array([...header].map(c => c.charCodeAt(0)));
+            if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png';
+            if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg';
+            if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'image/gif';
+            if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+                bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp';
+            return 'image/jpeg';
+          };
+
+          const mediaType = detectImageType(base64Data);
 
           contentParts.push({
             type: 'image',
