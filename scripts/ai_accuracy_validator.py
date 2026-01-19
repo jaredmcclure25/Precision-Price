@@ -18,12 +18,29 @@ Run: python scripts/ai_accuracy_validator.py
 """
 
 from google.cloud import firestore
+from google.oauth2 import service_account
 from datetime import datetime, timedelta
 from collections import defaultdict
 import pandas as pd
 import numpy as np
+import os
 
-db = firestore.Client()
+# Initialize Firestore with service account
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(script_dir)
+key_path = os.path.join(project_dir, 'serviceAccountKey.json')
+
+if os.path.exists(key_path):
+    credentials = service_account.Credentials.from_service_account_file(key_path)
+    db = firestore.Client(credentials=credentials, project=credentials.project_id)
+else:
+    print(f"ERROR: Service account key not found at: {key_path}")
+    print("\nTo fix this:")
+    print("1. Go to Firebase Console → Project Settings → Service Accounts")
+    print("2. Click 'Generate new private key'")
+    print("3. Save the file as 'serviceAccountKey.json' in your project root")
+    print(f"   Expected location: {key_path}")
+    exit(1)
 
 
 def validate_ai_predictions():
