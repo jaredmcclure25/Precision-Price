@@ -8,10 +8,17 @@ import React, { useState } from 'react';
 import { ExternalLink, Copy, CheckCircle, Share2, Loader2 } from 'lucide-react';
 import { saveListing, formatForFacebookMarketplace } from '../listingStorage';
 
-export default function FacebookMarketplaceButton({ analysisResult, images, itemDetails, userId }) {
+export default function FacebookMarketplaceButton({ analysisResult, images, itemDetails, userId, selectedTier = null }) {
   const [saving, setSaving] = useState(false);
   const [listingUrl, setListingUrl] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  // Get the display price based on selected tier
+  const getDisplayPrice = () => {
+    if (selectedTier === 'quick') return analysisResult.suggestedPriceRange.min;
+    if (selectedTier === 'premium') return analysisResult.suggestedPriceRange.max;
+    return analysisResult.suggestedPriceRange.optimal; // Default to recommended
+  };
 
   const handleCreateListing = async () => {
     try {
@@ -21,18 +28,36 @@ export default function FacebookMarketplaceButton({ analysisResult, images, item
       // Images are stored as { file: File, preview: base64String }
       const imageUrls = images?.map(img => img.preview || img) || [];
 
-      // Prepare listing data
+      // Get the selected price for the listing
+      const displayPrice = getDisplayPrice();
+
+      // Prepare listing data - only show selected price if tier was selected
       const listingData = {
         itemIdentification: analysisResult.itemIdentification,
-        pricingStrategy: analysisResult.pricingStrategy,
+        pricingStrategy: selectedTier ? {
+          ...analysisResult.pricingStrategy,
+          listingPrice: displayPrice,
+          displayTier: selectedTier,
+        } : analysisResult.pricingStrategy,
         marketInsights: analysisResult.marketInsights,
-        suggestedPriceRange: analysisResult.suggestedPriceRange,
+        suggestedPriceRange: selectedTier ? {
+          // When tier is selected, only show the selected price publicly
+          min: displayPrice,
+          max: displayPrice,
+          optimal: displayPrice,
+          selectedTier: selectedTier,
+          // Keep original for reference
+          _originalMin: analysisResult.suggestedPriceRange.min,
+          _originalMax: analysisResult.suggestedPriceRange.max,
+          _originalOptimal: analysisResult.suggestedPriceRange.optimal,
+        } : analysisResult.suggestedPriceRange,
         optimizationTips: analysisResult.optimizationTips,
         comparableItems: analysisResult.comparableItems,
         images: imageUrls,
         location: itemDetails?.location || '',
         additionalDetails: itemDetails?.additionalDetails || '',
         condition: itemDetails?.condition || 'good',
+        selectedTier: selectedTier,
       };
 
       // Save to Firebase
@@ -64,9 +89,10 @@ export default function FacebookMarketplaceButton({ analysisResult, images, item
   const shareLink = async () => {
     if (navigator.share) {
       try {
+        const sharePrice = getDisplayPrice();
         await navigator.share({
           title: `${analysisResult.itemIdentification.name} - Precision Prices`,
-          text: `Check out this ${analysisResult.itemIdentification.name} priced at $${Math.round(analysisResult.pricingStrategy.listingPrice)}!`,
+          text: `Check out this ${analysisResult.itemIdentification.name} priced at $${Math.round(sharePrice)}!`,
           url: listingUrl,
         });
       } catch (err) {

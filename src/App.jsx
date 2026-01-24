@@ -12,6 +12,7 @@ import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
 import { db } from './firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { addListing as addListingToFirestore } from './lib/firestore';
 import './storage'; // Cross-browser storage wrapper
 import { parseLocation, getLocationDescription, getLocationPricingInsight } from './locationData';
 import BullseyePriceTarget from './components/BullseyePriceTarget';
@@ -136,6 +137,8 @@ export default function MarketplacePricer() {
   const [userZipCode, setUserZipCode] = useState('');
   const [searchRadius, setSearchRadius] = useState(25);
   const [showPricingTool, setShowPricingTool] = useState(false);
+  const [selectedTier, setSelectedTier] = useState(null); // 'quick', 'recommended', or 'premium'
+  const [trackingListing, setTrackingListing] = useState(false);
 
 
   useEffect(() => {
@@ -477,6 +480,7 @@ export default function MarketplacePricer() {
     setResult(null);
     setShowFeedback(false);
     setFeedbackSubmitted(false);
+    setSelectedTier(null); // Reset tier selection for new analysis
 
     try {
       const contentParts = [];
@@ -1080,6 +1084,84 @@ Provide pricing analysis in this exact JSON structure:
     }
   };
 
+  // Handle tracking a listing with selected price tier
+  const handleTrackListing = async () => {
+    if (!selectedTier || !result) return;
+
+    // Get the selected price based on tier
+    const selectedPrice =
+      selectedTier === 'quick' ? result.suggestedPriceRange.min :
+      selectedTier === 'recommended' ? result.suggestedPriceRange.optimal :
+      result.suggestedPriceRange.max;
+
+    setTrackingListing(true);
+
+    try {
+      // Prepare listing data
+      const listingData = {
+        // Item info
+        category: result.itemIdentification?.category || 'General',
+        itemName: result.itemIdentification?.name || itemName,
+        condition: condition,
+        description: additionalDetails || '',
+
+        // Location
+        zipCode: location?.match(/\d{5}/)?.[0] || userZipCode || '',
+        location: location,
+
+        // Pricing
+        selectedTier: selectedTier,
+        selectedPrice: selectedPrice,
+        quickSalePrice: result.suggestedPriceRange.min,
+        recommendedPrice: result.suggestedPriceRange.optimal,
+        premiumPrice: result.suggestedPriceRange.max,
+
+        // AI analysis data for training
+        confidenceScore: result.confidenceScore || 70,
+        dataCount: result.dataCount || 0,
+        pricingInsights: result.pricingInsights || '',
+
+        // Images (first image only for storage efficiency)
+        images: images.slice(0, 1).map(img => img.preview),
+      };
+
+      // Save to Firestore if user is logged in
+      if (currentUser && !isGuestMode) {
+        const listingId = await addListingToFirestore(currentUser.uid, listingData);
+        console.log('Listing tracked:', listingId);
+
+        // Show success message
+        alert(`🎉 Listing tracked! Your ${result.itemIdentification?.name || 'item'} is now being monitored at $${selectedPrice}. Track its performance in your Dashboard.`);
+
+        // Navigate to dashboard to see the tracked listing
+        setMainTab('dashboard');
+        setView('dashboard');
+      } else {
+        // For guest users, save locally
+        const stored = await window.storage.get('trackedListings');
+        const existingListings = stored?.value ? JSON.parse(stored.value) : [];
+        existingListings.push({
+          ...listingData,
+          id: Date.now().toString(),
+          datePosted: new Date().toISOString(),
+          status: 'active'
+        });
+        await window.storage.set('trackedListings', JSON.stringify(existingListings));
+
+        alert(`🎉 Listing tracked locally! Create an account to sync across devices and get performance insights.`);
+      }
+
+      // Reset selection for next analysis
+      setSelectedTier(null);
+
+    } catch (error) {
+      console.error('Error tracking listing:', error);
+      alert('Failed to track listing. Please try again.');
+    } finally {
+      setTrackingListing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
       <nav className="bg-gradient-to-r from-emerald-600 to-green-600 shadow-2xl border-b-4 border-emerald-700">
@@ -1591,7 +1673,7 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           <h2 className="text-2xl font-bold">Pricing Recommendation</h2>
         </div>
 
-        {/* Bullseye Price Target Visualization */}
+        {/* Bullseye Price Target Visualization - Selectable Tiers */}
         <BullseyePriceTarget
           min={result.suggestedPriceRange.min}
           max={result.suggestedPriceRange.max}
@@ -1599,6 +1681,8 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           confidence={result.confidenceScore || 70}
           locationData={result.locationData}
           dataCount={result.dataCount || 0}
+          selectedTier={selectedTier}
+          onTierSelect={setSelectedTier}
         />
 
         {/* Real Market Data Insights */}
@@ -1629,12 +1713,54 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
         </div>
       </div>
 
+      {/* Track This Listing - Appears when tier is selected */}
+      {selectedTier && (
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-xl p-6 text-white">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h3 className="text-xl font-bold mb-1">Ready to List!</h3>
+              <p className="text-indigo-100">
+                Your selected price: <span className="font-bold text-2xl">${
+                  selectedTier === 'quick' ? result.suggestedPriceRange.min :
+                  selectedTier === 'recommended' ? result.suggestedPriceRange.optimal :
+                  result.suggestedPriceRange.max
+                }</span>
+                <span className="text-sm ml-2">
+                  ({selectedTier === 'quick' ? 'Quick Sale' : selectedTier === 'recommended' ? 'Recommended' : 'Premium'})
+                </span>
+              </p>
+            </div>
+            <button
+              onClick={handleTrackListing}
+              disabled={trackingListing}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 font-bold rounded-lg hover:bg-indigo-50 disabled:opacity-50 transition shadow-lg"
+            >
+              {trackingListing ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Package className="w-5 h-5" />
+                  Track This Listing
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-sm text-indigo-200 mt-3">
+            Track your listing to help improve our AI and see how your item performs!
+          </p>
+        </div>
+      )}
+
       {/* Facebook Marketplace Integration */}
       <FacebookMarketplaceButton
         analysisResult={result}
         images={images}
         itemDetails={itemDetails}
         userId={currentUser?.uid || 'guest'}
+        selectedTier={selectedTier}
       />
 
       {showFeedback && !feedbackSubmitted && <FeedbackForm onSubmit={submitFeedback} />}

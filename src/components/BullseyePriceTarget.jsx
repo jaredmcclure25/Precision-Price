@@ -10,9 +10,19 @@
  */
 
 import React from 'react';
-import { Target, TrendingUp, Zap, Award } from 'lucide-react';
+import { Target, TrendingUp, Zap, Award, Check } from 'lucide-react';
 
-export default function BullseyePriceTarget({ min, max, optimal, confidence = 70, locationData, dataCount = 0 }) {
+export default function BullseyePriceTarget({
+  min,
+  max,
+  optimal,
+  confidence = 70,
+  locationData,
+  dataCount = 0,
+  selectedTier = null,
+  onTierSelect = null
+}) {
+  const isSelectable = onTierSelect !== null;
   // Calculate confidence level message
   const getConfidenceMessage = () => {
     if (dataCount >= 10) {
@@ -105,35 +115,92 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
 
       {/* Strategy Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {/* MIN card */}
-        <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4 text-center">
+        {/* MIN card - Quick Sale */}
+        <button
+          type="button"
+          onClick={() => isSelectable && onTierSelect('quick')}
+          disabled={!isSelectable}
+          className={`relative bg-emerald-50 border-2 rounded-lg p-4 text-center transition-all duration-200 ${
+            isSelectable ? 'cursor-pointer hover:shadow-lg hover:scale-105' : ''
+          } ${
+            selectedTier === 'quick'
+              ? 'border-emerald-600 ring-2 ring-emerald-400 ring-offset-2 shadow-lg'
+              : 'border-emerald-200'
+          }`}
+        >
+          {selectedTier === 'quick' && (
+            <div className="absolute -top-2 -right-2 bg-emerald-600 text-white rounded-full p-1">
+              <Check className="w-4 h-4" />
+            </div>
+          )}
           <Zap className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
           <div className="text-2xl font-bold text-emerald-700">${min}</div>
-          <div className="text-xs text-emerald-600 font-medium mt-1">Minimum</div>
+          <div className="text-xs text-emerald-600 font-medium mt-1">Quick Sale</div>
           <div className="text-xs text-gray-600 mt-2">
             Sell within 1-3 days. Best for quick cash or clearing inventory.
           </div>
-        </div>
+          {isSelectable && !selectedTier && (
+            <div className="mt-2 text-xs text-emerald-500 font-medium">Click to select</div>
+          )}
+        </button>
 
-        {/* OPTIMAL card */}
-        <div className="bg-emerald-100 border-2 border-emerald-400 rounded-lg p-4 text-center ring-2 ring-emerald-300 ring-offset-2">
+        {/* OPTIMAL card - Recommended */}
+        <button
+          type="button"
+          onClick={() => isSelectable && onTierSelect('recommended')}
+          disabled={!isSelectable}
+          className={`relative bg-emerald-100 rounded-lg p-4 text-center transition-all duration-200 ${
+            isSelectable ? 'cursor-pointer hover:shadow-lg hover:scale-105' : ''
+          } ${
+            selectedTier === 'recommended'
+              ? 'border-2 border-emerald-700 ring-2 ring-emerald-500 ring-offset-2 shadow-lg'
+              : 'border-2 border-emerald-400 ring-2 ring-emerald-300 ring-offset-2'
+          }`}
+        >
+          {selectedTier === 'recommended' && (
+            <div className="absolute -top-2 -right-2 bg-emerald-700 text-white rounded-full p-1">
+              <Check className="w-4 h-4" />
+            </div>
+          )}
           <Target className="w-6 h-6 text-emerald-700 mx-auto mb-2" />
           <div className="text-3xl font-bold text-emerald-800">${optimal}</div>
           <div className="text-xs text-emerald-700 font-semibold mt-1">RECOMMENDED</div>
           <div className="text-xs text-gray-700 mt-2">
             Sell within 1-2 weeks. Perfect balance of price and speed.
           </div>
-        </div>
+          {isSelectable && !selectedTier && (
+            <div className="mt-2 text-xs text-emerald-600 font-medium">Click to select</div>
+          )}
+        </button>
 
-        {/* MAX card */}
-        <div className="bg-gradient-to-br from-emerald-50 to-yellow-50 border-2 border-emerald-300 rounded-lg p-4 text-center">
+        {/* MAX card - Premium */}
+        <button
+          type="button"
+          onClick={() => isSelectable && onTierSelect('premium')}
+          disabled={!isSelectable}
+          className={`relative bg-gradient-to-br from-emerald-50 to-yellow-50 border-2 rounded-lg p-4 text-center transition-all duration-200 ${
+            isSelectable ? 'cursor-pointer hover:shadow-lg hover:scale-105' : ''
+          } ${
+            selectedTier === 'premium'
+              ? 'border-yellow-600 ring-2 ring-yellow-400 ring-offset-2 shadow-lg'
+              : 'border-emerald-300'
+          }`}
+        >
+          {selectedTier === 'premium' && (
+            <div className="absolute -top-2 -right-2 bg-yellow-600 text-white rounded-full p-1">
+              <Check className="w-4 h-4" />
+            </div>
+          )}
           <Award className="w-6 h-6 text-emerald-800 mx-auto mb-2" />
           <div className="text-2xl font-bold text-emerald-800">${max}</div>
-          <div className="text-xs text-emerald-700 font-medium mt-1">Maximum</div>
+          <div className="text-xs text-emerald-700 font-medium mt-1">Premium</div>
           <div className="text-xs text-gray-600 mt-2">
             Patient sale, 2-4 weeks. For premium buyers seeking quality.
           </div>
-        </div>
+          {isSelectable && !selectedTier && (
+            <div className="mt-2 text-xs text-yellow-600 font-medium">Click to select</div>
+          )}
+        </button>
       </div>
 
       {/* Confidence & Location Badge */}
@@ -179,11 +246,31 @@ export default function BullseyePriceTarget({ min, max, optimal, confidence = 70
         <div className="flex items-start gap-3">
           <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-gray-700">
-            <strong className="text-blue-900">Pro Tip:</strong> List at ${optimal} and be willing to negotiate down to ${min}.
-            This gives buyers room to feel like they got a deal while you maximize value.
+            {selectedTier ? (
+              <>
+                <strong className="text-blue-900">Your Selection:</strong>{' '}
+                {selectedTier === 'quick' && `$${min} - Quick Sale. Expect to sell within 1-3 days.`}
+                {selectedTier === 'recommended' && `$${optimal} - Recommended. Perfect balance of speed and profit.`}
+                {selectedTier === 'premium' && `$${max} - Premium. Be patient for the best return.`}
+              </>
+            ) : (
+              <>
+                <strong className="text-blue-900">Pro Tip:</strong> List at ${optimal} and be willing to negotiate down to ${min}.
+                This gives buyers room to feel like they got a deal while you maximize value.
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Selection Prompt */}
+      {isSelectable && !selectedTier && (
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-600 animate-pulse">
+            👆 Select a pricing tier above to track your listing
+          </p>
+        </div>
+      )}
     </div>
   );
 }
