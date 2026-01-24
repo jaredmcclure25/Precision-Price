@@ -404,3 +404,188 @@ export const searchMarketByZip = async (zipCode) => {
     return [];
   }
 };
+
+/**
+ * Get trending categories for a ZIP code
+ * @param {string} zipCode
+ * @param {number} [maxResults=6]
+ * @returns {Promise<Array>}
+ */
+export const getTrendingByZip = async (zipCode, maxResults = 6) => {
+  try {
+    const marketRef = collection(db, 'marketData');
+    const q = query(
+      marketRef,
+      where('zipCode', '==', zipCode),
+      where('soldListings', '>', 0),
+      orderBy('soldListings', 'desc'),
+      limit(maxResults)
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        category: data.category,
+        avgSoldPrice: data.avgSoldPrice || 0,
+        avgDaysToSell: data.avgDaysToSell || 0,
+        soldListings: data.soldListings || 0,
+        activeListings: data.activeListings || 0,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching trending:', error);
+    return [];
+  }
+};
+
+/**
+ * Get recent community sales across all categories
+ * @param {string} [zipCode] - Optional filter by ZIP
+ * @param {number} [maxResults=10]
+ * @returns {Promise<Array>}
+ */
+export const getRecentCommunitySales = async (zipCode, maxResults = 10) => {
+  try {
+    const marketRef = collection(db, 'marketData');
+
+    // Get market docs (optionally filtered by ZIP)
+    let marketQuery;
+    if (zipCode) {
+      marketQuery = query(
+        marketRef,
+        where('zipCode', '==', zipCode),
+        where('soldListings', '>', 0),
+        limit(20)
+      );
+    } else {
+      marketQuery = query(
+        marketRef,
+        where('soldListings', '>', 0),
+        orderBy('soldListings', 'desc'),
+        limit(20)
+      );
+    }
+
+    const marketSnapshot = await getDocs(marketQuery);
+    const allSales = [];
+
+    // Collect recent sales from each market
+    for (const marketDoc of marketSnapshot.docs) {
+      const marketData = marketDoc.data();
+      const recentSalesRef = collection(marketDoc.ref, 'recentSales');
+      const recentSalesQuery = query(
+        recentSalesRef,
+        orderBy('soldAt', 'desc'),
+        limit(5)
+      );
+
+      const salesSnap = await getDocs(recentSalesQuery);
+      salesSnap.forEach((saleDoc) => {
+        const saleData = saleDoc.data();
+        allSales.push({
+          category: marketData.category,
+          zipCode: marketData.zipCode,
+          price: saleData.price,
+          daysToSell: saleData.daysToSell,
+          soldAt: saleData.soldAt?.toDate?.() || new Date(),
+        });
+      });
+    }
+
+    // Sort by date and limit
+    allSales.sort((a, b) => b.soldAt - a.soldAt);
+    return allSales.slice(0, maxResults);
+  } catch (error) {
+    console.error('Error fetching community sales:', error);
+    return [];
+  }
+};
+
+/**
+ * Search market data by item query and ZIP code
+ * @param {string} searchQuery - Item name/type to search
+ * @param {string} zipCode
+ * @param {number} [radiusMiles=25] - Search radius (for future expansion)
+ * @returns {Promise<Array>}
+ */
+export const searchMarketItems = async (searchQuery, zipCode, radiusMiles = 25) => {
+  try {
+    // For now, search by category match
+    // In the future, this could use a full-text search service
+    const normalizedQuery = searchQuery.toLowerCase().trim();
+
+    const marketRef = collection(db, 'marketData');
+    const q = query(
+      marketRef,
+      where('zipCode', '==', zipCode),
+      orderBy('soldListings', 'desc'),
+      limit(50)
+    );
+
+    const snapshot = await getDocs(q);
+    const results = [];
+
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const category = (data.category || '').toLowerCase();
+
+      // Simple matching - check if query is in category
+      if (category.includes(normalizedQuery) || normalizedQuery.includes(category)) {
+        // Get recent sales
+        const recentSalesRef = collection(docSnap.ref, 'recentSales');
+        const recentSalesQuery = query(
+          recentSalesRef,
+          orderBy('soldAt', 'desc'),
+          limit(5)
+        );
+        const recentSalesSnap = await getDocs(recentSalesQuery);
+        const recentSales = recentSalesSnap.docs.map((d) => d.data());
+
+        let confidence = 'low';
+        if (data.soldListings >= 20) confidence = 'high';
+        else if (data.soldListings >= 5) confidence = 'medium';
+
+        results.push({
+          category: data.category,
+          zipCode: data.zipCode,
+          avgSoldPrice: data.avgSoldPrice || 0,
+          avgDaysToSell: data.avgDaysToSell || 0,
+          soldListings: data.soldListings || 0,
+          activeListings: data.activeListings || 0,
+          confidence,
+          sampleSize: data.soldListings || 0,
+          priceRange: {
+            min: data.priceMin || 0,
+            max: data.priceMax || 0,
+          },
+          recentSales,
+        });
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error searching market items:', error);
+    return [];
+  }
+};
+
+/**
+ * Save user's default ZIP code and search radius
+ * @param {string} userId
+ * @param {string} zipCode
+ * @param {number} radiusMiles
+ */
+export const saveUserLocation = async (userId, zipCode, radiusMiles = 25) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      defaultZipCode: zipCode,
+      searchRadius: radiusMiles,
+      lastActive: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error saving user location:', error);
+  }
+};
