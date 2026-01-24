@@ -493,6 +493,41 @@ export function AuthProvider({ children }) {
     return [];
   }
 
+  // Update item in history (for marking as sold, etc.)
+  async function updateItemInHistory(itemId, updateData) {
+    if (isGuestMode) {
+      // Update in localStorage for guest users
+      try {
+        const stored = await window.storage.get('itemHistory');
+        if (stored?.value) {
+          const items = JSON.parse(stored.value);
+          const index = items.findIndex(item => item.id === itemId);
+          if (index !== -1) {
+            items[index] = { ...items[index], ...updateData };
+            await window.storage.set('itemHistory', JSON.stringify(items));
+            return true;
+          }
+        }
+        return false;
+      } catch (error) {
+        console.error('Error updating guest history:', error);
+        return false;
+      }
+    } else if (currentUser) {
+      // Update in Firestore for logged-in users
+      try {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const itemRef = doc(db, 'users', currentUser.uid, 'items', itemId);
+        await updateDoc(itemRef, updateData);
+        return true;
+      } catch (error) {
+        console.error('Error updating Firestore item:', error);
+        return false;
+      }
+    }
+    return false;
+  }
+
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -542,6 +577,7 @@ export function AuthProvider({ children }) {
     updateUserProfile,
     saveItemToHistory,
     getItemHistory,
+    updateItemInHistory,
     hasReachedGuestLimit,
     getCooldownRemaining,
     startGuestCooldown,

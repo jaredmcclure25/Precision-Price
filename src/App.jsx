@@ -2310,11 +2310,14 @@ function Community() {
 }
 
 function ItemHistory() {
-  const { getItemHistory, updateUserProfile, currentUser } = useAuth();
+  const { getItemHistory, updateUserProfile, currentUser, updateItemInHistory } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [creatingListing, setCreatingListing] = useState(null); // Track which item is being created
+  const [creatingListing, setCreatingListing] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
   useEffect(() => {
     loadHistory();
@@ -2329,6 +2332,55 @@ function ItemHistory() {
       console.error('Error loading history:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReportSale = (item, index) => {
+    setSelectedItem(item);
+    setSelectedIndex(index);
+    setShowSaleModal(true);
+  };
+
+  const handleSaleSubmit = async (outcomeData) => {
+    try {
+      // Update the item in history with sale info
+      const saleInfo = {
+        sold: outcomeData.value.sold,
+        finalPrice: outcomeData.value.finalPrice,
+        daysToSell: outcomeData.value.daysToSell,
+        soldAt: new Date().toISOString(),
+        variance: outcomeData.value.variance
+      };
+
+      // Update locally first
+      const updatedHistory = [...history];
+      updatedHistory[selectedIndex] = { ...selectedItem, saleInfo, status: outcomeData.value.sold ? 'sold' : 'active' };
+      setHistory(updatedHistory);
+
+      // Update in Firestore if user is logged in
+      if (currentUser && updateItemInHistory) {
+        await updateItemInHistory(selectedItem.id, { saleInfo, status: outcomeData.value.sold ? 'sold' : 'active' });
+      } else {
+        // Update in local storage for guests
+        const stored = await window.storage.get('itemHistory');
+        if (stored?.value) {
+          const items = JSON.parse(stored.value);
+          const itemIndex = items.findIndex(i => i.id === selectedItem.id);
+          if (itemIndex !== -1) {
+            items[itemIndex] = { ...items[itemIndex], saleInfo, status: outcomeData.value.sold ? 'sold' : 'active' };
+            await window.storage.set('itemHistory', JSON.stringify(items));
+          }
+        }
+      }
+
+      setShowSaleModal(false);
+      setSelectedItem(null);
+      setSelectedIndex(null);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving sale info:', error);
+      return { success: false };
     }
   };
 
@@ -2412,7 +2464,24 @@ function ItemHistory() {
 
       <div className="space-y-4">
         {history.map((item, index) => (
-          <div key={item.id || index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <div key={item.id || index} className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${item.saleInfo?.sold ? 'ring-2 ring-green-400' : ''}`}>
+            {/* Sold Banner */}
+            {item.saleInfo?.sold && (
+              <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-semibold">SOLD for ${item.saleInfo.finalPrice}</span>
+                  {item.saleInfo.daysToSell && (
+                    <span className="text-green-600">• {item.saleInfo.daysToSell} days</span>
+                  )}
+                </div>
+                {item.saleInfo.variance && (
+                  <span className={`text-sm font-medium ${parseFloat(item.saleInfo.variance) >= 0 ? 'text-green-700' : 'text-orange-600'}`}>
+                    {parseFloat(item.saleInfo.variance) >= 0 ? '+' : ''}{item.saleInfo.variance}% vs suggested
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-gray-800">{item.itemName}</h3>
@@ -2543,10 +2612,35 @@ function ItemHistory() {
                   )}
                 </button>
               )}
+
+              {/* Report Sale Button */}
+              {!item.saleInfo?.sold && (
+                <button
+                  onClick={() => handleReportSale(item, index)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium ml-auto"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Report Sale
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Transaction Outcome Modal */}
+      {showSaleModal && selectedItem && (
+        <TransactionOutcome
+          listingId={selectedItem.id}
+          suggestedPrice={selectedItem.suggestedPrice}
+          onSubmit={handleSaleSubmit}
+          onClose={() => {
+            setShowSaleModal(false);
+            setSelectedItem(null);
+            setSelectedIndex(null);
+          }}
+        />
+      )}
     </div>
   );
 }
