@@ -1121,8 +1121,9 @@ Provide pricing analysis in this exact JSON structure:
         dataCount: result.dataCount || 0,
         pricingInsights: result.pricingInsights || '',
 
-        // Images (first image only for storage efficiency)
-        images: images.slice(0, 1).map(img => img.preview),
+        // Note: Images excluded to avoid Firestore 1MB document limit
+        // Image count stored for reference
+        imageCount: images.length,
       };
 
       // Save to Firestore if user is logged in
