@@ -1,4 +1,28 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "datePosted", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketData",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "zipCode", "order": "ASCENDING" },
+        { "fieldPath": "soldListings", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "recentSales",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "soldAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

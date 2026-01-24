@@ -11,6 +11,7 @@ import ListingPage from './pages/ListingPage.jsx'
 import ForgotPasswordPage from './ForgotPasswordPage.jsx'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import DataDeletion from './pages/DataDeletion.jsx'
+import MarketplacePage from './pages/MarketplacePage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')).render(
                 <AnalyticsWrapper>
                   <Routes>
                     <Route path="/" element={<App />} />
+                    <Route path="/marketplace" element={<MarketplacePage />} />
                     <Route path="/item/:listingId" element={<ListingPage />} />
                   </Routes>
                 </AnalyticsWrapper>
