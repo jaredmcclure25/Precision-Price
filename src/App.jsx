@@ -1614,12 +1614,16 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
           additionalDetails
         }}
         currentUser={currentUser}
+        selectedTier={selectedTier}
+        setSelectedTier={setSelectedTier}
+        trackingListing={trackingListing}
+        handleTrackListing={handleTrackListing}
       />}
     </div>
   );
 }
 
-function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, userProfile, images, itemDetails, currentUser}) {
+function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, userProfile, images, itemDetails, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}) {
   const [showShare, setShowShare] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
 

@@ -192,6 +192,39 @@ service cloud.firestore {
     }
 
     // ============================================================================
+    // MARKET DATA - Community pricing intelligence
+    // ============================================================================
+
+    // Market data collection - aggregated pricing data by ZIP + category
+    match /marketData/{marketId} {
+      // Anyone can read market data (public community data)
+      allow read: if true;
+
+      // Only authenticated users can create/update (through app functions)
+      allow create, update: if request.auth != null;
+
+      // Prevent deletion
+      allow delete: if false;
+
+      // Recent sales subcollection
+      match /recentSales/{saleId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
+    }
+
+    // ============================================================================
+    // USER LISTINGS - Tracked listings per user
+    // ============================================================================
+
+    // User's tracked listings subcollection
+    match /users/{userId}/listings/{listingId} {
+      // Users can read/write their own listings
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ============================================================================
     // FACEBOOK MARKETPLACE LISTINGS - PUBLIC SHAREABLE LISTINGS
     // ============================================================================
 
