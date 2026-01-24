@@ -31,33 +31,36 @@ export default function FacebookMarketplaceButton({ analysisResult, images, item
       // Get the selected price for the listing
       const displayPrice = getDisplayPrice();
 
-      // Prepare listing data - only show selected price if tier was selected
+      // Always use the selected tier price (defaults to 'recommended' if none selected)
+      const effectiveTier = selectedTier || 'recommended';
+
+      // Prepare listing data - always use displayPrice to ensure consistency
       const listingData = {
         itemIdentification: analysisResult.itemIdentification,
-        pricingStrategy: selectedTier ? {
+        pricingStrategy: {
           ...analysisResult.pricingStrategy,
           listingPrice: displayPrice,
-          displayTier: selectedTier,
-        } : analysisResult.pricingStrategy,
+          displayTier: effectiveTier,
+        },
         marketInsights: analysisResult.marketInsights,
-        suggestedPriceRange: selectedTier ? {
-          // When tier is selected, only show the selected price publicly
+        suggestedPriceRange: {
+          // Show the selected price publicly
           min: displayPrice,
           max: displayPrice,
           optimal: displayPrice,
-          selectedTier: selectedTier,
+          selectedTier: effectiveTier,
           // Keep original for reference
           _originalMin: analysisResult.suggestedPriceRange.min,
           _originalMax: analysisResult.suggestedPriceRange.max,
           _originalOptimal: analysisResult.suggestedPriceRange.optimal,
-        } : analysisResult.suggestedPriceRange,
+        },
         optimizationTips: analysisResult.optimizationTips,
         comparableItems: analysisResult.comparableItems,
         images: imageUrls,
         location: itemDetails?.location || '',
         additionalDetails: itemDetails?.additionalDetails || '',
         condition: itemDetails?.condition || 'good',
-        selectedTier: selectedTier,
+        selectedTier: effectiveTier,
       };
 
       // Save to Firebase
