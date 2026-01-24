@@ -1,26 +1,22 @@
 /**
  * GuidedResultsDisplay Component
- * Progressive reveal results with step-by-step guidance and micro-feedback
+ * Progressive reveal results with step-by-step guidance
+ * Flow: Analyze → Pick Price → Track → Create Listing Page → Celebration
  */
 
 import React, { useRef, useEffect, useState } from 'react';
 import {
   TrendingUp, Search, CheckCircle, Share2, Package, Loader2,
-  ChevronDown, Sparkles, ArrowRight
+  Sparkles, Copy, ExternalLink, Clock, Tag, MapPin
 } from 'lucide-react';
 import GuidedFlowStepper from './GuidedFlowStepper';
-import InlineStepFeedback from './InlineStepFeedback';
 import BullseyePriceTarget from './BullseyePriceTarget';
-import FacebookMarketplaceButton from './FacebookMarketplaceButton';
-import MicroFeedback from './MicroFeedback';
 import TransactionOutcome from './TransactionOutcome';
 import useGuidedFlow from '../hooks/useGuidedFlow';
+import { saveListing, formatForFacebookMarketplace } from '../listingStorage';
 
 export default function GuidedResultsDisplay({
   result,
-  showFeedback,
-  feedbackSubmitted,
-  submitFeedback,
   resultsRef,
   onNewAnalysis,
   currentListingId,
@@ -33,70 +29,48 @@ export default function GuidedResultsDisplay({
   setSelectedTier,
   trackingListing,
   handleTrackListing,
+  onViewListingHistory,
 }) {
-  const [showShare, setShowShare] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [listingCreated, setListingCreated] = useState(false);
+  const [trackSuccess, setTrackSuccess] = useState(false);
+
+  // Listing page state
+  const [creatingListing, setCreatingListing] = useState(false);
+  const [listingData, setListingData] = useState(null);
+  const [listingUrl, setListingUrl] = useState(null);
+  const [copied, setCopied] = useState(null);
 
   // Guided flow state
   const {
     currentStep,
     completedSteps,
     completeStep,
-    skipStep,
     goToStep,
-    recordFeedback,
     isStepVisible,
     isStepActive,
     registerStepRef,
-    getFlowData,
-  } = useGuidedFlow('pick-price'); // Start at pick-price since analysis is done
+  } = useGuidedFlow('pick-price');
 
   // Refs for each step section
   const pickPriceRef = useRef(null);
   const trackRef = useRef(null);
   const shareRef = useRef(null);
-  const feedbackRef = useRef(null);
 
   // Register refs
   useEffect(() => {
     registerStepRef('pick-price', pickPriceRef);
     registerStepRef('track', trackRef);
     registerStepRef('share', shareRef);
-    registerStepRef('feedback', feedbackRef);
   }, [registerStepRef]);
 
   // Auto-advance when tier is selected
   useEffect(() => {
     if (selectedTier && !completedSteps.includes('pick-price')) {
-      // Delay slightly so user sees their selection
       setTimeout(() => {
         completeStep('pick-price', { tier: selectedTier });
       }, 500);
     }
   }, [selectedTier, completedSteps, completeStep]);
-
-  // Handle track listing completion
-  const handleTrackAndAdvance = async () => {
-    await handleTrackListing();
-    completeStep('track', { tracked: true });
-  };
-
-  // Handle listing created
-  const handleListingCreated = () => {
-    setListingCreated(true);
-    completeStep('share', { created: true });
-  };
-
-  const shareSuccess = () => {
-    const text = `I just priced my ${result.itemIdentification.name} at $${result.suggestedPriceRange.optimal} using Precision Prices! 🎯`;
-    if (navigator.share) {
-      navigator.share({ title: 'Precision Prices Success', text });
-    } else {
-      navigator.clipboard.writeText(text);
-      alert('Copied to clipboard!');
-    }
-  };
 
   // Get price based on tier
   const getSelectedPrice = () => {
@@ -104,6 +78,107 @@ export default function GuidedResultsDisplay({
     if (selectedTier === 'premium') return result.suggestedPriceRange.max;
     return result.suggestedPriceRange.optimal;
   };
+
+  // Handle track listing - stay in flow
+  const handleTrackAndAdvance = async () => {
+    const trackResult = await handleTrackListing();
+    if (trackResult?.success) {
+      setTrackSuccess(true);
+      completeStep('track', { tracked: true, isGuest: trackResult.isGuest });
+    }
+  };
+
+  // Create listing page inline
+  const handleCreateListingPage = async () => {
+    try {
+      setCreatingListing(true);
+
+      const imageUrls = images?.map(img => img.preview || img) || [];
+      const displayPrice = getSelectedPrice();
+      const effectiveTier = selectedTier || 'recommended';
+
+      const listingPayload = {
+        itemIdentification: result.itemIdentification,
+        pricingStrategy: {
+          ...result.pricingStrategy,
+          listingPrice: displayPrice,
+          displayTier: effectiveTier,
+        },
+        marketInsights: result.marketInsights,
+        suggestedPriceRange: {
+          min: displayPrice,
+          max: displayPrice,
+          optimal: displayPrice,
+          selectedTier: effectiveTier,
+          _originalMin: result.suggestedPriceRange.min,
+          _originalMax: result.suggestedPriceRange.max,
+          _originalOptimal: result.suggestedPriceRange.optimal,
+        },
+        optimizationTips: result.optimizationTips,
+        comparableItems: result.comparableItems,
+        images: imageUrls,
+        location: itemDetails?.location || '',
+        additionalDetails: itemDetails?.additionalDetails || '',
+        condition: itemDetails?.condition || 'good',
+        selectedTier: effectiveTier,
+      };
+
+      const listingId = await saveListing(listingPayload, currentUser?.uid || 'guest');
+      const url = `${window.location.origin}/item/${listingId}`;
+
+      setListingUrl(url);
+      setListingData({
+        ...listingPayload,
+        id: listingId,
+        fbData: formatForFacebookMarketplace(listingPayload)
+      });
+
+      completeStep('share', { created: true, listingId });
+    } catch (error) {
+      console.error('Error creating listing:', error);
+      alert('Failed to create listing page. Please try again.');
+    } finally {
+      setCreatingListing(false);
+    }
+  };
+
+  // Copy helpers
+  const copyToClipboard = async (text, field) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(field);
+      setTimeout(() => setCopied(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const copyAllForFacebook = () => {
+    if (!listingData?.fbData) return;
+    const fb = listingData.fbData;
+    const allText = `Title: ${fb.title}\n\nPrice: $${fb.price}\n\nDescription:\n${fb.description}\n\nCategory: ${fb.category}\nCondition: ${fb.condition}`;
+    copyToClipboard(allText, 'all');
+  };
+
+  const shareLink = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${result.itemIdentification.name} - Precision Prices`,
+          text: `Check out this ${result.itemIdentification.name} priced at $${Math.round(getSelectedPrice())}!`,
+          url: listingUrl,
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          copyToClipboard(listingUrl, 'link');
+        }
+      }
+    } else {
+      copyToClipboard(listingUrl, 'link');
+    }
+  };
+
+  const isFlowComplete = completedSteps.includes('share');
 
   return (
     <div className="space-y-6">
@@ -114,7 +189,7 @@ export default function GuidedResultsDisplay({
         onStepClick={goToStep}
       />
 
-      {/* Step 1: Item Analysis (always visible - analyze is complete) */}
+      {/* Step 1: Item Analysis (always visible) */}
       <div ref={resultsRef} className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -123,23 +198,13 @@ export default function GuidedResultsDisplay({
             </div>
             <h2 className="text-2xl font-bold">Item Analysis</h2>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={onNewAnalysis}
-              className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg"
-            >
-              <Search className="w-4 h-4" />New Analysis
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTransactionModal(true)}
-              className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Report Sale
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onNewAnalysis}
+            className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg"
+          >
+            <Search className="w-4 h-4" />New Analysis
+          </button>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -159,13 +224,11 @@ export default function GuidedResultsDisplay({
         )}
       </div>
 
-      {/* Step 2: Pick Price (always visible, highlighted when active) */}
+      {/* Step 2: Pick Price */}
       <div
         ref={pickPriceRef}
         className={`bg-white rounded-2xl shadow-xl p-8 transition-all duration-500 ${
-          isStepActive('pick-price')
-            ? 'ring-4 ring-indigo-300 ring-offset-2'
-            : ''
+          isStepActive('pick-price') ? 'ring-4 ring-indigo-300 ring-offset-2' : ''
         }`}
       >
         <div className="flex items-center gap-2 mb-6">
@@ -197,21 +260,9 @@ export default function GuidedResultsDisplay({
           selectedTier={selectedTier}
           onTierSelect={setSelectedTier}
         />
-
-        {/* Inline feedback for pick-price step */}
-        {selectedTier && isStepActive('pick-price') && (
-          <InlineStepFeedback
-            stepId="pick-price"
-            onFeedback={recordFeedback}
-            onContinue={() => completeStep('pick-price', { tier: selectedTier })}
-            onSkip={() => skipStep('pick-price')}
-            continueLabel="Continue to Track"
-            showSkip={false}
-          />
-        )}
       </div>
 
-      {/* Step 3: Track Listing (visible after price selected) */}
+      {/* Step 3: Track Listing */}
       {isStepVisible('track') && (
         <div
           ref={trackRef}
@@ -228,7 +279,9 @@ export default function GuidedResultsDisplay({
               <CheckCircle className="w-6 h-6 text-green-600" />
               <div>
                 <h3 className="text-lg font-bold text-green-800">Listing Tracked!</h3>
-                <p className="text-sm text-green-600">We'll help you monitor this item.</p>
+                <p className="text-sm text-green-600">
+                  {trackSuccess ? "Your item is now being monitored." : "We'll help you monitor this item."}
+                </p>
               </div>
             </div>
           ) : (
@@ -236,16 +289,14 @@ export default function GuidedResultsDisplay({
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    {isStepActive('track') && (
-                      <span className="bg-white/20 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                        Step 3
-                      </span>
-                    )}
-                    <h3 className={`text-xl font-bold ${isStepActive('track') ? 'text-white' : 'text-gray-800'}`}>
+                    <span className="bg-white/20 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                      Step 3
+                    </span>
+                    <h3 className="text-xl font-bold text-white">
                       Track This Listing
                     </h3>
                   </div>
-                  <p className={isStepActive('track') ? 'text-indigo-100' : 'text-gray-600'}>
+                  <p className="text-indigo-100">
                     Your selected price:{' '}
                     <span className="font-bold text-2xl">${getSelectedPrice()}</span>
                     <span className="text-sm ml-2">
@@ -256,11 +307,7 @@ export default function GuidedResultsDisplay({
                 <button
                   onClick={handleTrackAndAdvance}
                   disabled={trackingListing}
-                  className={`flex items-center gap-2 px-6 py-3 font-bold rounded-lg transition shadow-lg ${
-                    isStepActive('track')
-                      ? 'bg-white text-indigo-600 hover:bg-indigo-50'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  } disabled:opacity-50`}
+                  className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 font-bold rounded-lg hover:bg-indigo-50 disabled:opacity-50 transition shadow-lg"
                 >
                   {trackingListing ? (
                     <>
@@ -275,139 +322,218 @@ export default function GuidedResultsDisplay({
                   )}
                 </button>
               </div>
-
-              <p className={`text-sm mt-3 ${isStepActive('track') ? 'text-indigo-200' : 'text-gray-500'}`}>
+              <p className="text-sm mt-3 text-indigo-200">
                 Track your listing to help improve our AI and see how your item performs!
               </p>
-
-              {/* Skip option */}
-              {isStepActive('track') && (
-                <div className="mt-4 pt-4 border-t border-white/20">
-                  <button
-                    type="button"
-                    onClick={() => skipStep('track', 'not_interested')}
-                    className="text-sm text-indigo-200 hover:text-white flex items-center gap-1"
-                  >
-                    Skip for now <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </>
           )}
         </div>
       )}
 
-      {/* Step 4: Create Listing Page (visible after track) */}
+      {/* Step 4: Create Listing Page (Inline) */}
       {isStepVisible('share') && (
         <div
           ref={shareRef}
-          className={`transition-all duration-500 ${
-            isStepActive('share') ? 'ring-4 ring-indigo-300 ring-offset-2 rounded-2xl' : ''
+          className={`bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500 ${
+            isStepActive('share') ? 'ring-4 ring-indigo-300 ring-offset-2' : ''
           }`}
         >
-          {isStepActive('share') && (
-            <div className="bg-indigo-50 rounded-t-2xl px-6 py-3 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-              <span className="text-sm font-bold text-indigo-700">Step 4: Create a shareable listing page!</span>
-            </div>
-          )}
-          <FacebookMarketplaceButton
-            analysisResult={result}
-            images={images}
-            itemDetails={itemDetails}
-            userId={currentUser?.uid || 'guest'}
-            selectedTier={selectedTier}
-            onListingCreated={handleListingCreated}
-          />
-
-          {/* Skip option */}
-          {isStepActive('share') && !listingCreated && (
-            <div className="bg-white rounded-b-2xl px-6 py-3 border-t">
-              <button
-                type="button"
-                onClick={() => skipStep('share', 'not_needed')}
-                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
-              >
-                Skip - I'll share it myself <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 5: Quick Feedback (visible at end) */}
-      {isStepVisible('feedback') && (
-        <div
-          ref={feedbackRef}
-          className={`bg-white rounded-2xl shadow-xl p-8 transition-all duration-500 ${
-            isStepActive('feedback') ? 'ring-4 ring-indigo-300 ring-offset-2' : ''
-          }`}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            {completedSteps.includes('feedback') ? (
-              <div className="bg-green-100 rounded-full p-2">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-            ) : (
-              <div className="bg-purple-100 rounded-full p-2 animate-pulse">
-                <span className="text-xl">🎉</span>
-              </div>
-            )}
-            <div>
-              <h3 className="text-xl font-bold text-gray-800">Almost Done!</h3>
-              <p className="text-sm text-gray-600">Quick feedback helps us improve pricing accuracy</p>
+          {/* Header */}
+          <div className={`px-6 py-4 ${
+            completedSteps.includes('share')
+              ? 'bg-green-50'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600'
+          }`}>
+            <div className="flex items-center gap-3">
+              {completedSteps.includes('share') ? (
+                <>
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <h3 className="text-lg font-bold text-green-800">Listing Page Created!</h3>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 text-white animate-pulse" />
+                  <span className="bg-white/20 text-white text-xs font-bold px-2 py-1 rounded-full">Step 4</span>
+                  <h3 className="text-lg font-bold text-white">Create Your Listing Page</h3>
+                </>
+              )}
             </div>
           </div>
 
-          {showFeedback && !feedbackSubmitted && currentListingId && (
-            <MicroFeedback
-              listingId={currentListingId}
-              onFeedbackSubmit={async (feedbackData) => {
-                await handleFeedbackSubmit(feedbackData, userProfile);
-                completeStep('feedback', { submitted: true });
-              }}
-            />
-          )}
+          {/* Content */}
+          <div className="p-6">
+            {!listingData ? (
+              // Before creation - show create button
+              <div className="text-center py-6">
+                <p className="text-gray-600 mb-4">
+                  Create a shareable listing page with all your item details, optimized for Facebook Marketplace.
+                </p>
+                <button
+                  onClick={handleCreateListingPage}
+                  disabled={creatingListing}
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition shadow-lg text-lg"
+                >
+                  {creatingListing ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-6 h-6" />
+                      Create Listing Page
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              // After creation - show inline preview
+              <div className="space-y-6">
+                {/* Listing URL */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <label className="text-sm font-medium text-gray-700 block mb-2">Your Listing URL</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={listingUrl}
+                      readOnly
+                      className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(listingUrl, 'link')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                    >
+                      {copied === 'link' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      <span className="hidden sm:inline">{copied === 'link' ? 'Copied!' : 'Copy'}</span>
+                    </button>
+                    <button
+                      onClick={shareLink}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+                  </div>
+                </div>
 
-          {feedbackSubmitted && (
-            <div className="flex items-center gap-3 text-green-600 justify-center py-4">
-              <CheckCircle className="w-8 h-8" />
-              <p className="text-xl font-semibold">Thank you for your feedback!</p>
-            </div>
-          )}
+                {/* Listing Preview */}
+                <div className="border rounded-xl overflow-hidden">
+                  <div className="bg-gray-100 px-4 py-2 border-b">
+                    <span className="text-sm font-medium text-gray-600">Facebook Marketplace Preview</span>
+                  </div>
 
-          {/* Skip option */}
-          {isStepActive('feedback') && !feedbackSubmitted && (
-            <div className="mt-4 pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => {
-                  skipStep('feedback', 'skipped');
-                }}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Skip feedback
-              </button>
-            </div>
-          )}
+                  <div className="p-4 space-y-4">
+                    {/* Title */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500 uppercase tracking-wide">Title</label>
+                        <p className="font-semibold text-lg">{listingData.fbData?.title}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(listingData.fbData?.title, 'title')}
+                        className="text-gray-400 hover:text-blue-600 p-1"
+                      >
+                        {copied === 'title' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-green-600" />
+                        <span className="text-2xl font-bold text-green-600">${listingData.fbData?.price}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm">{listingData.fbData?.condition}</span>
+                      </div>
+                      {itemDetails?.location && (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <MapPin className="w-4 h-4" />
+                          <span className="text-sm">{itemDetails.location}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500 uppercase tracking-wide">Description</label>
+                        <p className="text-gray-700 whitespace-pre-line text-sm mt-1">{listingData.fbData?.description}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(listingData.fbData?.description, 'desc')}
+                        className="text-gray-400 hover:text-blue-600 p-1 flex-shrink-0"
+                      >
+                        {copied === 'desc' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={copyAllForFacebook}
+                    className="flex-1 min-w-[140px] px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 font-medium"
+                  >
+                    {copied === 'all' ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                    {copied === 'all' ? 'Copied All!' : 'Copy All'}
+                  </button>
+                  <button
+                    onClick={() => window.open(listingUrl, '_blank')}
+                    className="flex-1 min-w-[140px] px-4 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-2 font-medium"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    View Full Page
+                  </button>
+                  <button
+                    onClick={() => window.open('https://www.facebook.com/marketplace/create/item', '_blank')}
+                    className="flex-1 min-w-[140px] px-4 py-3 bg-[#1877f2] text-white rounded-lg hover:bg-[#166fe5] transition flex items-center justify-center gap-2 font-medium"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    Post to FB
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Completion celebration */}
-      {completedSteps.length >= 4 && (
+      {/* Completion Celebration */}
+      {isFlowComplete && (
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-xl p-8 text-white text-center">
-          <div className="text-4xl mb-4">🎯</div>
-          <h3 className="text-2xl font-bold mb-2">You're a Pricing Pro!</h3>
-          <p className="text-green-100 mb-4">
-            Thanks for completing the flow. Your data helps us make pricing smarter for everyone.
+          <div className="text-5xl mb-4">🎯</div>
+          <h3 className="text-2xl font-bold mb-2">You're All Set!</h3>
+          <p className="text-green-100 mb-6 max-w-md mx-auto">
+            Your listing is tracked and ready to share. When you sell it, come back to report the sale so we can improve our pricing accuracy!
           </p>
-          <button
-            type="button"
-            onClick={onNewAnalysis}
-            className="bg-white text-green-600 font-bold px-6 py-3 rounded-lg hover:bg-green-50 transition"
-          >
-            Analyze Another Item
-          </button>
+          <div className="flex flex-wrap justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setShowTransactionModal(true)}
+              className="bg-white text-green-600 font-bold px-6 py-3 rounded-lg hover:bg-green-50 transition flex items-center gap-2"
+            >
+              <CheckCircle className="w-5 h-5" />
+              Report a Sale
+            </button>
+            <button
+              type="button"
+              onClick={onViewListingHistory}
+              className="bg-green-700 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-800 transition flex items-center gap-2"
+            >
+              <Package className="w-5 h-5" />
+              View Listing History
+            </button>
+            <button
+              type="button"
+              onClick={onNewAnalysis}
+              className="border-2 border-white text-white font-bold px-6 py-3 rounded-lg hover:bg-white/10 transition"
+            >
+              Analyze Another Item
+            </button>
+          </div>
         </div>
       )}
 
@@ -418,7 +544,7 @@ export default function GuidedResultsDisplay({
           suggestedPrice={result.suggestedPriceRange.optimal}
           onSubmit={async (outcomeData) => {
             const submitResult = await handleFeedbackSubmit(outcomeData, userProfile);
-            if (submitResult.success) {
+            if (submitResult?.success) {
               setShowTransactionModal(false);
             }
           }}

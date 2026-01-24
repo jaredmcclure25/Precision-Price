@@ -1130,30 +1130,25 @@ Provide pricing analysis in this exact JSON structure:
       if (currentUser && !isGuestMode) {
         const listingId = await addListingToFirestore(currentUser.uid, listingData);
         console.log('Listing tracked:', listingId);
-
-        // Show success message
-        alert(`🎉 Listing tracked! Your ${result.itemIdentification?.name || 'item'} is now being monitored at $${selectedPrice}. Track its performance in your Dashboard.`);
-
-        // Navigate to dashboard to see the tracked listing
-        setMainTab('dashboard');
-        setView('dashboard');
+        // Return success - let the UI handle the flow
+        return { success: true, listingId, isGuest: false };
       } else {
         // For guest users, save locally
         const stored = await window.storage.get('trackedListings');
         const existingListings = stored?.value ? JSON.parse(stored.value) : [];
-        existingListings.push({
+        const newListing = {
           ...listingData,
           id: Date.now().toString(),
           datePosted: new Date().toISOString(),
           status: 'active'
-        });
+        };
+        existingListings.push(newListing);
         await window.storage.set('trackedListings', JSON.stringify(existingListings));
-
-        alert(`🎉 Listing tracked locally! Create an account to sync across devices and get performance insights.`);
+        // Return success - let the UI handle the flow
+        return { success: true, listingId: newListing.id, isGuest: true };
       }
 
-      // Reset selection for next analysis
-      setSelectedTier(null);
+      // Don't reset selection - keep it for the flow
 
     } catch (error) {
       console.error('Error tracking listing:', error);
@@ -1257,7 +1252,7 @@ Provide pricing analysis in this exact JSON structure:
             <div className="flex gap-2 flex-wrap">
               {[
                 { id: 'dashboard', icon: BarChart3, label: 'Stats' },
-                { id: 'history', icon: History, label: 'History' },
+                { id: 'history', icon: History, label: 'Listing History' },
                 { id: 'achievements', icon: Trophy, label: 'Badges' },
                 { id: 'leaderboard', icon: Star, label: 'Leaderboard' }
               ].map(tab => (
@@ -1338,7 +1333,7 @@ Provide pricing analysis in this exact JSON structure:
 
               {/* Pricing Tool - Always Visible */}
               {analysisMode === 'single' ? (
-                <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}} />
+                <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setMainTab, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}} />
               ) : (
                 <BulkAnalysis />
               )}
@@ -1370,7 +1365,7 @@ Provide pricing analysis in this exact JSON structure:
   );
 }
 
-function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}) {
+function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing, setView, setMainTab}) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
@@ -1548,9 +1543,6 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
 
       {result && <GuidedResultsDisplay
         result={result}
-        showFeedback={showFeedback}
-        feedbackSubmitted={feedbackSubmitted}
-        submitFeedback={submitFeedback}
         resultsRef={resultsRef}
         onNewAnalysis={() => {
           window.location.reload();
@@ -1570,6 +1562,10 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         setSelectedTier={setSelectedTier}
         trackingListing={trackingListing}
         handleTrackListing={handleTrackListing}
+        onViewListingHistory={() => {
+          setMainTab('dashboard');
+          setView('history');
+        }}
       />}
     </div>
   );
@@ -2397,7 +2393,7 @@ function ItemHistory() {
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center py-12">
           <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Analysis History</h3>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Listing History</h3>
           <p className="text-gray-500">Your analyzed items will appear here.</p>
         </div>
       </div>
@@ -2409,7 +2405,7 @@ function ItemHistory() {
       <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
         <div className="flex items-center gap-3 mb-6">
           <History className="w-8 h-8 text-indigo-600" />
-          <h2 className="text-3xl font-bold">Analysis History</h2>
+          <h2 className="text-3xl font-bold">Listing History</h2>
         </div>
         <p className="text-gray-600 mb-6">View all your previously analyzed items and their pricing recommendations.</p>
       </div>

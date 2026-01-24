@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-const STEP_ORDER = ['analyze', 'pick-price', 'track', 'share', 'feedback'];
+const STEP_ORDER = ['analyze', 'pick-price', 'track', 'share'];
 
 export default function useGuidedFlow(initialStep = 'analyze') {
   const [currentStep, setCurrentStep] = useState(initialStep);

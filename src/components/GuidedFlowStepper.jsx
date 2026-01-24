@@ -2,18 +2,17 @@
  * Guided Flow Stepper Component
  * Progressive step indicator for the pricing analysis flow
  *
- * Steps: Analyze → Pick Price → Track → Share → Feedback
+ * Steps: Analyze → Pick Price → Track → Create Page
  */
 
 import React from 'react';
-import { Check, Circle, ChevronRight } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 const STEPS = [
   { id: 'analyze', label: 'Analyze', shortLabel: 'Analyze' },
   { id: 'pick-price', label: 'Pick Price', shortLabel: 'Price' },
   { id: 'track', label: 'Track Listing', shortLabel: 'Track' },
-  { id: 'share', label: 'Create Page', shortLabel: 'Share' },
-  { id: 'feedback', label: 'Quick Feedback', shortLabel: 'Done' },
+  { id: 'share', label: 'Create Page', shortLabel: 'Create' },
 ];
 
 export default function GuidedFlowStepper({ currentStep, completedSteps = [], onStepClick }) {
@@ -105,9 +104,8 @@ export default function GuidedFlowStepper({ currentStep, completedSteps = [], on
         <p className="text-sm text-gray-600">
           {currentStep === 'analyze' && "Analysis complete! Now pick your pricing strategy."}
           {currentStep === 'pick-price' && "Choose a price tier that fits your selling timeline."}
-          {currentStep === 'track' && "Save this listing to track your sale and improve our AI."}
+          {currentStep === 'track' && "Save this listing to track performance and improve our AI."}
           {currentStep === 'share' && "Create a shareable listing page for Facebook Marketplace."}
-          {currentStep === 'feedback' && "Quick feedback helps us improve pricing accuracy!"}
         </p>
       </div>
     </div>
