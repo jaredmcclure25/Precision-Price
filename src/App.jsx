@@ -26,9 +26,10 @@ import FacebookMarketplaceButton from './components/FacebookMarketplaceButton';
 import AuthGateModal from './components/AuthGateModal';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
-import MarketSearch from './components/MarketSearch';
-import TrendingItems from './components/TrendingItems';
-import CommunitySales from './components/CommunitySales';
+// Community features disabled - keeping for potential future use
+// import MarketSearch from './components/MarketSearch';
+// import TrendingItems from './components/TrendingItems';
+// import CommunitySales from './components/CommunitySales';
 
 // Badge System - 5 Levels of Achievement
 const BADGES = {
@@ -134,9 +135,7 @@ export default function MarketplacePricer() {
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [authGateFromLogout, setAuthGateFromLogout] = useState(false);
   const resultsRef = useRef(null);
-  const [userZipCode, setUserZipCode] = useState('');
-  const [searchRadius, setSearchRadius] = useState(25);
-  const [showPricingTool, setShowPricingTool] = useState(false);
+  const [userZipCode, setUserZipCode] = useState(''); // Used for listing tracking
   const [selectedTier, setSelectedTier] = useState(null); // 'quick', 'recommended', or 'premium'
   const [trackingListing, setTrackingListing] = useState(false);
 
@@ -1308,89 +1307,40 @@ Provide pricing analysis in this exact JSON structure:
       <div className="p-6">
         {view === 'pricing' && (
           <>
-            {/* Community Home View */}
+            {/* Simplified Home View - Pricing Tool Front and Center */}
             <div className="max-w-7xl mx-auto">
-              {/* Market Search Bar */}
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Search What's Selling</h2>
-                <MarketSearch
-                  defaultZipCode={userZipCode}
-                  defaultRadius={searchRadius}
-                  onZipChange={(zip, radius) => {
-                    setUserZipCode(zip);
-                    setSearchRadius(radius);
-                  }}
-                />
-              </div>
-
-              {/* Price My Item CTA */}
-              <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl shadow-lg p-6 mb-6">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-white text-center sm:text-left">
-                    <h2 className="text-xl sm:text-2xl font-bold mb-1">Ready to sell something?</h2>
-                    <p className="text-emerald-100 text-sm sm:text-base">Get AI-powered pricing in seconds</p>
-                  </div>
+              {/* Mode Toggle */}
+              <div className="mb-4">
+                <div className="bg-white rounded-xl shadow-sm p-2 inline-flex gap-2">
                   <button
-                    onClick={() => setShowPricingTool(!showPricingTool)}
-                    className="w-full sm:w-auto px-8 py-4 bg-white text-emerald-600 font-bold text-lg rounded-xl hover:bg-emerald-50 transition shadow-lg"
+                    onClick={() => setAnalysisMode('single')}
+                    className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                      analysisMode === 'single'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
                   >
-                    {showPricingTool ? 'Hide Pricing Tool' : 'Price My Item'}
+                    Single Item
+                  </button>
+                  <button
+                    onClick={() => setAnalysisMode('bulk')}
+                    className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                      analysisMode === 'bulk'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Bulk Analysis
                   </button>
                 </div>
               </div>
 
-              {/* Pricing Tool (Collapsible) */}
-              {showPricingTool && (
-                <div className="mb-6">
-                  {/* Mode Toggle */}
-                  <div className="mb-4">
-                    <div className="bg-white rounded-xl shadow-sm p-2 inline-flex gap-2">
-                      <button
-                        onClick={() => setAnalysisMode('single')}
-                        className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                          analysisMode === 'single'
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        Single Item
-                      </button>
-                      <button
-                        onClick={() => setAnalysisMode('bulk')}
-                        className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                          analysisMode === 'bulk'
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        Bulk Analysis
-                      </button>
-                    </div>
-                  </div>
-
-                  {analysisMode === 'single' ? (
-                    <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}} />
-                  ) : (
-                    <BulkAnalysis />
-                  )}
-                </div>
+              {/* Pricing Tool - Always Visible */}
+              {analysisMode === 'single' ? (
+                <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}} />
+              ) : (
+                <BulkAnalysis />
               )}
-
-              {/* Trending Items */}
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6">
-                <TrendingItems
-                  zipCode={userZipCode}
-                  onCategoryClick={(category) => {
-                    // Could pre-fill search or show category details
-                    console.log('Category clicked:', category);
-                  }}
-                />
-              </div>
-
-              {/* Community Sales */}
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-                <CommunitySales zipCode={userZipCode} maxItems={8} />
-              </div>
             </div>
           </>
         )}
