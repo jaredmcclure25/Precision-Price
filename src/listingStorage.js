@@ -309,7 +309,7 @@ ${optimizationTips?.slice(0, 3).map(tip => `✓ ${tip}`).join('\n') || ''}
 
 ${listing.additionalDetails || ''}
 
-Priced using AI market analysis for optimal sell-through.`;
+Verified by Precision Prices.`;
 
   return {
     title,
