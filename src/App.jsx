@@ -24,6 +24,7 @@ import TransactionOutcome from './components/TransactionOutcome';
 import FeedbackDashboard from './components/FeedbackDashboard';
 import FacebookMarketplaceButton from './components/FacebookMarketplaceButton';
 import AuthGateModal from './components/AuthGateModal';
+import GuidedResultsDisplay from './components/GuidedResultsDisplay';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 // Community features disabled - keeping for potential future use
@@ -1545,7 +1546,7 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
         </div>
       </div>
 
-      {result && <ResultsDisplay
+      {result && <GuidedResultsDisplay
         result={result}
         showFeedback={showFeedback}
         feedbackSubmitted={feedbackSubmitted}

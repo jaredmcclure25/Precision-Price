@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import { ExternalLink, Copy, CheckCircle, Share2, Loader2 } from 'lucide-react';
 import { saveListing, formatForFacebookMarketplace } from '../listingStorage';
 
-export default function FacebookMarketplaceButton({ analysisResult, images, itemDetails, userId, selectedTier = null }) {
+export default function FacebookMarketplaceButton({ analysisResult, images, itemDetails, userId, selectedTier = null, onListingCreated = null }) {
   const [saving, setSaving] = useState(false);
   const [listingUrl, setListingUrl] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -72,6 +72,9 @@ export default function FacebookMarketplaceButton({ analysisResult, images, item
       setListingUrl(url);
 
       setSaving(false);
+
+      // Notify parent that listing was created
+      onListingCreated?.(url, listingId);
     } catch (error) {
       console.error('Error creating listing:', error);
       setSaving(false);
