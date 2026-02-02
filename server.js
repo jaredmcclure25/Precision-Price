@@ -149,22 +149,45 @@ function checkProhibitedContent(text) {
 
 // Enable CORS for your frontend (allow local dev and production)
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://localhost:5177',
-    'http://localhost:5178',
-    'http://192.168.1.67:5173', // Mobile dev testing
-    'http://192.168.1.67:5174',
-    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d{4,5}$/, // Any local network IP for mobile testing
-    'https://www.precisionprices.com',
-    'https://precisionprices.com',
-    'https://precision-price.vercel.app',
-    'https://precisionprices.firebaseapp.com'
-  ],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow all localhost ports for development
+    if (origin.match(/^http:\/\/localhost:\d+$/)) {
+      return callback(null, true);
+    }
+
+    // Allow any local network IP for mobile testing
+    if (origin.match(/^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/)) {
+      return callback(null, true);
+    }
+
+    // Production origins
+    const allowedOrigins = [
+      'https://www.precisionprices.com',
+      'https://precisionprices.com',
+      'https://precision-price.vercel.app',
+      'https://precisionprices.firebaseapp.com',
+      'https://precisionprices.web.app'
+    ];
+
+    // Allow Firebase preview channels (staging, etc.)
+    if (origin.match(/^https:\/\/precisionprices--[a-z0-9-]+\.web\.app$/)) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Log blocked origins for debugging
+    console.log(`[CORS] Blocked origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json({ limit: '50mb' })); // Handle large image payloads
