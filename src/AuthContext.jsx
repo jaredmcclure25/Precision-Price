@@ -49,7 +49,7 @@ export function AuthProvider({ children }) {
   const [pendingEmail, setPendingEmail] = useState(null);
 
   // Sign up new user
-  async function signup(email, password, displayName) {
+  async function signup(email, password, displayName, industry = null) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
@@ -73,6 +73,8 @@ export function AuthProvider({ children }) {
     await setDoc(doc(db, 'users', user.uid), {
       email: user.email,
       displayName: displayName || '',
+      industry: industry, // Industry selected at signup
+      tier: 'free', // Freemium tier
       providers: ['password'],
       createdAt: new Date().toISOString(),
       badges: [],
@@ -156,6 +158,8 @@ export function AuthProvider({ children }) {
           email: user.email,
           displayName: user.displayName || '',
           photoURL: user.photoURL || '',
+          industry: null, // Will be set during onboarding
+          tier: 'free',
           providers: ['google'],
           createdAt: new Date().toISOString(),
           badges: [],
@@ -231,6 +235,8 @@ export function AuthProvider({ children }) {
           email: user.email,
           displayName: user.displayName || '',
           photoURL: user.photoURL || '',
+          industry: null, // Will be set during onboarding
+          tier: 'free',
           providers: ['facebook'],
           createdAt: new Date().toISOString(),
           badges: [],
@@ -331,59 +337,6 @@ export function AuthProvider({ children }) {
     }
 
     setLoading(false);
-  }
-
-  // Check if guest has reached the attempt limit
-  function hasReachedGuestLimit() {
-    if (!isGuestMode || !userProfile) return false;
-
-    // Check if cooldown has expired (12 hours = 43200000 ms)
-    const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
-    if (userProfile.cooldownStartTime) {
-      const cooldownEnd = new Date(userProfile.cooldownStartTime).getTime() + COOLDOWN_MS;
-      if (Date.now() >= cooldownEnd) {
-        // Cooldown expired - reset attempts
-        resetGuestAttempts();
-        return false;
-      }
-    }
-
-    return userProfile.guestAttempts >= 2;
-  }
-
-  // Get remaining cooldown time in milliseconds
-  function getCooldownRemaining() {
-    if (!isGuestMode || !userProfile || !userProfile.cooldownStartTime) return 0;
-
-    const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
-    const cooldownEnd = new Date(userProfile.cooldownStartTime).getTime() + COOLDOWN_MS;
-    const remaining = cooldownEnd - Date.now();
-    return remaining > 0 ? remaining : 0;
-  }
-
-  // Reset guest attempts after cooldown
-  async function resetGuestAttempts() {
-    if (!isGuestMode) return;
-
-    const updated = {
-      ...userProfile,
-      guestAttempts: 0,
-      cooldownStartTime: null
-    };
-    await window.storage.set('guestProfile', JSON.stringify(updated));
-    setUserProfile(updated);
-  }
-
-  // Start cooldown when guest hits limit
-  async function startGuestCooldown() {
-    if (!isGuestMode) return;
-
-    const updated = {
-      ...userProfile,
-      cooldownStartTime: new Date().toISOString()
-    };
-    await window.storage.set('guestProfile', JSON.stringify(updated));
-    setUserProfile(updated);
   }
 
   // Load user profile from Firestore
@@ -564,6 +517,7 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     userProfile,
+    loading,
     isGuestMode,
     pendingCredential,
     pendingEmail,
@@ -578,9 +532,6 @@ export function AuthProvider({ children }) {
     saveItemToHistory,
     getItemHistory,
     updateItemInHistory,
-    hasReachedGuestLimit,
-    getCooldownRemaining,
-    startGuestCooldown,
     clearPendingCredential
   };
 

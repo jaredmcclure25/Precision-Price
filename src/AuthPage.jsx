@@ -5,15 +5,26 @@
  */
 
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { useAuth } from './AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
-export default function AuthPage({ onGuestMode }) {
+// Industry options for signup
+const industryOptions = [
+  { value: 'furniture_home', label: 'Furniture & Home Goods', icon: '🛋️', description: 'Couches, tables, decor, and household items' },
+  { value: 'vintage_antiques', label: 'Vintage/Antiques/Collectibles', icon: '🏺', description: 'Antiques, collectibles, vintage items' },
+  { value: 'contractor', label: 'Contractor/Construction Materials', icon: '🔨', description: 'Building materials, salvage, equipment' },
+  { value: 'insurance_estate', label: 'Insurance/Estate/Liquidation', icon: '📋', description: 'Claims, estate sales, liquidation' },
+  { value: 'personal', label: 'Just browsing/personal items', icon: '🛒', description: 'Personal selling, general items' }
+];
+
+export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [signupStep, setSignupStep] = useState(1); // 1: credentials, 2: industry selection
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [selectedIndustry, setSelectedIndustry] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,6 +42,7 @@ export default function AuthPage({ onGuestMode }) {
       } else if (provider === 'facebook') {
         await signInWithFacebook();
       }
+      // Social login successful - AuthWrapper will handle showing industry selector if needed
     } catch (err) {
       console.error('Social login error:', err);
 
@@ -46,33 +58,38 @@ export default function AuthPage({ onGuestMode }) {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleCredentialsSubmit = (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    try {
-      if (isLogin) {
-        await login(email, password);
-      } else {
-        if (!displayName.trim()) {
-          throw new Error('Please enter your name');
-        }
-        await signup(email, password, displayName);
+    if (isLogin) {
+      // For login, proceed directly
+      handleLogin();
+    } else {
+      // For signup, validate and move to industry selection
+      if (!displayName.trim()) {
+        setError('Please enter your name');
+        return;
       }
+      if (!email.trim()) {
+        setError('Please enter your email');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters');
+        return;
+      }
+      setSignupStep(2);
+    }
+  };
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      await login(email, password);
     } catch (err) {
       console.error('Auth error:', err);
-
-      // User-friendly error messages
-      if (err.code === 'auth/email-already-in-use') {
-        setError('This email is already registered. Try logging in instead.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Password should be at least 6 characters.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Please enter a valid email address.');
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('Invalid email or password.');
-      } else if (err.code === 'auth/invalid-credential') {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setError('Invalid email or password.');
       } else {
         setError(err.message || 'An error occurred. Please try again.');
@@ -82,13 +99,133 @@ export default function AuthPage({ onGuestMode }) {
     }
   };
 
+  const handleSignupComplete = async () => {
+    if (!selectedIndustry) {
+      setError('Please select your industry');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await signup(email, password, displayName, selectedIndustry);
+    } catch (err) {
+      console.error('Signup error:', err);
+
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Try logging in instead.');
+        setSignupStep(1);
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password should be at least 6 characters.');
+        setSignupStep(1);
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+        setSignupStep(1);
+      } else {
+        setError(err.message || 'An error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setIsLogin(true);
+    setSignupStep(1);
+    setEmail('');
+    setPassword('');
+    setDisplayName('');
+    setSelectedIndustry(null);
+    setError('');
+  };
+
+  // Render industry selection step
+  if (!isLogin && signupStep === 2) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 w-full max-w-lg">
+          {/* Back button */}
+          <button
+            onClick={() => setSignupStep(1)}
+            className="flex items-center text-slate-400 hover:text-white mb-6 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </button>
+
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2">What do you sell?</h1>
+            <p className="text-slate-400">
+              This helps us personalize your experience
+            </p>
+          </div>
+
+          {error && (
+            <div className="bg-red-900/50 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-start gap-2 mb-6">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-3 mb-8">
+            {industryOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setSelectedIndustry(option.value)}
+                disabled={loading}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                  selectedIndustry === option.value
+                    ? 'border-emerald-500 bg-emerald-500/10'
+                    : 'border-slate-600 hover:border-slate-500 bg-slate-700/50'
+                }`}
+              >
+                <span className="text-3xl">{option.icon}</span>
+                <div className="flex-1">
+                  <div className="font-semibold text-white">{option.label}</div>
+                  <div className="text-sm text-slate-400">{option.description}</div>
+                </div>
+                {selectedIndustry === option.value && (
+                  <Check className="w-6 h-6 text-emerald-500" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleSignupComplete}
+            disabled={loading || !selectedIndustry}
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Creating account...
+              </>
+            ) : (
+              <>
+                Complete Setup
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render login/signup credentials form
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Precision Prices</h1>
-          <p className="text-gray-600">
-            {isLogin ? 'Welcome back!' : 'Create your account'}
+          <Link to="/" className="inline-block mb-4">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-yellow-400 bg-clip-text text-transparent">
+              Precision Prices
+            </h1>
+          </Link>
+          <p className="text-slate-400">
+            {isLogin ? 'Welcome back!' : 'Create your free account'}
           </p>
         </div>
 
@@ -98,10 +235,10 @@ export default function AuthPage({ onGuestMode }) {
             type="button"
             onClick={() => handleSocialLogin('google')}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
             ) : (
               <>
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -136,27 +273,27 @@ export default function AuthPage({ onGuestMode }) {
 
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+            <div className="w-full border-t border-slate-600"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or use email</span>
+            <span className="px-2 bg-slate-800 text-slate-400">Or use email</span>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleCredentialsSubmit} className="space-y-4">
           {!isLogin && (
             <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="displayName" className="block text-sm font-medium text-slate-300 mb-2">
                 Your Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   id="displayName"
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-white placeholder-slate-400"
                   placeholder="John Doe"
                   required={!isLogin}
                 />
@@ -165,17 +302,17 @@ export default function AuthPage({ onGuestMode }) {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-white placeholder-slate-400"
                 placeholder="you@example.com"
                 required
               />
@@ -183,37 +320,37 @@ export default function AuthPage({ onGuestMode }) {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full pl-10 pr-12 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-white placeholder-slate-400"
                 placeholder="••••••••"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             {!isLogin && (
-              <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
+              <p className="text-xs text-slate-500 mt-1">Must be at least 6 characters</p>
             )}
             {isLogin && (
               <div className="flex justify-end mt-2">
                 <button
                   type="button"
                   onClick={() => navigate('/forgot-password')}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-sm text-emerald-400 hover:text-emerald-300 font-medium"
                 >
                   Forgot password?
                 </button>
@@ -222,7 +359,7 @@ export default function AuthPage({ onGuestMode }) {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+            <div className="bg-red-900/50 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
@@ -231,15 +368,18 @@ export default function AuthPage({ onGuestMode }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                {isLogin ? 'Logging in...' : 'Creating account...'}
+                {isLogin ? 'Logging in...' : 'Continue...'}
               </>
             ) : (
-              <>{isLogin ? 'Log In' : 'Create Account'}</>
+              <>
+                {isLogin ? 'Log In' : 'Continue'}
+                {!isLogin && <ArrowRight className="w-5 h-5" />}
+              </>
             )}
           </button>
         </form>
@@ -248,29 +388,35 @@ export default function AuthPage({ onGuestMode }) {
           <button
             onClick={() => {
               setIsLogin(!isLogin);
+              setSignupStep(1);
               setError('');
             }}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            className="text-emerald-400 hover:text-emerald-300 text-sm font-medium"
           >
-            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
+            {isLogin ? "Don't have an account? Sign up free" : 'Already have an account? Log in'}
           </button>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <button
-            onClick={onGuestMode}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors duration-200"
-          >
-            Continue as Guest
-          </button>
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Guest mode: Your data will only be saved in this browser
-          </p>
+        {/* Trust badges */}
+        <div className="mt-8 pt-6 border-t border-slate-700">
+          <div className="flex items-center justify-center gap-6 text-slate-500 text-xs">
+            <div className="flex items-center gap-1">
+              <Check className="w-4 h-4 text-emerald-500" />
+              <span>Free forever plan</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Check className="w-4 h-4 text-emerald-500" />
+              <span>No credit card</span>
+            </div>
+          </div>
         </div>
 
         <div className="mt-4">
-          <p className="text-xs text-gray-500 text-center">
-            By continuing, you agree to our Terms of Service and Privacy Policy
+          <p className="text-xs text-slate-500 text-center">
+            By continuing, you agree to our{' '}
+            <Link to="/terms" className="text-emerald-400 hover:text-emerald-300">Terms of Service</Link>
+            {' '}and{' '}
+            <Link to="/privacy" className="text-emerald-400 hover:text-emerald-300">Privacy Policy</Link>
           </p>
         </div>
       </div>

@@ -222,7 +222,7 @@ export const verticals = {
 
     features: [
       {
-        icon: '🏛️',
+        icon: '🏺',
         title: 'Antique Identification',
         description: 'Snap a photo of furniture, ceramics, glassware, or collectibles. AI helps identify era, style, and market demand.'
       },

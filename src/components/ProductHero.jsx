@@ -53,13 +53,13 @@ const ProductHero = ({ vertical }) => {
                 <span>Sign Up for Free</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link
-                to="/app"
-                className="group px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-all flex items-center justify-center space-x-2"
+              <a
+                href="#how-it-works"
+                className="group px-8 py-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white rounded-lg font-medium transition-all flex items-center justify-center space-x-2"
               >
-                <Sparkles className="w-5 h-5" />
-                <span>Try Now - 2 Free Assessments</span>
-              </Link>
+                <Play className="w-5 h-5" />
+                <span>See How It Works</span>
+              </a>
             </div>
           </div>
 

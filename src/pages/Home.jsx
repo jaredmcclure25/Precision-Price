@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Zap, Shield, BarChart3, Play, Sparkles } from 'lucide-react';
+import { ArrowRight, Zap, Shield, BarChart3, Play, Check, Sparkles } from 'lucide-react';
+import InteractiveDemo from '../components/InteractiveDemo';
 
 const Home = () => {
   const industries = [
@@ -16,7 +17,7 @@ const Home = () => {
       gradient: 'from-emerald-500 to-emerald-600'
     },
     {
-      icon: '🪖',
+      icon: '🔨',
       title: 'Contractors',
       description: 'Get project estimates from customer photos. Quote accurately before visiting the site.',
       stat: 'Demo to Dollars',
@@ -32,7 +33,7 @@ const Home = () => {
       gradient: 'from-emerald-500 to-emerald-600'
     },
     {
-      icon: '🏛️',
+      icon: '🏺',
       title: 'Retail & Antiques',
       description: 'Price with confidence using AI-powered market analysis.',
       stat: 'Sell Smarter',
@@ -100,49 +101,94 @@ const Home = () => {
                 <span>Sign Up for Free</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link
-                to="/app"
-                className="group px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white text-lg rounded-lg font-medium transition-all flex items-center justify-center space-x-2"
+              <a
+                href="#demo"
+                className="group px-10 py-5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-lg rounded-lg font-medium transition-all flex items-center justify-center space-x-2"
               >
-                <Sparkles className="w-5 h-5" />
-                <span>Try Now - 2 Free Assessments</span>
-              </Link>
+                <Play className="w-5 h-5" />
+                <span>See How It Works</span>
+              </a>
             </div>
           </div>
         </div>
       </div>
 
-      {/* How to Use Section - Video Placeholder */}
-      <div id="how-it-works" className="bg-slate-800 py-16">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-              How It Works
+      {/* Interactive Demo Section */}
+      <div id="demo" className="bg-slate-800 py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+              See How It Works
             </h2>
-            <p className="text-lg text-slate-400">
-              See how easy it is to get AI-powered pricing
+            <p className="text-xl text-slate-400">
+              Explore real pricing examples - no login required
             </p>
           </div>
 
-          {/* Video Placeholder */}
-          <div className="bg-slate-900 rounded-2xl border border-slate-700 aspect-video flex items-center justify-center mb-8">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Play className="w-10 h-10 text-emerald-400" />
-              </div>
-              <p className="text-slate-400">Video coming soon</p>
-            </div>
-          </div>
+          <InteractiveDemo />
 
-          <div className="text-center">
-            <p className="text-slate-300 mb-4">Interested in using Precision Prices?</p>
+          <div className="text-center mt-12">
             <Link
               to="/app"
               className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg font-semibold hover:shadow-lg hover:shadow-yellow-500/30 transition-all"
             >
-              <span>Sign Up for Free</span>
+              <span>Try It Yourself - Free</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Why It Works Section */}
+      <div className="bg-slate-900 py-16">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Zap className="w-8 h-8 text-emerald-400" />
+                <span className="text-4xl font-bold text-white">Fast</span>
+              </div>
+              <p className="text-slate-400">Results in seconds</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <BarChart3 className="w-8 h-8 text-yellow-400" />
+                <span className="text-4xl font-bold text-white">AI-Powered</span>
+              </div>
+              <p className="text-slate-400">Market-based analysis</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Shield className="w-8 h-8 text-emerald-400" />
+                <span className="text-4xl font-bold text-white">Free</span>
+              </div>
+              <p className="text-slate-400">No credit card needed</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Risk Reversal / Trust Section */}
+      <div className="bg-slate-800 py-12">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 rounded-2xl p-8 text-center">
+            <Shield className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-white mb-2">Free Forever Plan</h3>
+            <p className="text-slate-300 mb-4">No credit card required. Get started in 30 seconds.</p>
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-emerald-500" />
+                <span>10 free analyses/month</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-emerald-500" />
+                <span>Full AI-powered insights</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-emerald-500" />
+                <span>Cancel anytime</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

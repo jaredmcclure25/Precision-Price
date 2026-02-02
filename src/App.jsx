@@ -25,6 +25,7 @@ import FeedbackDashboard from './components/FeedbackDashboard';
 import FacebookMarketplaceButton from './components/FacebookMarketplaceButton';
 import AuthGateModal from './components/AuthGateModal';
 import GuidedResultsDisplay from './components/GuidedResultsDisplay';
+import WelcomeDashboard from './components/WelcomeDashboard';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 // Community features disabled - keeping for potential future use
@@ -139,6 +140,7 @@ export default function MarketplacePricer() {
   const [userZipCode, setUserZipCode] = useState(''); // Used for listing tracking
   const [selectedTier, setSelectedTier] = useState(null); // 'quick', 'recommended', or 'premium'
   const [trackingListing, setTrackingListing] = useState(false);
+  const [skipWelcome, setSkipWelcome] = useState(false); // Skip welcome dashboard and show pricing tool
 
 
   useEffect(() => {
@@ -434,16 +436,6 @@ export default function MarketplacePricer() {
   };
 
   const analyzePricing = async () => {
-    // Check if guest user has exceeded 2 attempts
-    if (isGuestMode && userProfile) {
-      const guestAttempts = userProfile.guestAttempts || 0;
-
-      if (guestAttempts >= 2) {
-        setShowAuthGate(true);
-        return;
-      }
-    }
-
     // Validate inputs before API call
     if (images.length === 0 && !itemName.trim()) {
       setError('Please provide either an image or item name');
@@ -850,11 +842,6 @@ Provide pricing analysis in this exact JSON structure:
         const updates = {
           analysisCount: (userProfile?.analysisCount || 0) + 1
         };
-
-        // Track guest attempts separately
-        if (isGuestMode) {
-          updates.guestAttempts = (userProfile?.guestAttempts || 0) + 1;
-        }
 
         await updateUserProfile(updates);
       } catch (parseError) {
@@ -1432,7 +1419,14 @@ Provide pricing analysis in this exact JSON structure:
       <div className="py-8 px-4 sm:px-6 lg:px-8 section-pattern">
         {view === 'pricing' && (
           <div className="max-w-7xl mx-auto fade-in">
-            <BulkAnalysis />
+            {userProfile?.analysisCount === 0 && !result && !skipWelcome ? (
+              <WelcomeDashboard
+                userProfile={userProfile}
+                onStartAnalysis={() => setSkipWelcome(true)}
+              />
+            ) : (
+              <BulkAnalysis />
+            )}
           </div>
         )}
         {view === 'shipping' && <ShippingCalculator />}
