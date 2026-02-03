@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link, User } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
@@ -26,6 +26,7 @@ import FacebookMarketplaceButton from './components/FacebookMarketplaceButton';
 import AuthGateModal from './components/AuthGateModal';
 import GuidedResultsDisplay from './components/GuidedResultsDisplay';
 import WelcomeDashboard from './components/WelcomeDashboard';
+import AccountSettings from './components/AccountSettings';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 // Community features disabled - keeping for potential future use
@@ -1271,7 +1272,8 @@ Provide pricing analysis in this exact JSON structure:
               {[
                 { id: 'home', icon: Home, label: 'Home' },
                 { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
-                { id: 'tools', icon: Package, label: 'Tools' }
+                { id: 'tools', icon: Package, label: 'Tools' },
+                { id: 'account', icon: User, label: 'Account' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1280,7 +1282,7 @@ Provide pricing analysis in this exact JSON structure:
                     if (tab.id === 'home') setView('pricing');
                     else if (tab.id === 'dashboard') setView('dashboard');
                     else if (tab.id === 'tools') setView('shipping');
-                    else if (tab.id === 'subscription') setView('subscription');
+                    else if (tab.id === 'account') setView('account');
                   }}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all font-medium ${
                     mainTab === tab.id
@@ -1301,7 +1303,8 @@ Provide pricing analysis in this exact JSON structure:
                 {[
                   { id: 'home', icon: Home },
                   { id: 'dashboard', icon: BarChart3 },
-                  { id: 'tools', icon: Package }
+                  { id: 'tools', icon: Package },
+                  { id: 'account', icon: User }
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -1310,6 +1313,7 @@ Provide pricing analysis in this exact JSON structure:
                       if (tab.id === 'home') setView('pricing');
                       else if (tab.id === 'dashboard') setView('dashboard');
                       else if (tab.id === 'tools') setView('shipping');
+                      else if (tab.id === 'account') setView('account');
                     }}
                     className={`p-2.5 rounded-lg transition-all ${
                       mainTab === tab.id
@@ -1433,6 +1437,9 @@ Provide pricing analysis in this exact JSON structure:
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
         {view === 'history' && <ItemHistory />}
         {view === 'feedback-dashboard' && <FeedbackDashboard />}
+        {view === 'account' && (
+          <AccountSettings onClose={() => { setView('pricing'); setMainTab('home'); }} />
+        )}
         {/* STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live */}
         {/* {view === 'subscription' && <Subscription />} */}
       </div>
@@ -1661,6 +1668,23 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
           setView('history');
         }}
       />}
+
+      {/* Floating Get Assessment Button - Shows when form has content and no result yet */}
+      {!result && (images.length > 0 || itemName.trim()) && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
+          <button
+            onClick={analyzePricing}
+            disabled={loading}
+            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-bold rounded-full shadow-2xl shadow-yellow-500/40 transition-all"
+          >
+            {loading ? (
+              <><Loader2 className="w-5 h-5 animate-spin" />Analyzing...</>
+            ) : (
+              <><Search className="w-5 h-5" />Get Assessment</>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
