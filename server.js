@@ -181,8 +181,11 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Log blocked origins for debugging
-    console.log(`[CORS] Blocked origin: ${origin}`);
+    // Allow widget embeds from any origin
+    if (origin) {
+      return callback(null, true);
+    }
+
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -450,6 +453,150 @@ app.get('/api/feedback/analytics', async (req, res) => {
 //     });
 //   }
 // });
+
+// ============================================================================
+// WIDGET ENDPOINT (Rate-Limited, Public)
+// ============================================================================
+
+// In-memory rate limiting for widget
+const widgetRateLimits = new Map();
+const WIDGET_RATE_LIMIT = 5; // requests per hour per IP
+const WIDGET_RATE_WINDOW = 60 * 60 * 1000; // 1 hour
+
+// Clean up expired rate limit entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, data] of widgetRateLimits.entries()) {
+    if (now - data.windowStart > WIDGET_RATE_WINDOW) {
+      widgetRateLimits.delete(key);
+    }
+  }
+}, 10 * 60 * 1000);
+
+app.post('/api/widget/analyze', async (req, res) => {
+  try {
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const { businessId, itemName, condition, location, email, images } = req.body;
+
+    // Rate limiting
+    const now = Date.now();
+    const rateKey = `${clientIp}`;
+    const rateData = widgetRateLimits.get(rateKey) || { count: 0, windowStart: now };
+
+    if (now - rateData.windowStart > WIDGET_RATE_WINDOW) {
+      rateData.count = 0;
+      rateData.windowStart = now;
+    }
+
+    if (rateData.count >= WIDGET_RATE_LIMIT) {
+      return res.status(429).json({
+        error: { message: 'Rate limit exceeded. Please try again later.' }
+      });
+    }
+
+    rateData.count++;
+    widgetRateLimits.set(rateKey, rateData);
+
+    // Validate
+    if (!businessId || !itemName) {
+      return res.status(400).json({
+        error: { message: 'businessId and itemName are required' }
+      });
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({
+        error: { message: 'Server configuration error' }
+      });
+    }
+
+    // Check prohibited content
+    const contentCheck = checkProhibitedContent(itemName + ' ' + (location || ''));
+    if (!contentCheck.allowed) {
+      return res.status(400).json({
+        error: { type: 'prohibited_content', message: contentCheck.message }
+      });
+    }
+
+    // Build content parts for Anthropic
+    const contentParts = [];
+
+    if (images && images.length > 0) {
+      for (const img of images.slice(0, 3)) {
+        if (img.type === 'image' && img.source) {
+          contentParts.push(img);
+        }
+      }
+    }
+
+    const prompt = `You are a marketplace pricing expert. Analyze this item for accurate pricing.
+${images && images.length > 0 ? `\nAnalyze the ${images.length} image(s).` : ''}
+
+Item: ${itemName}
+Condition: ${condition || 'good'}
+Location: ${location || 'Not specified'}
+
+Provide ONLY valid JSON:
+{
+  "itemName": "identified item name",
+  "prices": {"min": number, "target": number, "max": number},
+  "insights": "one sentence market insight"
+}`;
+
+    contentParts.push({ type: 'text', text: prompt });
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: contentParts }]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Widget API error:', errorData);
+      return res.status(response.status).json({
+        error: { message: 'Analysis failed. Please try again.' }
+      });
+    }
+
+    const data = await response.json();
+    const textContent = data.content.find(c => c.type === 'text')?.text || '';
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      return res.status(500).json({
+        error: { message: 'Unable to parse pricing data' }
+      });
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Log for the business owner (in production, store in Firestore)
+    console.log(`[WIDGET] Business: ${businessId} - Item: ${itemName} - Prices: $${parsed.prices?.min}-$${parsed.prices?.max}${email ? ` - Email: ${email}` : ''}`);
+
+    res.json({
+      itemName: parsed.itemName || itemName,
+      prices: parsed.prices || { min: 0, target: 0, max: 0 },
+      insights: parsed.insights || '',
+      businessId,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Widget analysis error:', error);
+    res.status(500).json({
+      error: { message: 'Something went wrong. Please try again.' }
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`

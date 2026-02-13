@@ -8,13 +8,10 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
 
-// B2B Marketing Pages
+// Marketing Pages
 import AppB2B from './AppB2B.jsx'
 import Home from './pages/Home.jsx'
-import JunkRemoval from './pages/JunkRemoval.jsx'
-import Contractors from './pages/Contractors.jsx'
-import Insurance from './pages/Insurance.jsx'
-import Retail from './pages/Retail.jsx'
+import WidgetPage from './pages/WidgetPage.jsx'
 
 // Original App & Auth
 import App from './App.jsx'
@@ -35,18 +32,20 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* B2B Marketing Pages (Public) */}
+            {/* Marketing Pages (Public) */}
             <Route element={<AppB2B />}>
               <Route path="/" element={<Home />} />
-              <Route path="/junk-removal" element={<JunkRemoval />} />
-              <Route path="/contractors" element={<Contractors />} />
-              <Route path="/insurance" element={<Insurance />} />
-              <Route path="/retail" element={<Retail />} />
-              {/* Redirect demo to app */}
+              {/* Redirect old vertical pages to home */}
+              <Route path="/junk-removal" element={<Navigate to="/" replace />} />
+              <Route path="/contractors" element={<Navigate to="/" replace />} />
+              <Route path="/insurance" element={<Navigate to="/" replace />} />
+              <Route path="/retail" element={<Navigate to="/" replace />} />
               <Route path="/demo" element={<Navigate to="/app" replace />} />
-              {/* Redirect pricing to home (hidden but accessible) */}
               <Route path="/pricing" element={<Navigate to="/" replace />} />
             </Route>
+
+            {/* Embeddable Widget (Public, no auth, no navbar/footer) */}
+            <Route path="/widget/:businessId" element={<WidgetPage />} />
 
             {/* Legal & Auth Pages */}
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />

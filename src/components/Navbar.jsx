@@ -13,10 +13,10 @@ const Navbar = () => {
   const timeoutRef = useRef(null);
 
   const products = [
-    { name: 'Junk Removal', path: '/junk-removal' },
-    { name: 'Contractors & Remodelers', path: '/contractors' },
-    { name: 'Insurance Adjusters', path: '/insurance' },
-    { name: 'Antique & Retail', path: '/retail' }
+    { name: 'AI Price Assessments', path: '/app' },
+    { name: 'Shipping Calculator', path: '/app' },
+    { name: 'Bulk Analysis & Reports', path: '/app' },
+    { name: 'Embeddable Widget', path: '/app' }
   ];
 
   // Handle click outside to close dropdown

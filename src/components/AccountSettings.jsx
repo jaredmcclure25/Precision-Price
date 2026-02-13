@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { User, Mail, Building2, Shield, Bell, CreditCard, LogOut, Check, ChevronRight, Camera, Save, Loader2 } from 'lucide-react';
+import { User, Mail, Building2, Shield, Bell, CreditCard, LogOut, Check, ChevronRight, Camera, Save, Loader2, Code, Copy } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
 // Industry display configuration
@@ -32,6 +32,7 @@ export default function AccountSettings({ onClose }) {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [embedCopied, setEmbedCopied] = useState(false);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -65,6 +66,7 @@ export default function AccountSettings({ onClose }) {
   const menuItems = [
     { id: 'profile', icon: User, label: 'Profile' },
     { id: 'preferences', icon: Building2, label: 'Preferences' },
+    { id: 'widget', icon: Code, label: 'Website Widget' },
     { id: 'notifications', icon: Bell, label: 'Notifications', badge: 'Coming Soon' },
     { id: 'billing', icon: CreditCard, label: 'Billing', badge: 'Coming Soon' },
     { id: 'security', icon: Shield, label: 'Security', badge: 'Coming Soon' },
@@ -303,6 +305,95 @@ export default function AccountSettings({ onClose }) {
                         </button>
                       ))}
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'widget' && (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 border-b border-slate-100">
+                  <h2 className="text-xl font-semibold text-slate-900">Website Widget</h2>
+                  <p className="text-slate-500 text-sm mt-1">Add a "Get Estimate" button to your business website</p>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* How It Works */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                    <h3 className="font-semibold text-emerald-800 mb-2">How It Works</h3>
+                    <ol className="text-sm text-emerald-700 space-y-1 list-decimal list-inside">
+                      <li>Copy the embed code below</li>
+                      <li>Paste it into your website's HTML (before the closing &lt;/body&gt; tag)</li>
+                      <li>A "Get Estimate" button appears on your site</li>
+                      <li>Visitors upload photos and get instant pricing</li>
+                      <li>You see all submissions in your Widget Dashboard</li>
+                    </ol>
+                  </div>
+
+                  {/* Embed Code */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Your Embed Code</label>
+                    <div className="relative">
+                      <pre className="bg-slate-900 text-emerald-400 p-4 rounded-xl text-sm overflow-x-auto font-mono">
+{`<script src="https://precisionprices.com/widget-embed.js" data-business-id="${currentUser?.uid || 'YOUR_ID'}"></script>`}
+                      </pre>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `<script src="https://precisionprices.com/widget-embed.js" data-business-id="${currentUser?.uid || 'YOUR_ID'}"></script>`
+                          );
+                          setEmbedCopied(true);
+                          setTimeout(() => setEmbedCopied(false), 2000);
+                        }}
+                        className="absolute top-3 right-3 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-lg flex items-center gap-1.5 transition"
+                      >
+                        {embedCopied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Your Business ID */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Your Business ID</label>
+                    <p className="text-slate-900 font-mono bg-slate-50 px-4 py-3 rounded-lg text-sm">
+                      {currentUser?.uid || 'Loading...'}
+                    </p>
+                  </div>
+
+                  {/* Preview */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Preview</label>
+                    <div className="border border-slate-200 rounded-xl p-8 bg-slate-50 text-center relative" style={{ minHeight: '120px' }}>
+                      <p className="text-sm text-slate-500 mb-4">This is what the button looks like on your website:</p>
+                      <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full font-semibold shadow-lg shadow-emerald-500/30 text-sm">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Get Estimate
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Widget Link */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Direct Widget Link</label>
+                    <p className="text-sm text-slate-500 mb-2">You can also share this link directly with customers:</p>
+                    <a
+                      href={`/widget/${currentUser?.uid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-600 hover:text-emerald-700 underline text-sm font-medium break-all"
+                    >
+                      {window.location.origin}/widget/{currentUser?.uid}
+                    </a>
                   </div>
                 </div>
               </div>

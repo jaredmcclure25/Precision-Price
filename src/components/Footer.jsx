@@ -17,7 +17,7 @@ const Footer = () => {
               <span className="text-lg font-bold text-white">PrecisionPrices</span>
             </Link>
             <p className="text-slate-400 text-sm mb-4">
-              Pricing Intelligence for junk removal, contractors, insurance adjusters, and resellers.
+              AI-powered pricing tools for resellers, businesses, and professionals.
             </p>
             {/* Facebook only */}
             <div className="flex space-x-4">
@@ -31,10 +31,10 @@ const Footer = () => {
           <div>
             <h3 className="text-white font-semibold mb-4">Products</h3>
             <ul className="space-y-2">
-              <li><Link to="/junk-removal" className="text-slate-400 hover:text-white transition-colors text-sm">Junk Removal</Link></li>
-              <li><Link to="/contractors" className="text-slate-400 hover:text-white transition-colors text-sm">Contractors</Link></li>
-              <li><Link to="/insurance" className="text-slate-400 hover:text-white transition-colors text-sm">Insurance</Link></li>
-              <li><Link to="/retail" className="text-slate-400 hover:text-white transition-colors text-sm">Retail & Antiques</Link></li>
+              <li><Link to="/app" className="text-slate-400 hover:text-white transition-colors text-sm">AI Price Assessments</Link></li>
+              <li><Link to="/app" className="text-slate-400 hover:text-white transition-colors text-sm">Shipping Calculator</Link></li>
+              <li><Link to="/app" className="text-slate-400 hover:text-white transition-colors text-sm">Bulk Analysis & Reports</Link></li>
+              <li><Link to="/app" className="text-slate-400 hover:text-white transition-colors text-sm">Embeddable Widget</Link></li>
             </ul>
           </div>
 
@@ -44,7 +44,6 @@ const Footer = () => {
             <ul className="space-y-2">
               <li><a href="#about" className="text-slate-400 hover:text-white transition-colors text-sm">About Us</a></li>
               <li><a href="#how-it-works" className="text-slate-400 hover:text-white transition-colors text-sm">How it Works</a></li>
-              <li><Link to="/demo" className="text-slate-400 hover:text-white transition-colors text-sm">Book Free Demo/Consultation</Link></li>
             </ul>
           </div>
 

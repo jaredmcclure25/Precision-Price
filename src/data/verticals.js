@@ -14,7 +14,6 @@ export const verticals = {
       { value: 'Maximize', label: 'Your workflow' }
     ],
 
-    videoUrl: '',
 
     reportType: 'bulk valuation',
     outcome: 'Quote accurately and optimize your pickup schedule.',
@@ -81,7 +80,6 @@ export const verticals = {
       { value: 'Faster', label: 'Quotes' }
     ],
 
-    videoUrl: '',
 
     reportType: 'project estimate',
     outcome: 'Give accurate quotes and identify salvage opportunities.',
@@ -148,7 +146,6 @@ export const verticals = {
       { value: 'Defensible', label: 'Valuations' }
     ],
 
-    videoUrl: '',
 
     reportType: 'insurance valuation',
     outcome: 'Close claims with documentation that withstands scrutiny.',
@@ -215,7 +212,6 @@ export const verticals = {
       { value: 'Price', label: 'With confidence' }
     ],
 
-    videoUrl: '',
 
     reportType: 'resale pricing',
     outcome: 'Make data-informed pricing decisions for every listing.',

@@ -27,6 +27,8 @@ import AuthGateModal from './components/AuthGateModal';
 import GuidedResultsDisplay from './components/GuidedResultsDisplay';
 import WelcomeDashboard from './components/WelcomeDashboard';
 import AccountSettings from './components/AccountSettings';
+import PrintableReport from './components/PrintableReport';
+import WidgetSubmissions from './components/WidgetSubmissions';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 // Community features disabled - keeping for potential future use
@@ -154,7 +156,7 @@ export default function MarketplacePricer() {
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
     else if (['dashboard', 'history', 'achievements', 'leaderboard', 'feedback-dashboard'].includes(view)) setMainTab('dashboard');
-    else if (['shipping'].includes(view)) setMainTab('tools');
+    else if (['shipping', 'widget-submissions'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
   }, [view]);
 
@@ -1399,7 +1401,8 @@ Provide pricing analysis in this exact JSON structure:
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex gap-3 flex-wrap">
               {[
-                { id: 'shipping', icon: Truck, label: 'Shipping Calculator' }
+                { id: 'shipping', icon: Truck, label: 'Shipping Calculator' },
+                { id: 'widget-submissions', icon: Users, label: 'Widget Dashboard' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1434,6 +1437,7 @@ Provide pricing analysis in this exact JSON structure:
           </div>
         )}
         {view === 'shipping' && <ShippingCalculator />}
+        {view === 'widget-submissions' && <WidgetSubmissions />}
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
         {view === 'history' && <ItemHistory />}
         {view === 'feedback-dashboard' && <FeedbackDashboard />}
@@ -4067,6 +4071,7 @@ function BulkAnalysis() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
+  const [showReport, setShowReport] = useState(false);
 
   const addItem = () => {
     setItems(prev => [...prev, {
@@ -4418,6 +4423,15 @@ function BulkAnalysis() {
                       <Download className="w-4 h-4" />
                       Export CSV
                     </button>
+                    {items.some(item => item.result) && (
+                      <button
+                        onClick={() => setShowReport(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                        Generate Report
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -4771,6 +4785,13 @@ function BulkAnalysis() {
           </div>
         </div>
       </div>
+
+      {/* Printable Report Modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-50 bg-white overflow-auto">
+          <PrintableReport items={items} onClose={() => setShowReport(false)} />
+        </div>
+      )}
     </div>
   );
 }

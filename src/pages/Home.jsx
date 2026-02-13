@@ -3,41 +3,41 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Zap, Shield, BarChart3, Play, Check, Sparkles } from 'lucide-react';
+import { ArrowRight, Zap, Shield, BarChart3, Check, Sparkles, Camera, Truck, FileText, Code } from 'lucide-react';
 import InteractiveDemo from '../components/InteractiveDemo';
 
 const Home = () => {
-  const industries = [
+  const products = [
     {
-      icon: '🚛',
-      title: 'Junk Removal',
-      description: 'Know what to charge before you arrive. Avoid wasted trips and maximize your workflow.',
-      stat: 'Eliminate wasted trips',
-      link: '/junk-removal',
+      icon: Camera,
+      title: 'AI Price Assessments',
+      description: 'Upload photos of any item and get instant AI-powered pricing with market data, confidence scores, and selling strategy.',
+      stat: 'Instant Results',
+      link: '/app',
       gradient: 'from-emerald-500 to-emerald-600'
     },
     {
-      icon: '🔨',
-      title: 'Contractors',
-      description: 'Get project estimates from customer photos. Quote accurately before visiting the site.',
-      stat: 'Demo to Dollars',
-      link: '/contractors',
+      icon: Truck,
+      title: 'Shipping Calculator',
+      description: 'Estimate shipping costs across USPS, UPS, and FedEx. Find the right box size and plan safe local meetups.',
+      stat: 'Save on Shipping',
+      link: '/app',
       gradient: 'from-yellow-500 to-yellow-600'
     },
     {
-      icon: '📋',
-      title: 'Insurance',
-      description: 'Get fair market valuations using AI. Build credibility with defensible, data-backed quotes.',
-      stat: 'Faster Assessments',
-      link: '/insurance',
+      icon: FileText,
+      title: 'Bulk Analysis & Reports',
+      description: 'Analyze multiple items at once and generate professional PDF reports. Perfect for estate sales and large inventories.',
+      stat: 'Professional Reports',
+      link: '/app',
       gradient: 'from-emerald-500 to-emerald-600'
     },
     {
-      icon: '🏺',
-      title: 'Retail & Antiques',
-      description: 'Price with confidence using AI-powered market analysis.',
-      stat: 'Sell Smarter',
-      link: '/retail',
+      icon: Code,
+      title: 'Embeddable Widget',
+      description: 'Add a "Get Estimate" button to your business website. Customers upload photos and get instant pricing — leads come straight to you.',
+      stat: 'For Businesses',
+      link: '/app',
       gradient: 'from-yellow-500 to-yellow-600'
     }
   ];
@@ -88,9 +88,9 @@ const Home = () => {
             </h1>
 
             <p className="text-xl lg:text-2xl text-slate-300 mb-12 leading-relaxed">
-              Your Pricing Co-Pilot powered by AI and marketplace data.
+              Upload a photo. Get a price. Sell smarter.
               <br className="hidden sm:block" />
-              Built for junk removal, contractors, insurance, and resellers.
+              AI-powered pricing tools for resellers, businesses, and professionals.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
@@ -105,7 +105,7 @@ const Home = () => {
                 href="#demo"
                 className="group px-10 py-5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-lg rounded-lg font-medium transition-all flex items-center justify-center space-x-2"
               >
-                <Play className="w-5 h-5" />
+                <Sparkles className="w-5 h-5" />
                 <span>See How It Works</span>
               </a>
             </div>
@@ -193,43 +193,48 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Industry Cards */}
+      {/* Product Cards */}
       <div className="bg-slate-900 py-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-              Built for Your Industry
+              Our Tools
             </h2>
             <p className="text-xl text-slate-400">
-              Choose your industry for your specific needs
+              Everything you need to price, sell, and grow
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {industries.map((industry, index) => (
-              <Link
-                key={index}
-                to={industry.link}
-                className="group bg-slate-800 border border-slate-700 rounded-2xl p-8 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all"
-              >
-                <div className="flex items-start justify-between mb-6">
-                  <span className="text-6xl">{industry.icon}</span>
-                  <div className={`px-4 py-2 bg-gradient-to-r ${industry.gradient} rounded-full text-white text-sm font-medium`}>
-                    {industry.stat}
+            {products.map((product, index) => {
+              const Icon = product.icon;
+              return (
+                <Link
+                  key={index}
+                  to={product.link}
+                  className="group bg-slate-800 border border-slate-700 rounded-2xl p-8 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-yellow-400 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
+                    <div className={`px-4 py-2 bg-gradient-to-r ${product.gradient} rounded-full text-white text-sm font-medium`}>
+                      {product.stat}
+                    </div>
                   </div>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-emerald-400 transition-colors">
-                  {industry.title}
-                </h3>
-                <p className="text-slate-400 mb-4">
-                  {industry.description}
-                </p>
-                <div className="flex items-center text-emerald-400 font-medium">
-                  <span>Learn more</span>
-                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform" />
-                </div>
-              </Link>
-            ))}
+                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-emerald-400 transition-colors">
+                    {product.title}
+                  </h3>
+                  <p className="text-slate-400 mb-4">
+                    {product.description}
+                  </p>
+                  <div className="flex items-center text-emerald-400 font-medium">
+                    <span>Get started</span>
+                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
