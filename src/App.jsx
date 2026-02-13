@@ -4071,7 +4071,6 @@ function BulkAnalysis() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
-  const [showReport, setShowReport] = useState(false);
 
   const addItem = () => {
     setItems(prev => [...prev, {
@@ -4398,43 +4397,13 @@ function BulkAnalysis() {
                 <h2 className="text-2xl font-bold text-gray-900">Your Items</h2>
                 <p className="text-gray-600">Add one or more items to get AI pricing assessments</p>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={addItem}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
-                >
-                  <Package className="w-4 h-4" />
-                  Add Item
-                </button>
-                {items.length > 0 && (
-                  <>
-                    <button
-                      onClick={analyzeAll}
-                      disabled={loading}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-yellow-500/30 transition disabled:opacity-50"
-                    >
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                      Get Assessment{items.length > 1 ? 's' : ''} ({items.length})
-                    </button>
-                    <button
-                      onClick={exportResults}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export CSV
-                    </button>
-                    {items.some(item => item.result) && (
-                      <button
-                        onClick={() => setShowReport(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-                      >
-                        <BarChart3 className="w-4 h-4" />
-                        Generate Report
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
+              <button
+                onClick={addItem}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+              >
+                <Package className="w-4 h-4" />
+                Add Item
+              </button>
             </div>
 
         {loading && (
@@ -4730,14 +4699,14 @@ function BulkAnalysis() {
             ))}
 
             {/* Bottom Action Bar - visible when items exist */}
-            {items.length > 1 && (
+            {items.length > 0 && (
               <div className="mt-6 flex gap-3 flex-wrap justify-center p-4 bg-gray-50 rounded-xl border border-gray-200">
                 <button
                   onClick={addItem}
                   className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium"
                 >
                   <Package className="w-4 h-4" />
-                  Add Another Item
+                  Add Item
                 </button>
                 <button
                   onClick={() => {
@@ -4750,6 +4719,76 @@ function BulkAnalysis() {
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                   Get Assessment{items.length > 1 ? 's' : ''} ({items.length})
                 </button>
+                <button
+                  onClick={exportResults}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </button>
+                {items.some(item => item.result) && (
+                  <button
+                    onClick={() => {
+                      const reportWindow = window.open('', '_blank');
+                      if (!reportWindow) return;
+                      const analyzedItems = items.filter(item => item.result);
+                      const totalMin = analyzedItems.reduce((sum, item) => sum + (item.result?.pricing?.prices?.[0] || 0), 0);
+                      const totalMax = analyzedItems.reduce((sum, item) => sum + (item.result?.pricing?.prices?.[2] || 0), 0);
+                      const totalTarget = analyzedItems.reduce((sum, item) => sum + (item.result?.pricing?.prices?.[1] || 0), 0);
+                      const reportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                      const reportId = 'PP-' + Date.now().toString(36).toUpperCase();
+                      const itemsHtml = items.map((item, i) => {
+                        const prices = item.result?.pricing?.prices || [];
+                        const hasResult = !!item.result;
+                        const imgTag = item.images?.[0]?.preview ? `<img src="${item.images[0].preview}" style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" />` : '';
+                        return `<div style="border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:16px;page-break-inside:avoid;">
+                          <div style="display:flex;gap:24px;">
+                            ${imgTag ? `<div>${imgTag}</div>` : ''}
+                            <div style="flex:1;">
+                              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <div>
+                                  <h3 style="font-size:18px;font-weight:700;color:#111827;margin:0;">${i+1}. ${item.itemName || 'Unnamed Item'}</h3>
+                                  <p style="font-size:14px;color:#6b7280;margin:4px 0;">Condition: <span style="text-transform:capitalize">${item.condition}</span>${item.location ? ' · Location: ' + item.location : ''}</p>
+                                </div>
+                                ${hasResult ? `<div style="text-align:right;"><p style="font-size:24px;font-weight:700;color:#059669;margin:0;">$${(prices[1] || 0).toLocaleString()}</p><p style="font-size:12px;color:#6b7280;margin:0;">Target Price</p></div>` : ''}
+                              </div>
+                              ${hasResult ? `<div style="display:flex;gap:24px;font-size:14px;margin-top:12px;"><div><span style="color:#6b7280;">Low: </span><span style="font-weight:600;">$${(prices[0] || 0).toLocaleString()}</span></div><div><span style="color:#6b7280;">Target: </span><span style="font-weight:600;color:#059669;">$${(prices[1] || 0).toLocaleString()}</span></div><div><span style="color:#6b7280;">High: </span><span style="font-weight:600;">$${(prices[2] || 0).toLocaleString()}</span></div></div>` : '<p style="font-size:14px;color:#9ca3af;margin-top:8px;">Not analyzed</p>'}
+                            </div>
+                          </div>
+                        </div>`;
+                      }).join('');
+                      reportWindow.document.write(`<!DOCTYPE html><html><head><title>Precision Prices Report</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:24px;color:#111827;max-width:900px;margin:0 auto;}@media print{.no-print{display:none!important;}body{padding:0;}}</style></head><body>
+                        <div class="no-print" style="padding:16px 0;margin-bottom:24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+                          <h2 style="margin:0;font-size:18px;">Report Preview</h2>
+                          <button onclick="window.print()" style="padding:10px 24px;background:#059669;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">Print / Save as PDF</button>
+                        </div>
+                        <div style="border-bottom:2px solid #059669;padding-bottom:24px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:center;">
+                          <div><h1 style="font-size:24px;font-weight:700;margin:0;">Precision Prices</h1><p style="font-size:14px;color:#6b7280;margin:4px 0 0;">AI-Powered Pricing Report</p></div>
+                          <div style="text-align:right;"><p style="font-size:14px;color:#6b7280;margin:0;">Report ID: ${reportId}</p><p style="font-size:14px;color:#6b7280;margin:4px 0 0;">${reportDate}</p></div>
+                        </div>
+                        <div style="background:#f9fafb;border-radius:12px;padding:24px;margin-bottom:32px;">
+                          <h2 style="font-size:18px;font-weight:700;margin:0 0 16px;">Summary</h2>
+                          <div style="display:flex;gap:24px;">
+                            <div><p style="font-size:14px;color:#6b7280;margin:0;">Items Analyzed</p><p style="font-size:30px;font-weight:700;margin:4px 0 0;">${analyzedItems.length}</p></div>
+                            <div><p style="font-size:14px;color:#6b7280;margin:0;">Est. Total Value (Target)</p><p style="font-size:30px;font-weight:700;color:#059669;margin:4px 0 0;">$${totalTarget.toLocaleString()}</p></div>
+                            <div><p style="font-size:14px;color:#6b7280;margin:0;">Value Range</p><p style="font-size:20px;font-weight:700;margin:4px 0 0;">$${totalMin.toLocaleString()} — $${totalMax.toLocaleString()}</p></div>
+                          </div>
+                        </div>
+                        <h2 style="font-size:18px;font-weight:700;margin:0 0 16px;">Item Details</h2>
+                        ${itemsHtml}
+                        <div style="margin-top:48px;padding-top:24px;border-top:1px solid #e5e7eb;text-align:center;">
+                          <p style="font-size:14px;color:#9ca3af;">Generated by PrecisionPrices.com · ${reportDate} · Report ${reportId}</p>
+                          <p style="font-size:12px;color:#9ca3af;margin-top:4px;">Prices are AI-generated estimates based on market data and are not guarantees of sale value.</p>
+                        </div>
+                      </body></html>`);
+                      reportWindow.document.close();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    Generate Report
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -4810,12 +4849,6 @@ function BulkAnalysis() {
         </div>
       </div>
 
-      {/* Printable Report Modal */}
-      {showReport && (
-        <div className="fixed inset-0 z-50 bg-white overflow-auto pp-report-overlay">
-          <PrintableReport items={items} onClose={() => setShowReport(false)} />
-        </div>
-      )}
     </div>
   );
 }
