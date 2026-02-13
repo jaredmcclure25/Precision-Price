@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link, User } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
@@ -25,8 +25,6 @@ import FeedbackDashboard from './components/FeedbackDashboard';
 import FacebookMarketplaceButton from './components/FacebookMarketplaceButton';
 import AuthGateModal from './components/AuthGateModal';
 import GuidedResultsDisplay from './components/GuidedResultsDisplay';
-import WelcomeDashboard from './components/WelcomeDashboard';
-import AccountSettings from './components/AccountSettings';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 // Community features disabled - keeping for potential future use
@@ -141,7 +139,6 @@ export default function MarketplacePricer() {
   const [userZipCode, setUserZipCode] = useState(''); // Used for listing tracking
   const [selectedTier, setSelectedTier] = useState(null); // 'quick', 'recommended', or 'premium'
   const [trackingListing, setTrackingListing] = useState(false);
-  const [skipWelcome, setSkipWelcome] = useState(false); // Skip welcome dashboard and show pricing tool
 
 
   useEffect(() => {
@@ -437,6 +434,16 @@ export default function MarketplacePricer() {
   };
 
   const analyzePricing = async () => {
+    // Check if guest user has exceeded 2 attempts
+    if (isGuestMode && userProfile) {
+      const guestAttempts = userProfile.guestAttempts || 0;
+
+      if (guestAttempts >= 2) {
+        setShowAuthGate(true);
+        return;
+      }
+    }
+
     // Validate inputs before API call
     if (images.length === 0 && !itemName.trim()) {
       setError('Please provide either an image or item name');
@@ -844,6 +851,11 @@ Provide pricing analysis in this exact JSON structure:
           analysisCount: (userProfile?.analysisCount || 0) + 1
         };
 
+        // Track guest attempts separately
+        if (isGuestMode) {
+          updates.guestAttempts = (userProfile?.guestAttempts || 0) + 1;
+        }
+
         await updateUserProfile(updates);
       } catch (parseError) {
         // Create detailed error with parse information
@@ -1147,133 +1159,31 @@ Provide pricing analysis in this exact JSON structure:
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
-
-        * {
-          font-family: 'IBM Plex Sans', -apple-system, sans-serif;
-        }
-
-        h1, h2, h3, .serif {
-          font-family: 'Playfair Display', Georgia, serif;
-        }
-
-        .gradient-text-emerald {
-          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .glass {
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-        }
-
-        .glass-nav {
-          background: linear-gradient(135deg, rgba(5, 150, 105, 0.97) 0%, rgba(16, 185, 129, 0.97) 100%);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-        }
-
-        .card-modern {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          border: 1px solid rgba(0,0,0,0.05);
-        }
-
-        .card-modern:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .fade-in {
-          animation: fadeIn 0.5s ease-out forwards;
-          opacity: 0;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .stagger-1 { animation-delay: 0.1s; }
-        .stagger-2 { animation-delay: 0.2s; }
-        .stagger-3 { animation-delay: 0.3s; }
-
-        .input-modern {
-          transition: all 0.2s ease;
-          border: 2px solid #e2e8f0;
-          background: #fff;
-        }
-
-        .input-modern:focus {
-          border-color: #10b981;
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
-          outline: none;
-        }
-
-        .btn-primary-modern {
-          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-primary-modern:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-primary-modern:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .btn-secondary-modern {
-          background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
-        }
-
-        .btn-secondary-modern:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-        }
-
-        .section-pattern {
-          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-
-        .search-glow:focus-within {
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15), 0 8px 24px rgba(0, 0, 0, 0.08);
-        }
-      `}</style>
-
-      {/* Modern Fixed Navigation */}
-      <nav className="fixed top-0 w-full glass-nav border-b border-emerald-400/20 z-50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="bg-white p-2 rounded-xl shadow-lg">
-                <img src="/logo.png" alt="Precision Prices Logo" className="w-10 h-10 sm:w-11 sm:h-11 object-contain" />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
+      <nav className="bg-gradient-to-r from-emerald-600 to-green-600 shadow-2xl border-b-4 border-emerald-700">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
+            <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
+              <div className="bg-white p-1.5 sm:p-2 rounded-2xl shadow-lg flex-shrink-0">
+                <img src="/logo.png" alt="Precision Prices Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
               </div>
-              <div className="text-white">
-                <h1 className="text-xl sm:text-2xl font-bold serif flex items-center gap-2">
-                  Precision Prices
-                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 fill-yellow-300" />
+              <div className="text-white flex-1 md:flex-initial">
+                <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-1 sm:gap-2">
+                  <span>Precision Prices</span>
+                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
                 </h1>
-                <p className="text-xs text-emerald-100/80">Pricing Intelligence</p>
+                {userProfile && (
+                  <p className="text-[10px] sm:text-xs text-emerald-100 truncate">Level {userProfile.level} • {userProfile.badges.length} Badges</p>
+                )}
               </div>
             </div>
-
-            {/* Navigation Links */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="flex gap-2 flex-wrap items-center justify-center w-full md:w-auto">
               {[
                 { id: 'home', icon: Home, label: 'Home' },
                 { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
-                { id: 'tools', icon: Package, label: 'Tools' },
-                { id: 'account', icon: User, label: 'Account' }
+                { id: 'tools', icon: Package, label: 'Tools' }
+                // STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live
+                // { id: 'subscription', icon: CreditCard, label: 'Subscription' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1282,60 +1192,31 @@ Provide pricing analysis in this exact JSON structure:
                     if (tab.id === 'home') setView('pricing');
                     else if (tab.id === 'dashboard') setView('dashboard');
                     else if (tab.id === 'tools') setView('shipping');
-                    else if (tab.id === 'account') setView('account');
+                    else if (tab.id === 'subscription') setView('subscription');
                   }}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all font-medium ${
+                  className={`flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px] ${
                     mainTab === tab.id
-                      ? 'bg-white text-emerald-600 shadow-lg shadow-emerald-900/20'
-                      : 'text-white/90 hover:bg-white/10'
+                      ? 'bg-white text-emerald-600 shadow-lg'
+                      : 'bg-emerald-700 text-white hover:bg-emerald-800 active:bg-emerald-900'
                   }`}
                 >
-                  <tab.icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  <tab.icon className="w-5 h-5 md:w-4 md:h-4" />
+                  <span className="hidden md:inline text-sm">{tab.label}</span>
                 </button>
               ))}
-            </div>
 
-            {/* Auth Buttons */}
-            <div className="flex items-center gap-3">
-              {/* Mobile nav buttons */}
-              <div className="flex md:hidden items-center gap-1">
-                {[
-                  { id: 'home', icon: Home },
-                  { id: 'dashboard', icon: BarChart3 },
-                  { id: 'tools', icon: Package },
-                  { id: 'account', icon: User }
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setMainTab(tab.id);
-                      if (tab.id === 'home') setView('pricing');
-                      else if (tab.id === 'dashboard') setView('dashboard');
-                      else if (tab.id === 'tools') setView('shipping');
-                      else if (tab.id === 'account') setView('account');
-                    }}
-                    className={`p-2.5 rounded-lg transition-all ${
-                      mainTab === tab.id
-                        ? 'bg-white text-emerald-600 shadow-lg'
-                        : 'text-white/80 hover:bg-white/10'
-                    }`}
-                  >
-                    <tab.icon className="w-5 h-5" />
-                  </button>
-                ))}
-              </div>
-
+              {/* Login/Signup for guests, Logout for logged-in users */}
               {currentUser ? (
                 <button
                   onClick={async () => {
                     await logout();
+                    // Just logout - user continues as guest, no popup
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white hover:bg-red-500 transition-all font-medium border border-white/20"
+                  className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all font-semibold touch-manipulation min-w-[44px] min-h-[44px]"
                   title={currentUser?.email || "Logout"}
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <LogOut className="w-5 h-5 md:w-4 md:h-4" />
+                  <span className="hidden md:inline text-sm">Logout</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
@@ -1344,18 +1225,18 @@ Provide pricing analysis in this exact JSON structure:
                       setAuthGateFromLogout(true);
                       setShowAuthGate(true);
                     }}
-                    className="px-4 py-2.5 rounded-xl text-white hover:bg-white/10 transition-all font-medium border border-white/20"
+                    className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-white text-emerald-600 hover:bg-emerald-50 transition-all font-semibold touch-manipulation min-h-[44px]"
                   >
-                    Login
+                    <span className="text-sm">Login</span>
                   </button>
                   <button
                     onClick={() => {
                       setAuthGateFromLogout(true);
                       setShowAuthGate(true);
                     }}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-400 text-slate-900 hover:from-yellow-300 hover:to-amber-300 transition-all font-semibold shadow-lg shadow-yellow-500/20"
+                    className="flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl bg-yellow-400 text-gray-900 hover:bg-yellow-300 transition-all font-semibold touch-manipulation min-h-[44px]"
                   >
-                    Sign Up Free
+                    <span className="text-sm">Sign Up Free</span>
                   </button>
                 </div>
               )}
@@ -1364,25 +1245,24 @@ Provide pricing analysis in this exact JSON structure:
         </div>
       </nav>
 
-      {/* Spacer for fixed nav */}
-      <div className="h-20"></div>
-
       {/* Sub-navigation */}
       {mainTab === 'dashboard' && (
-        <div className="glass border-b border-slate-200/50 shadow-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex gap-3 flex-wrap">
+        <div className="bg-white border-b shadow-sm">
+          <div className="max-w-7xl mx-auto px-6 py-3">
+            <div className="flex gap-2 flex-wrap">
               {[
                 { id: 'dashboard', icon: BarChart3, label: 'Stats' },
                 { id: 'history', icon: History, label: 'Listing History' },
+                { id: 'achievements', icon: Trophy, label: 'Badges' },
+                { id: 'leaderboard', icon: Star, label: 'Leaderboard' }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all text-sm font-medium touch-manipulation ${
+                  className={`flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-lg transition-all text-sm font-medium touch-manipulation ${
                     view === tab.id
-                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -1395,19 +1275,19 @@ Provide pricing analysis in this exact JSON structure:
       )}
 
       {mainTab === 'tools' && (
-        <div className="glass border-b border-slate-200/50 shadow-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex gap-3 flex-wrap">
+        <div className="bg-white border-b shadow-sm">
+          <div className="max-w-7xl mx-auto px-6 py-3">
+            <div className="flex gap-2 flex-wrap">
               {[
-                { id: 'shipping', icon: Truck, label: 'Shipping Calculator' }
+                { id: 'shipping', icon: Truck, label: 'Shipping' }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all text-sm font-medium touch-manipulation ${
+                  className={`flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-lg transition-all text-sm font-medium touch-manipulation ${
                     view === tab.id
-                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -1420,26 +1300,52 @@ Provide pricing analysis in this exact JSON structure:
       )}
 
 
-      <div className="py-8 px-4 sm:px-6 lg:px-8 section-pattern">
+      <div className="p-6">
         {view === 'pricing' && (
-          <div className="max-w-7xl mx-auto fade-in">
-            {userProfile?.analysisCount === 0 && !result && !skipWelcome ? (
-              <WelcomeDashboard
-                userProfile={userProfile}
-                onStartAnalysis={() => setSkipWelcome(true)}
-              />
-            ) : (
-              <BulkAnalysis />
-            )}
-          </div>
+          <>
+            {/* Simplified Home View - Pricing Tool Front and Center */}
+            <div className="max-w-7xl mx-auto">
+              {/* Mode Toggle */}
+              <div className="mb-4">
+                <div className="bg-white rounded-xl shadow-sm p-2 inline-flex gap-2">
+                  <button
+                    onClick={() => setAnalysisMode('single')}
+                    className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                      analysisMode === 'single'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Single Item
+                  </button>
+                  <button
+                    onClick={() => setAnalysisMode('bulk')}
+                    className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                      analysisMode === 'bulk'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Bulk Analysis
+                  </button>
+                </div>
+              </div>
+
+              {/* Pricing Tool - Always Visible */}
+              {analysisMode === 'single' ? (
+                <PricingTool {...{itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, showTransactionModal, setShowTransactionModal, setView, setMainTab, setResult, setImages, setError, setShowFeedback, setFeedbackSubmitted, setFormKey, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}} />
+              ) : (
+                <BulkAnalysis />
+              )}
+            </div>
+          </>
         )}
         {view === 'shipping' && <ShippingCalculator />}
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
         {view === 'history' && <ItemHistory />}
+        {view === 'achievements' && <Achievements userProfile={userProfile} />}
+        {view === 'leaderboard' && <Leaderboard />}
         {view === 'feedback-dashboard' && <FeedbackDashboard />}
-        {view === 'account' && (
-          <AccountSettings onClose={() => { setView('pricing'); setMainTab('home'); }} />
-        )}
         {/* STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live */}
         {/* {view === 'subscription' && <Subscription />} */}
       </div>
@@ -1462,39 +1368,36 @@ Provide pricing analysis in this exact JSON structure:
 function PricingTool({itemName, setItemName, condition, setCondition, location, setLocation, additionalDetails, setAdditionalDetails, images, handleImageUpload, removeImage, loading, imageLoading, error, analyzePricing, result, showFeedback, feedbackSubmitted, submitFeedback, userProfile, resultsRef, formKey, currentListingId, handleFeedbackSubmit, setShowTransactionModal, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing, setView, setMainTab}) {
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Hero Slogan Section */}
-      <div className="text-center mb-12 fade-in">
-        <h1 className="text-5xl md:text-6xl font-bold serif mb-4">
-          <span className="gradient-text-emerald">Get Assessment!</span>
-        </h1>
-        <p className="text-xl md:text-2xl text-slate-600 font-light max-w-2xl mx-auto">
-          Upload photos and get instant pricing recommendations
-        </p>
+      {/* Slogan Section */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-indigo-600 mb-2">Precision Prices</h1>
+        <p className="text-xl text-gray-700 font-semibold mb-1">Sell smarter, buy fair, with AI-powered precision pricing</p>
+        <p className="text-lg text-gray-600">Get instant fair market value recommendations to sell faster online</p>
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Left Column - Form (2/3 width) */}
-        <div className="lg:col-span-2 fade-in stagger-1">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 card-modern">
-            <div className="flex items-center justify-between mb-8">
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold serif text-slate-900">Get Your Assessment</h2>
-                <p className="text-slate-500 mt-1">Upload up to 5 photos for best results</p>
+                <h2 className="text-2xl font-bold text-gray-900">AI-Powered Pricing Analysis</h2>
+                <p className="text-gray-600">Upload up to 5 photos for best results</p>
               </div>
               {userProfile && (
-                <div className="text-right bg-emerald-50 px-4 py-2 rounded-xl">
-                  <p className="text-xs text-emerald-600 font-medium">Assessments</p>
-                  <p className="text-2xl font-bold text-emerald-700">{userProfile.analysisCount}</p>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Analyses</p>
+                  <p className="text-2xl font-bold text-indigo-600">{userProfile.analysisCount}</p>
                 </div>
               )}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3">Upload Photos (up to 5)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (up to 5)</label>
                 {images.length < 5 && !imageLoading && (
-                  <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 sm:p-8 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer min-h-[140px] flex items-center justify-center search-glow">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center hover:border-indigo-400 transition cursor-pointer active:border-indigo-500 min-h-[120px] flex items-center justify-center">
                     <input
                       key={formKey}
                       type="file"
@@ -1506,30 +1409,28 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                       disabled={imageLoading}
                     />
                     <label htmlFor="image-upload" className="cursor-pointer block w-full">
-                      <div className="bg-emerald-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <Upload className="w-8 h-8 text-emerald-600" />
-                      </div>
-                      <p className="text-slate-700 mb-1 font-medium">Tap to upload images</p>
-                      <p className="text-sm text-slate-500">JPEG, PNG, HEIC, WebP up to 10MB ({images.length}/5 uploaded)</p>
+                      <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-2 sm:mb-3" />
+                      <p className="text-gray-600 mb-1 text-sm sm:text-base font-medium">Tap to upload images</p>
+                      <p className="text-xs sm:text-sm text-gray-500">JPEG, PNG, HEIC, WebP up to 10MB each ({images.length}/5 uploaded)</p>
                     </label>
                   </div>
                 )}
                 {imageLoading && (
-                  <div className="border-2 border-emerald-400 bg-emerald-50 rounded-2xl p-8 text-center min-h-[200px] flex flex-col justify-center">
-                    <Loader2 className="w-14 h-14 text-emerald-600 mx-auto mb-4 animate-spin" />
-                    <p className="text-emerald-800 font-bold mb-2 text-lg">Processing image...</p>
-                    <p className="text-emerald-600">This may take a few seconds</p>
-                    <div className="mt-5 w-full max-w-xs mx-auto bg-emerald-200 rounded-full h-2 overflow-hidden">
-                      <div className="bg-emerald-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
+                  <div className="border-2 border-indigo-500 bg-indigo-50 rounded-lg p-4 sm:p-6 md:p-8 text-center touch-none min-h-[200px] flex flex-col justify-center">
+                    <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-indigo-600 mx-auto mb-4 animate-spin" />
+                    <p className="text-indigo-700 font-bold mb-2 text-base sm:text-lg">Loading image...</p>
+                    <p className="text-sm sm:text-base text-indigo-600">This may take a few seconds</p>
+                    <div className="mt-4 sm:mt-5 w-full max-w-xs mx-auto bg-indigo-200 rounded-full h-2.5 overflow-hidden">
+                      <div className="bg-indigo-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
                     </div>
                   </div>
                 )}
                 {images.length > 0 && (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4">
                     {images.map((img, idx) => (
-                      <div key={idx} className="relative group">
-                        <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-36 sm:h-48 md:h-56 object-cover rounded-xl shadow-md" />
-                        <button onClick={() => removeImage(idx)} className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-xl hover:bg-red-600 shadow-lg opacity-90 group-hover:opacity-100 transition-all">
+                      <div key={idx} className="relative">
+                        <img src={img.preview} alt={`Preview ${idx + 1}`} className="w-full h-32 sm:h-48 md:h-56 lg:h-64 object-cover rounded-lg" />
+                        <button onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 active:bg-red-700 min-w-[36px] min-h-[36px] flex items-center justify-center touch-manipulation">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
@@ -1539,20 +1440,20 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Item Name {images.length === 0 && <span className="text-red-500">*</span>}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Item Name {images.length === 0 && '*'}</label>
                 <input type="text" value={itemName} onChange={(e) => {
                   const sanitized = InputValidation.sanitizeText(e.target.value, 200);
                   setItemName(sanitized);
-                }} placeholder="e.g., iPhone 13 Pro Max 256GB" className="w-full px-4 py-3.5 rounded-xl input-modern text-slate-900" />
-                <div className="text-xs text-slate-400 mt-2">
+                }} placeholder="e.g., iPhone 13" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                <div className="text-xs text-gray-500 mt-1">
                   {itemName.length}/200 characters
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-5">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Condition <span className="text-red-500">*</span></label>
-                  <select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full px-4 py-3.5 rounded-xl input-modern text-slate-900 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23374151%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_16px_center] bg-no-repeat">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Condition *</label>
+                  <select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <option value="new">New</option>
                     <option value="like-new">Like New</option>
                     <option value="good">Good</option>
@@ -1562,81 +1463,79 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Location (with ZIP for best accuracy)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location (with ZIP for best accuracy)</label>
                   <input type="text" value={location} onChange={(e) => {
                     let value = InputValidation.sanitizeText(e.target.value, 100);
+                    // Additional path traversal protection
                     value = value.replace(/\.\./g, '').replace(/[\/\\]/g, '');
                     setLocation(value);
-                  }} placeholder="e.g., New York, NY 10001" className="w-full px-4 py-3.5 rounded-xl input-modern text-slate-900" />
-                  <div className="text-xs text-slate-400 mt-2">
-                    ZIP code enables precise local pricing
+                  }} placeholder="e.g., New York, NY 10001" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Including ZIP code helps us give you precise local pricing • {location.length}/100 characters
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Additional Details</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Additional Details</label>
                 <textarea value={additionalDetails} onChange={(e) => {
                   const sanitized = InputValidation.sanitizeText(e.target.value, 1000);
                   setAdditionalDetails(sanitized);
-                }} placeholder="e.g., Original box included, minor scratches on back..." rows={3} className="w-full px-4 py-3.5 rounded-xl input-modern text-slate-900 resize-none" />
-                <div className="text-xs text-slate-400 mt-2">
+                }} placeholder="e.g., Original box included" rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                <div className="text-xs text-gray-500 mt-1">
                   {additionalDetails.length}/1000 characters
                 </div>
               </div>
 
               {error && (
-                <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                  <AlertCircle className="w-5 h-5" />
                   <span>{error}</span>
                 </div>
               )}
 
-              <button onClick={analyzePricing} disabled={loading} className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-3 text-lg shadow-lg shadow-yellow-500/30 transition-all">
-                {loading ? <><Loader2 className="w-5 h-5 animate-spin" />Analyzing...</> : <><Search className="w-5 h-5" />Get Assessment</>}
+              <button onClick={analyzePricing} disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px]">
+                {loading ? <><Loader2 className="w-5 h-5 animate-spin" />Analyzing...</> : <><Search className="w-5 h-5" />Analyze Pricing</>}
               </button>
             </div>
           </div>
         </div>
 
         {/* Right Column - How to Use Summary (1/3 width) */}
-        <div className="lg:col-span-1 fade-in stagger-2">
-          <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl shadow-xl border border-emerald-100 p-6 sm:p-8 lg:sticky lg:top-28">
-            <h3 className="text-xl font-bold serif text-slate-900 mb-6">How It Works</h3>
+        <div className="lg:col-span-1">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">How to Use</h3>
             <div className="space-y-6">
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   1
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900 mb-1">Upload Photos</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed">Add up to 5 clear photos from different angles</p>
+                  <h4 className="font-semibold text-gray-900 mb-1">Upload Photos</h4>
+                  <p className="text-sm text-gray-600">Add up to 5 clear photos of your item from different angles for best results</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   2
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900 mb-1">Add Details</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed">Provide item name, condition, and location</p>
+                  <h4 className="font-semibold text-gray-900 mb-1">Fill in Details</h4>
+                  <p className="text-sm text-gray-600">Provide item name, condition, location, and any additional details that help describe your item</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   3
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900 mb-1">Get AI Pricing</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed">Receive instant price recommendations optimized for quick sales</p>
+                  <h4 className="font-semibold text-gray-900 mb-1">Get AI Pricing</h4>
+                  <p className="text-sm text-gray-600">Click "Analyze Pricing" and receive instant AI-powered price recommendations optimized for quick sales</p>
                 </div>
               </div>
             </div>
-            <div className="mt-8 pt-6 border-t border-emerald-200/50">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Shield className="w-5 h-5 text-emerald-600" />
-                <span>Powered by advanced AI market analysis</span>
-              </div>
+            <div className="mt-6 pt-6 border-t border-indigo-200">
+              <p className="text-sm text-gray-600 italic">Our AI analyzes local listings to help you price smarter.</p>
             </div>
           </div>
         </div>
@@ -1668,23 +1567,6 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
           setView('history');
         }}
       />}
-
-      {/* Floating Get Assessment Button - Shows when form has content and no result yet */}
-      {!result && (images.length > 0 || itemName.trim()) && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
-          <button
-            onClick={analyzePricing}
-            disabled={loading}
-            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-bold rounded-full shadow-2xl shadow-yellow-500/40 transition-all"
-          >
-            {loading ? (
-              <><Loader2 className="w-5 h-5 animate-spin" />Analyzing...</>
-            ) : (
-              <><Search className="w-5 h-5" />Get Assessment</>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -1707,10 +1589,10 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
     <div className="space-y-6">
       <div ref={resultsRef} className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Item Assessment</h2>
+          <h2 className="text-2xl font-bold">Item Analysis</h2>
           <div className="flex gap-2 flex-wrap">
-            <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-lg touch-manipulation">
-              <Search className="w-4 h-4" />New Assessment
+            <button type="button" onClick={onNewAnalysis} className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white rounded-lg touch-manipulation">
+              <Search className="w-4 h-4" />New Analysis
             </button>
             <button
               type="button"
@@ -1730,9 +1612,9 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           <div><p className="text-sm text-gray-600">Category</p><p className="text-lg font-semibold">{result.itemIdentification.category}</p></div>
         </div>
         {result.imageAnalysis && (
-          <div className="mt-4 p-4 bg-emerald-50 rounded-lg">
-            <p className="text-sm font-medium text-emerald-900">Image Assessment</p>
-            <p className="text-emerald-800">{result.imageAnalysis}</p>
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm font-medium text-blue-900">Image Analysis</p>
+            <p className="text-blue-800">{result.imageAnalysis}</p>
           </div>
         )}
       </div>
@@ -2103,8 +1985,8 @@ function Subscription() {
       savings: null,
       bestValue: true,
       features: [
-        '50 assessments per month',
-        'Basic pricing assessment',
+        '50 analyses per month',
+        'Basic pricing analysis',
         'Email support',
         'Perfect for casual sellers'
       ]
@@ -2117,8 +1999,8 @@ function Subscription() {
       savings: 'Most Popular',
       bestValue: false,
       features: [
-        '200 assessments per month',
-        'Detailed pricing assessment',
+        '200 analyses per month',
+        'Detailed pricing analysis',
         'Shipping cost estimates',
         'Meetup cost suggestions',
         'Demand forecasting',
@@ -2133,9 +2015,9 @@ function Subscription() {
       savings: 'Best for Resellers',
       bestValue: false,
       features: [
-        'Unlimited assessments',
+        'Unlimited analyses',
         'Everything in Standard',
-        'Bulk assessment tool',
+        'Bulk analysis tool',
         'Export to CSV',
         'Historical price tracking',
         'Priority support'
@@ -2193,7 +2075,7 @@ function Subscription() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold mb-2">Trial Limit Reached</h3>
-              <p className="text-lg">You've used your 5 free assessments. Create an account to continue or subscribe for unlimited access!</p>
+              <p className="text-lg">You've used your 5 free analyses. Create an account to continue or subscribe for unlimited access!</p>
             </div>
             <AlertTriangle className="w-16 h-16 opacity-75" />
           </div>
@@ -4377,10 +4259,8 @@ function BulkAnalysis() {
     <div className="max-w-7xl mx-auto">
       {/* Slogan Section */}
       <div className="text-center mb-8">
-        <h1 className="text-5xl md:text-6xl font-bold mb-4">
-          <span className="bg-gradient-to-r from-emerald-500 to-yellow-500 bg-clip-text text-transparent">AI-Powered Pricing</span>
-        </h1>
-        <p className="text-xl text-gray-600">Upload photos and get instant pricing recommendations for one or more items</p>
+        <h1 className="text-4xl font-bold text-indigo-600 mb-2">Analyze Multiple Items at Once!</h1>
+        <p className="text-lg text-gray-600">Perfect for vendors - get AI pricing for all your inventory</p>
       </div>
 
       {/* Two Column Layout */}
@@ -4390,13 +4270,13 @@ function BulkAnalysis() {
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Your Items</h2>
-                <p className="text-gray-600">Add one or more items to get AI pricing assessments</p>
+                <h2 className="text-2xl font-bold text-gray-900">Bulk Analysis</h2>
+                <p className="text-gray-600">Add multiple items and analyze them all at once</p>
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={addItem}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
                   <Package className="w-4 h-4" />
                   Add Item
@@ -4406,10 +4286,10 @@ function BulkAnalysis() {
                     <button
                       onClick={analyzeAll}
                       disabled={loading}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-yellow-500/30 transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                      Get Assessment{items.length > 1 ? 's' : ''} ({items.length})
+                      Analyze All ({items.length})
                     </button>
                     <button
                       onClick={exportResults}
@@ -4437,12 +4317,12 @@ function BulkAnalysis() {
 
         {items.length === 0 ? (
           <div className="text-center py-12">
-            <Package className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg mb-2">Ready to get started?</p>
-            <p className="text-gray-500 mb-6">Add an item to get AI-powered pricing recommendations</p>
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg mb-2">No items yet</p>
+            <p className="text-gray-500 mb-6">Click "Add Item" to start analyzing multiple items</p>
             <button
               onClick={addItem}
-              className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:shadow-lg hover:shadow-yellow-500/30 transition font-semibold text-lg"
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
             >
               Add Your First Item
             </button>
@@ -4721,48 +4601,48 @@ function BulkAnalysis() {
 
         {/* Right Column - How to Use Summary (1/3 width) */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-emerald-50 to-yellow-50 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">How It Works</h3>
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 lg:sticky lg:top-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">How Bulk Analysis Works</h3>
             <div className="space-y-6">
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   1
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Add Item(s)</h4>
-                  <p className="text-sm text-gray-600">Click "Add Item" to create entries for items you want to price</p>
+                  <h4 className="font-semibold text-gray-900 mb-1">Add Items</h4>
+                  <p className="text-sm text-gray-600">Click "Add Item" to create entries for all products you want to price</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
                   2
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Upload Photos</h4>
-                  <p className="text-sm text-gray-600">Add photos, name, condition, and location for best results</p>
+                  <h4 className="font-semibold text-gray-900 mb-1">Fill Details</h4>
+                  <p className="text-sm text-gray-600">For each item, add photos, name, condition, and location</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                  3
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Analyze All</h4>
+                  <p className="text-sm text-gray-600">Click "Analyze All" to get AI pricing for every item simultaneously</p>
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
-                  3
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Get Pricing</h4>
-                  <p className="text-sm text-gray-600">Click "Get Assessment" to receive AI-powered pricing recommendations</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-yellow-500 text-gray-900 rounded-full flex items-center justify-center font-bold">
                   4
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Export (Optional)</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Export Results</h4>
                   <p className="text-sm text-gray-600">Download your pricing data as CSV for easy listing</p>
                 </div>
               </div>
             </div>
-            <div className="mt-6 pt-6 border-t border-emerald-200">
-              <p className="text-sm text-gray-600 italic">Works for one item or many - perfect for any seller!</p>
+            <div className="mt-6 pt-6 border-t border-indigo-200">
+              <p className="text-sm text-gray-600 italic">Perfect for vendors with multiple items to list!</p>
             </div>
             <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
               <p className="text-sm text-green-800 font-medium">💡 Pro Tip for Vendors:</p>
