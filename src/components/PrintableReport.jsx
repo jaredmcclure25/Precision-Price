@@ -23,6 +23,8 @@ const PrintableReport = ({ items, onClose }) => {
           .no-print { display: none !important; }
           .print-break { page-break-inside: avoid; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body > #root { display: none !important; }
+          .pp-report-overlay { position: static !important; z-index: auto !important; }
           .report-container { max-width: 100% !important; padding: 0 !important; }
         }
         @media screen {

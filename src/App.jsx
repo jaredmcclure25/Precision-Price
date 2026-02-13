@@ -4728,6 +4728,30 @@ function BulkAnalysis() {
                 )}
               </div>
             ))}
+
+            {/* Bottom Action Bar - visible when items exist */}
+            {items.length > 1 && (
+              <div className="mt-6 flex gap-3 flex-wrap justify-center p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <button
+                  onClick={addItem}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium"
+                >
+                  <Package className="w-4 h-4" />
+                  Add Another Item
+                </button>
+                <button
+                  onClick={() => {
+                    analyzeAll();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-yellow-500/30 transition disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  Get Assessment{items.length > 1 ? 's' : ''} ({items.length})
+                </button>
+              </div>
+            )}
           </div>
         )}
           </div>
@@ -4788,7 +4812,7 @@ function BulkAnalysis() {
 
       {/* Printable Report Modal */}
       {showReport && (
-        <div className="fixed inset-0 z-50 bg-white overflow-auto">
+        <div className="fixed inset-0 z-50 bg-white overflow-auto pp-report-overlay">
           <PrintableReport items={items} onClose={() => setShowReport(false)} />
         </div>
       )}
