@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link, User } from 'lucide-react';
+import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link, User, ShoppingCart, ChevronDown } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
 import AuthPage from './AuthPage';
@@ -29,6 +29,7 @@ import WelcomeDashboard from './components/WelcomeDashboard';
 import AccountSettings from './components/AccountSettings';
 import PrintableReport from './components/PrintableReport';
 import WidgetSubmissions from './components/WidgetSubmissions';
+import CompetitiveIntelligence from './components/CompetitiveIntelligence';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 // Community features disabled - keeping for potential future use
@@ -156,7 +157,7 @@ export default function MarketplacePricer() {
     // Update mainTab based on current view
     if (view === 'pricing') setMainTab('home');
     else if (['dashboard', 'history', 'achievements', 'leaderboard', 'feedback-dashboard'].includes(view)) setMainTab('dashboard');
-    else if (['shipping', 'widget-submissions'].includes(view)) setMainTab('tools');
+    else if (['shipping', 'widget-submissions', 'competitive-intel'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
   }, [view]);
 
@@ -533,25 +534,44 @@ export default function MarketplacePricer() {
       const locationDesc = getLocationDescription(locationData);
       const locationInsight = getLocationPricingInsight(locationData);
 
-      // Query our proprietary database for comparable sold prices
+      // Query our proprietary database AND eBay for comparable sold prices (in parallel)
       // Note: We don't know the category yet (Claude will identify it), so we'll enhance post-Claude
       // For now, try to guess category from item name
       let realPricingData = null;
-      try {
-        // Simple category detection (will be replaced with Claude's more accurate identification)
-        const itemNameLower = (itemName || '').toLowerCase();
-        let guessedCategory = 'general';
-        if (itemNameLower.includes('iphone') || itemNameLower.includes('phone') || itemNameLower.includes('samsung')) {
-          guessedCategory = 'Electronics';
-        } else if (itemNameLower.includes('chair') || itemNameLower.includes('table') || itemNameLower.includes('sofa')) {
-          guessedCategory = 'Furniture';
-        } else if (itemNameLower.includes('nike') || itemNameLower.includes('shirt') || itemNameLower.includes('shoes')) {
-          guessedCategory = 'Clothing';
-        }
+      let ebayData = null;
 
-        realPricingData = await getComparableItems(itemName, guessedCategory, locationData);
-      } catch (e) {
-        // Database query failed - continue with AI-only pricing
+      // Simple category detection
+      const itemNameLower = (itemName || '').toLowerCase();
+      let guessedCategory = 'general';
+      if (itemNameLower.includes('iphone') || itemNameLower.includes('phone') || itemNameLower.includes('samsung')) {
+        guessedCategory = 'Electronics';
+      } else if (itemNameLower.includes('chair') || itemNameLower.includes('table') || itemNameLower.includes('sofa')) {
+        guessedCategory = 'Furniture';
+      } else if (itemNameLower.includes('nike') || itemNameLower.includes('shirt') || itemNameLower.includes('shoes')) {
+        guessedCategory = 'Clothing';
+      }
+
+      // Fetch Firestore comparables and eBay data in parallel
+      const ebayApiUrl = import.meta.env.VITE_BACKEND_URL
+        ? `${import.meta.env.VITE_BACKEND_URL}/api/ebay/search`
+        : import.meta.env.DEV
+        ? `http://${window.location.hostname}:3001/api/ebay/search`
+        : '/api/ebay/search';
+
+      const [firestoreResult, ebayResult] = await Promise.allSettled([
+        getComparableItems(itemName, guessedCategory, locationData),
+        fetch(ebayApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemName: itemName || 'unknown item', condition, category: guessedCategory })
+        }).then(r => r.ok ? r.json() : null)
+      ]);
+
+      if (firestoreResult.status === 'fulfilled') {
+        realPricingData = firestoreResult.value;
+      }
+      if (ebayResult.status === 'fulfilled' && ebayResult.value && ebayResult.value.items?.length > 0) {
+        ebayData = ebayResult.value;
       }
 
       // Get current date for seasonal context
@@ -585,6 +605,20 @@ export default function MarketplacePricer() {
           prompt += `Average Time to Sell: ${realPricingData.avgDaysToSell} days\n`;
         }
         prompt += `\nIMPORTANT: Use this real market data as your PRIMARY pricing guide. Adjust for condition and specific features, but anchor your pricing to these actual sold prices.\n`;
+      }
+
+      // Add eBay comparable data if available
+      if (ebayData && ebayData.items && ebayData.items.length > 0) {
+        prompt += `\n=== EBAY MARKET COMPARABLES ===\n`;
+        prompt += `Found ${ebayData.totalCount} similar items on eBay:\n`;
+        prompt += `Average eBay Price: $${ebayData.avgPrice}\n`;
+        prompt += `eBay Price Range: $${ebayData.priceRange.min} - $${ebayData.priceRange.max}\n`;
+        prompt += `Median eBay Price: $${ebayData.median}\n\n`;
+        prompt += `Top comparables:\n`;
+        ebayData.items.slice(0, 8).forEach((item, i) => {
+          prompt += `${i + 1}. ${item.title} - $${item.price} (${item.condition})\n`;
+        });
+        prompt += `\nNote: eBay prices may trend slightly higher than Facebook Marketplace. Use these as a reference point and adjust accordingly.\n`;
       }
 
       // Add seasonal context
@@ -773,18 +807,18 @@ Provide pricing analysis in this exact JSON structure:
         // Add parsed location data to result
         parsedResult.locationData = locationData;
 
-        // HYBRID PRICING: Blend AI response with real database pricing if available
+        // HYBRID PRICING: Blend AI response with real database + eBay pricing if available
+        const aiPricing = {
+          min: parsedResult.suggestedPriceRange.min,
+          max: parsedResult.suggestedPriceRange.max,
+          optimal: parsedResult.suggestedPriceRange.optimal
+        };
+
         if (realPricingData && realPricingData.count >= 3) {
           addDebugLog('info', `Blending AI pricing with ${realPricingData.count} real data points`);
 
-          const aiPricing = {
-            min: parsedResult.suggestedPriceRange.min,
-            max: parsedResult.suggestedPriceRange.max,
-            optimal: parsedResult.suggestedPriceRange.optimal
-          };
-
-          // Blend AI pricing with real market data (70% real, 30% AI)
-          const blendedPricing = blendPricing(aiPricing, realPricingData);
+          // Blend AI pricing with real market data + eBay data
+          const blendedPricing = blendPricing(aiPricing, realPricingData, ebayData);
 
           // Update result with blended pricing
           parsedResult.suggestedPriceRange = {
@@ -800,6 +834,18 @@ Provide pricing analysis in this exact JSON structure:
           parsedResult.pricingInsights = formatPricingInsights(realPricingData, locationData);
 
           addDebugLog('success', `Hybrid pricing: $${blendedPricing.optimal} (confidence: ${blendedPricing.confidenceScore}%)`);
+        } else if (ebayData && ebayData.items?.length >= 3) {
+          // eBay data available but no Firestore data — two-way blend
+          const blendedPricing = blendPricing(aiPricing, null, ebayData);
+          parsedResult.suggestedPriceRange = {
+            min: blendedPricing.min,
+            max: blendedPricing.max,
+            optimal: blendedPricing.optimal
+          };
+          parsedResult.confidenceScore = blendedPricing.confidenceScore;
+          parsedResult.dataSource = blendedPricing.dataSource;
+          parsedResult.dataCount = blendedPricing.dataCount || 0;
+          addDebugLog('success', `eBay-enhanced pricing: $${blendedPricing.optimal} (confidence: ${blendedPricing.confidenceScore}%)`);
         } else if (realPricingData) {
           // Some data but not enough for blending
           parsedResult.dataCount = realPricingData.count;
@@ -809,6 +855,11 @@ Provide pricing analysis in this exact JSON structure:
           // No real data available
           parsedResult.dataCount = 0;
           parsedResult.dataSource = 'AI_only';
+        }
+
+        // Attach eBay comparables for UI display
+        if (ebayData) {
+          parsedResult.ebayComparables = ebayData;
         }
 
         setResult(parsedResult);
@@ -1402,7 +1453,8 @@ Provide pricing analysis in this exact JSON structure:
             <div className="flex gap-3 flex-wrap">
               {[
                 { id: 'shipping', icon: Truck, label: 'Shipping Calculator' },
-                { id: 'widget-submissions', icon: Users, label: 'Widget Dashboard' }
+                { id: 'widget-submissions', icon: Users, label: 'Widget Dashboard' },
+                { id: 'competitive-intel', icon: BarChart3, label: 'Competitive Intel' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1438,6 +1490,7 @@ Provide pricing analysis in this exact JSON structure:
         )}
         {view === 'shipping' && <ShippingCalculator />}
         {view === 'widget-submissions' && <WidgetSubmissions />}
+        {view === 'competitive-intel' && <CompetitiveIntelligence />}
         {view === 'dashboard' && <Dashboard stats={stats} userProfile={userProfile} onUpdateItem={updateFeedbackItem} />}
         {view === 'history' && <ItemHistory />}
         {view === 'feedback-dashboard' && <FeedbackDashboard />}
@@ -1693,6 +1746,70 @@ function PricingTool({itemName, setItemName, condition, setCondition, location, 
   );
 }
 
+function EbayComparables({ data }) {
+  const [expanded, setExpanded] = useState(false);
+  const displayItems = expanded ? data.items.slice(0, 10) : data.items.slice(0, 3);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-xl p-6">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between mb-4"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+            <ShoppingCart className="w-5 h-5 text-white" />
+          </div>
+          <div className="text-left">
+            <h3 className="text-lg font-bold text-gray-900">eBay Market Comparables</h3>
+            <p className="text-sm text-gray-500">Based on {data.totalCount} similar items on eBay &middot; Avg: ${data.avgPrice}</p>
+          </div>
+        </div>
+        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <div className="space-y-3">
+        {displayItems.map((item, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+            {item.imageUrl ? (
+              <img src={item.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <Package className="w-6 h-6 text-gray-400" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+              <p className="text-xs text-gray-500">{item.condition}</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-sm font-bold text-green-600">${item.price}</p>
+              {item.itemUrl && (
+                <a href={item.itemUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">
+                  View
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {data.items.length > 3 && !expanded && (
+        <button onClick={() => setExpanded(true)} className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium w-full text-center">
+          Show {data.items.length - 3} more comparables
+        </button>
+      )}
+
+      {data.priceRange && (
+        <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-500">
+          <span>eBay Range: ${data.priceRange.min} - ${data.priceRange.max}</span>
+          <span>Median: ${data.median}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback, resultsRef, onNewAnalysis, currentListingId, handleFeedbackSubmit, userProfile, images, itemDetails, currentUser, selectedTier, setSelectedTier, trackingListing, handleTrackListing}) {
   const [showShare, setShowShare] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -1786,6 +1903,11 @@ function ResultsDisplay({result, showFeedback, feedbackSubmitted, submitFeedback
           </div>
         </div>
       </div>
+
+      {/* eBay Market Comparables */}
+      {result.ebayComparables && result.ebayComparables.items && result.ebayComparables.items.length > 0 && (
+        <EbayComparables data={result.ebayComparables} />
+      )}
 
       {/* Track This Listing - Appears when tier is selected */}
       {selectedTier && (

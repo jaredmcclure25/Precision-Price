@@ -7,6 +7,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { searchEbaySoldItems } from './ebayService.js';
 // STRIPE TEMPORARILY DISABLED - Uncomment when ready to go live
 // import Stripe from 'stripe';
 
@@ -594,6 +595,85 @@ Provide ONLY valid JSON:
     console.error('Widget analysis error:', error);
     res.status(500).json({
       error: { message: 'Something went wrong. Please try again.' }
+    });
+  }
+});
+
+// ============================================================================
+// EBAY BROWSE API ENDPOINT
+// ============================================================================
+
+app.post('/api/ebay/search', async (req, res) => {
+  try {
+    const { itemName, condition, category } = req.body;
+
+    if (!itemName) {
+      return res.status(400).json({ error: 'itemName is required' });
+    }
+
+    // Gracefully handle missing eBay credentials
+    if (!process.env.EBAY_APP_ID || !process.env.EBAY_CERT_ID) {
+      return res.status(200).json({
+        items: [],
+        totalCount: 0,
+        avgPrice: null,
+        priceRange: null,
+        message: 'eBay integration not configured'
+      });
+    }
+
+    const result = await searchEbaySoldItems(itemName, condition, category);
+    res.json(result || { items: [], totalCount: 0, avgPrice: null, priceRange: null });
+  } catch (error) {
+    console.error('eBay search error:', error);
+    res.status(500).json({ error: 'eBay search failed' });
+  }
+});
+
+// ============================================================================
+// COMPETITIVE INTELLIGENCE ENDPOINT
+// ============================================================================
+
+app.post('/api/competitive/analyze', async (req, res) => {
+  try {
+    const { type, messages } = req.body;
+
+    if (!type || !messages) {
+      return res.status(400).json({ error: 'type and messages are required' });
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({
+        error: { message: 'Server configuration error: ANTHROPIC_API_KEY not set' }
+      });
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Competitive intel API error:', errorData);
+      return res.status(response.status).json(errorData);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Competitive intel error:', error);
+    res.status(500).json({
+      error: { message: error.message || 'Internal server error' }
     });
   }
 });

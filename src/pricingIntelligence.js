@@ -167,9 +167,14 @@ export async function getComparableItems(itemName, category, locationData) {
  * @param {object} realData - Comparable items data from database
  * @returns {object} - Blended pricing recommendation
  */
-export function blendPricing(aiPricing, realData) {
-  if (!realData || realData.count < 3) {
-    // Not enough data, use AI pricing as-is
+export function blendPricing(aiPricing, realData, ebayData = null) {
+  // Adjust eBay prices down ~12% (eBay tends to run higher than FB Marketplace)
+  const ebayAdjustedAvg = ebayData?.avgPrice ? Math.round(ebayData.avgPrice * 0.88) : null;
+  const hasEbay = ebayData && ebayData.items && ebayData.items.length >= 3 && ebayAdjustedAvg;
+  const hasRealData = realData && realData.count >= 3;
+
+  // Case 1: No real data and no eBay data — AI only
+  if (!hasRealData && !hasEbay) {
     return {
       ...aiPricing,
       dataSource: 'AI_only',
@@ -177,45 +182,74 @@ export function blendPricing(aiPricing, realData) {
     };
   }
 
-  // Calculate blend weight based on data count
-  // More data = higher weight on real data
-  const dataWeight = Math.min(0.8, 0.5 + (realData.count * 0.05)); // 0.5 to 0.8
-  const aiWeight = 1 - dataWeight;
+  let blendedOptimal;
+  let dataSource;
+  let confidence = 70;
 
-  // Blend optimal price
-  const blendedOptimal = Math.round(
-    (realData.avgPrice * dataWeight) + (aiPricing.optimal * aiWeight)
-  );
+  if (hasRealData && hasEbay) {
+    // Case 2: Three-way blend — database 50%, eBay 30%, AI 20%
+    blendedOptimal = Math.round(
+      (realData.avgPrice * 0.5) + (ebayAdjustedAvg * 0.3) + (aiPricing.optimal * 0.2)
+    );
+    dataSource = 'hybrid_AI_plus_database_plus_ebay';
+    confidence = 75;
+  } else if (hasRealData) {
+    // Case 3: Two-way blend — database + AI (original behavior)
+    const dataWeight = Math.min(0.8, 0.5 + (realData.count * 0.05));
+    const aiWeight = 1 - dataWeight;
+    blendedOptimal = Math.round(
+      (realData.avgPrice * dataWeight) + (aiPricing.optimal * aiWeight)
+    );
+    dataSource = 'hybrid_AI_plus_database';
+    confidence = 70;
+  } else {
+    // Case 4: Two-way blend — eBay + AI (no database data)
+    blendedOptimal = Math.round(
+      (ebayAdjustedAvg * 0.4) + (aiPricing.optimal * 0.6)
+    );
+    dataSource = 'hybrid_AI_plus_ebay';
+    confidence = 68;
+  }
 
-  // Blend min/max based on real data's range
-  const blendedMin = Math.round(blendedOptimal - realData.stdDev);
-  const blendedMax = Math.round(blendedOptimal + realData.stdDev);
+  // Calculate min/max from available data
+  let spread;
+  if (hasRealData) {
+    spread = realData.stdDev;
+  } else if (hasEbay && ebayData.priceRange) {
+    spread = Math.round((ebayData.priceRange.max - ebayData.priceRange.min) * 0.88 / 4);
+  } else {
+    spread = Math.round(blendedOptimal * 0.15);
+  }
 
-  // Ensure min/max are reasonable
-  const finalMin = Math.max(1, blendedMin);
-  const finalMax = Math.max(blendedOptimal, blendedMax);
+  const finalMin = Math.max(1, Math.round(blendedOptimal - spread));
+  const finalMax = Math.max(blendedOptimal, Math.round(blendedOptimal + spread));
 
-  // Calculate confidence score
-  let confidence = 70; // Base confidence
-  if (realData.count >= 10) confidence = 90;
-  else if (realData.count >= 5) confidence = 80;
-  else if (realData.count >= 3) confidence = 75;
+  // Confidence scoring
+  if (hasRealData) {
+    if (realData.count >= 10) confidence = 90;
+    else if (realData.count >= 5) confidence = 80;
+    else if (realData.count >= 3) confidence = 75;
 
-  // Boost confidence for local data
-  if (realData.geographicScope === 'local') confidence += 5;
+    if (realData.geographicScope === 'local') confidence += 5;
+    if (realData.dataFreshness === 'recent') confidence += 5;
+  }
 
-  // Boost confidence for recent data
-  if (realData.dataFreshness === 'recent') confidence += 5;
+  // Boost confidence when eBay data corroborates
+  if (hasEbay) {
+    confidence += 5;
+    if (ebayData.items.length >= 10) confidence += 3;
+  }
 
   return {
     min: finalMin,
     max: finalMax,
     optimal: blendedOptimal,
-    dataSource: 'hybrid_AI_plus_database',
+    dataSource,
     confidenceScore: Math.min(100, confidence),
-    dataCount: realData.count,
-    geographicScope: realData.geographicScope,
-    avgDaysToSell: realData.avgDaysToSell
+    dataCount: hasRealData ? realData.count : 0,
+    ebayCount: hasEbay ? ebayData.items.length : 0,
+    geographicScope: hasRealData ? realData.geographicScope : (hasEbay ? 'national' : null),
+    avgDaysToSell: hasRealData ? realData.avgDaysToSell : null
   };
 }
 

@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { MapPin, Phone } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -51,13 +51,7 @@ const Footer = () => {
           <div>
             <h3 className="text-white font-semibold mb-4">Contact</h3>
             <ul className="space-y-3">
-              <li className="flex items-start space-x-2 text-sm">
-                <Mail className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <a href="mailto:business@precisionprices.com" className="text-slate-400 hover:text-white transition-colors">
-                  business@precisionprices.com
-                </a>
-              </li>
-              <li className="flex items-start space-x-2 text-sm">
+<li className="flex items-start space-x-2 text-sm">
                 <Phone className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
                 <a href="tel:+14403198747" className="text-slate-400 hover:text-white transition-colors">
                   (440) 319-8747
