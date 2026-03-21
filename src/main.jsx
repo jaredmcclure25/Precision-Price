@@ -27,6 +27,7 @@ import DataDeletion from './pages/DataDeletion.jsx'
 import MarketplacePage from './pages/MarketplacePage.jsx'
 import BulkPricingPage from './pages/BulkPricingPage.jsx'
 import SaleReviewPage from './pages/SaleReviewPage.jsx'
+import PartnerMetricsPage from './pages/PartnerMetricsPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -65,6 +66,7 @@ createRoot(document.getElementById('root')).render(
                     <Route path="/item/:listingId" element={<ListingPage />} />
                     <Route path="/bulk" element={<BulkPricingPage />} />
                     <Route path="/sale/:saleId/review" element={<SaleReviewPage />} />
+                    <Route path="/metrics" element={<PartnerMetricsPage />} />
                   </Routes>
                 </AnalyticsWrapper>
               </AuthWrapper>
