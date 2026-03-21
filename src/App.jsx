@@ -1479,30 +1479,17 @@ Provide pricing analysis in this exact JSON structure:
       <div className="py-8 px-4 sm:px-6 lg:px-8 section-pattern">
         {view === 'pricing' && (
           <div className="max-w-7xl mx-auto fade-in">
-            {/* Estate Sale Quick Actions */}
-            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div
-                onClick={() => navigate('/app/bulk')}
-                className="cursor-pointer bg-gradient-to-r from-emerald-800 to-blue-800 hover:from-emerald-700 hover:to-blue-700 active:from-emerald-900 active:to-blue-900 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
-              >
-                <div className="text-3xl flex-shrink-0">📸</div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-bold leading-tight">Bulk Price Items</div>
-                  <div className="text-emerald-200 text-sm">Photo → AI price, no typing</div>
-                </div>
-                <div className="text-white/60 flex-shrink-0">→</div>
+            {/* Estate Sale Bulk Pricing Banner */}
+            <div
+              onClick={() => navigate('/app/bulk')}
+              className="cursor-pointer mb-6 bg-gradient-to-r from-emerald-800 to-blue-800 hover:from-emerald-700 hover:to-blue-700 active:from-emerald-900 active:to-blue-900 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
+            >
+              <div className="text-4xl flex-shrink-0">📸</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-white font-bold text-lg leading-tight">Bulk Price Items</div>
+                <div className="text-emerald-200 text-sm">Photo → AI price for entire estate sale. No typing needed.</div>
               </div>
-              <div
-                onClick={() => navigate('/app/metrics')}
-                className="cursor-pointer bg-gradient-to-r from-purple-900 to-indigo-900 hover:from-purple-800 hover:to-indigo-800 active:from-purple-950 active:to-indigo-950 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
-              >
-                <div className="text-3xl flex-shrink-0">📊</div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-bold leading-tight">Partner Metrics</div>
-                  <div className="text-purple-200 text-sm">Revenue, accuracy, Excel export</div>
-                </div>
-                <div className="text-white/60 flex-shrink-0">→</div>
-              </div>
+              <div className="text-white/60 flex-shrink-0">→</div>
             </div>
 
             {userProfile?.analysisCount === 0 && !result && !skipWelcome ? (

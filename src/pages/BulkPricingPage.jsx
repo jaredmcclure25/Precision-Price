@@ -175,58 +175,79 @@ function TierGroup({ tier, items, onEdit }) {
 
 // ─── ItemRow component ────────────────────────────────────────────────────────
 function ItemRow({ item, onEdit }) {
-  const [editing, setEditing] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(item.itemName || '');
-  const [price, setPrice] = useState(String(item.aiPriceMedium || ''));
 
-  const save = () => {
-    onEdit(item.id, { itemName: name, aiPriceMedium: parseFloat(price) || item.aiPriceMedium });
-    setEditing(false);
+  // Which tier is currently selected: 'low' | 'medium' | 'high'
+  const [selectedTier, setSelectedTier] = useState('medium');
+
+  const tierPrice = {
+    low:    item.aiPriceLow,
+    medium: item.aiPriceMedium,
+    high:   item.aiPriceHigh,
   };
 
+  const saveName = () => {
+    onEdit(item.id, { itemName: name });
+    setEditingName(false);
+  };
+
+  const selectTier = (tier) => {
+    setSelectedTier(tier);
+    onEdit(item.id, { aiPriceMedium: tierPrice[tier] });
+  };
+
+  const tierConfig = [
+    { key: 'low',    label: 'Low',    color: 'bg-gray-600 text-gray-200',            active: 'bg-gray-400 text-white ring-2 ring-gray-300' },
+    { key: 'medium', label: 'Target', color: 'bg-emerald-900 text-emerald-300',       active: 'bg-emerald-500 text-white ring-2 ring-emerald-300' },
+    { key: 'high',   label: 'High',   color: 'bg-yellow-900 text-yellow-300',         active: 'bg-yellow-500 text-white ring-2 ring-yellow-300' },
+  ];
+
   return (
-    <div className="flex items-center gap-3 bg-black/20 rounded-lg px-3 py-2">
-      {item.previewUrl && (
-        <img src={item.previewUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
-      )}
-      <div className="flex-1 min-w-0">
-        {editing ? (
-          <div className="flex gap-2 items-center">
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="flex-1 bg-gray-700 text-white text-sm rounded px-2 py-1 min-w-0"
-            />
-            <span className="text-gray-400 text-sm">$</span>
-            <input
-              type="number"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
-              className="w-16 bg-gray-700 text-white text-sm rounded px-2 py-1"
-            />
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-white text-sm truncate">{item.itemName || 'Unknown item'}</span>
-            <span className="text-green-400 font-bold text-sm flex-shrink-0">${item.aiPriceMedium}</span>
-          </div>
+    <div className="bg-black/20 rounded-xl px-3 py-3 space-y-2">
+      {/* Top row: photo + name + edit */}
+      <div className="flex items-center gap-3">
+        {item.previewUrl && (
+          <img src={item.previewUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
         )}
-        {!editing && item.notes && (
-          <p className="text-gray-400 text-xs truncate mt-0.5">{item.notes}</p>
-        )}
-        {!editing && (
-          <p className="text-gray-500 text-xs">Range: ${item.aiPriceLow}–${item.aiPriceHigh}</p>
-        )}
+        <div className="flex-1 min-w-0">
+          {editingName ? (
+            <div className="flex gap-2 items-center">
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onBlur={saveName}
+                onKeyDown={e => e.key === 'Enter' && saveName()}
+                autoFocus
+                className="flex-1 bg-gray-700 text-white text-sm rounded px-2 py-1 min-w-0"
+              />
+              <button onClick={saveName} className="text-green-400"><Save size={16} /></button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-white text-sm truncate flex-1">{item.itemName || 'Unknown item'}</span>
+              <button onClick={() => setEditingName(true)} className="text-gray-600 hover:text-gray-300 flex-shrink-0">
+                <Edit2 size={14} />
+              </button>
+            </div>
+          )}
+          {item.notes && <p className="text-gray-500 text-xs truncate">{item.notes}</p>}
+        </div>
       </div>
-      {editing ? (
-        <button onClick={save} className="text-green-400 flex-shrink-0">
-          <Save size={18} />
-        </button>
-      ) : (
-        <button onClick={() => setEditing(true)} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
-          <Edit2 size={16} />
-        </button>
-      )}
+
+      {/* Price tier selector */}
+      <div className="flex gap-2">
+        {tierConfig.map(({ key, label, color, active }) => (
+          <button
+            key={key}
+            onClick={() => selectTier(key)}
+            className={`flex-1 rounded-lg py-2 text-center transition-all ${selectedTier === key ? active : color}`}
+          >
+            <div className="text-xs font-medium opacity-80">{label}</div>
+            <div className="text-base font-bold leading-tight">${tierPrice[key]}</div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
