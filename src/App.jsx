@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, DollarSign, TrendingUp, AlertCircle, Loader2, Upload, X, ThumbsUp, ThumbsDown, CheckCircle, BarChart3, Home, Trophy, Zap, MessageSquare, MessageCircle, Award, Star, TrendingDown, Share2, AlertTriangle, Send, Edit2, Save, Package, Truck, MapPin, Navigation, Lock, Shield, CreditCard, History, LogOut, Download, Users, Copy, ExternalLink, Link, User, ShoppingCart, ChevronDown } from 'lucide-react';
 import { InputValidation } from './fuzz-tests';
 import { useAuth } from './AuthContext';
@@ -117,6 +117,7 @@ export default function MarketplacePricer() {
   const { saveItemToHistory, logout, currentUser, isGuestMode } = useAuth();
   const { sessionData, currentListingId, createListingRecord, handleFeedbackSubmit } = useFeedbackSystem();
   const routerLocation = useLocation();
+  const navigate = useNavigate();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
   const [analysisMode, setAnalysisMode] = useState('single'); // 'single' or 'bulk'
@@ -1478,6 +1479,19 @@ Provide pricing analysis in this exact JSON structure:
       <div className="py-8 px-4 sm:px-6 lg:px-8 section-pattern">
         {view === 'pricing' && (
           <div className="max-w-7xl mx-auto fade-in">
+            {/* Estate Sale Bulk Pricing Banner */}
+            <div
+              onClick={() => navigate('/app/bulk')}
+              className="cursor-pointer mb-6 bg-gradient-to-r from-emerald-800 to-blue-800 hover:from-emerald-700 hover:to-blue-700 active:from-emerald-900 active:to-blue-900 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
+            >
+              <div className="text-4xl flex-shrink-0">📸</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-white font-bold text-lg leading-tight">Bulk Price Items</div>
+                <div className="text-emerald-200 text-sm">Photo → AI price for entire estate sale. No typing needed.</div>
+              </div>
+              <div className="text-white/60 flex-shrink-0">→</div>
+            </div>
+
             {userProfile?.analysisCount === 0 && !result && !skipWelcome ? (
               <WelcomeDashboard
                 userProfile={userProfile}

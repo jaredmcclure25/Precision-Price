@@ -25,6 +25,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import TermsOfService from './pages/TermsOfService.jsx'
 import DataDeletion from './pages/DataDeletion.jsx'
 import MarketplacePage from './pages/MarketplacePage.jsx'
+import BulkPricingPage from './pages/BulkPricingPage.jsx'
+import SaleReviewPage from './pages/SaleReviewPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -61,6 +63,8 @@ createRoot(document.getElementById('root')).render(
                     <Route path="/" element={<App />} />
                     <Route path="/marketplace" element={<MarketplacePage />} />
                     <Route path="/item/:listingId" element={<ListingPage />} />
+                    <Route path="/bulk" element={<BulkPricingPage />} />
+                    <Route path="/sale/:saleId/review" element={<SaleReviewPage />} />
                   </Routes>
                 </AnalyticsWrapper>
               </AuthWrapper>

@@ -678,6 +678,106 @@ app.post('/api/competitive/analyze', async (req, res) => {
   }
 });
 
+// ============================================================================
+// BULK ESTATE SALE PRICING ENDPOINT
+// ============================================================================
+
+const ESTATE_SALE_SYSTEM_PROMPT = `You are an expert estate sale item pricer with deep knowledge of secondhand market values for household items, furniture, collectibles, vintage goods, kitchenware, electronics, tools, and all categories found in estate sales.
+
+Given a photo of an item, respond with ONLY a JSON object (no markdown, no explanation) in this exact format:
+{
+  "itemName": "Brief descriptive name",
+  "category": "one of: furniture, kitchenware, collectibles, electronics, tools, clothing, books, art, jewelry, toys, outdoor, other",
+  "condition": "one of: excellent, good, fair, poor",
+  "priceLow": 5,
+  "priceMedium": 15,
+  "priceHigh": 25,
+  "confidence": 0.85,
+  "notes": "Optional brief note about the item"
+}
+
+Pricing guidelines:
+- Low = garage sale / quick-sell price
+- Medium = fair estate sale price (what most buyers would pay)
+- High = collector / antique shop retail price
+- Round to nearest $5 for items under $50, nearest $10 for $50-200, nearest $25 over $200
+- confidence is 0.0 to 1.0`;
+
+app.post('/api/bulk-price', async (req, res) => {
+  try {
+    const { images } = req.body; // array of { base64, mediaType }
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ error: 'images array is required' });
+    }
+
+    if (images.length > 20) {
+      return res.status(400).json({ error: 'Maximum 20 images per batch' });
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: 'Server configuration error: ANTHROPIC_API_KEY not set' });
+    }
+
+    const results = await Promise.all(images.map(async (img, idx) => {
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 512,
+            system: ESTATE_SALE_SYSTEM_PROMPT,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: img.mediaType || 'image/jpeg', data: img.base64 } },
+                { type: 'text', text: 'Price this estate sale item.' }
+              ]
+            }]
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Anthropic error ${response.status}`);
+        }
+
+        const data = await response.json();
+        const text = data.content?.[0]?.text || '';
+        const cleaned = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+
+        return {
+          index: idx,
+          success: true,
+          itemName: parsed.itemName || 'Unknown item',
+          category: parsed.category || 'other',
+          condition: parsed.condition || 'good',
+          aiPriceLow: parsed.priceLow || 5,
+          aiPriceMedium: parsed.priceMedium || 15,
+          aiPriceHigh: parsed.priceHigh || 25,
+          aiConfidence: parsed.confidence || 0.7,
+          notes: parsed.notes || '',
+        };
+      } catch (err) {
+        console.error(`[BULK-PRICE] Image ${idx} error:`, err.message);
+        return { index: idx, success: false, error: err.message };
+      }
+    }));
+
+    console.log(`[BULK-PRICE] Processed ${results.length} images, ${results.filter(r => r.success).length} successful`);
+    res.json({ results });
+
+  } catch (error) {
+    console.error('Bulk price error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`
 🚀 Precision Prices Backend Server Running!

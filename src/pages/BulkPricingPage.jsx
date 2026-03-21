@@ -1,0 +1,602 @@
+/**
+ * PrecisionPrices – Bulk Pricing Page
+ * Rapid-fire estate sale photo pricing: snap photos → AI prices all at once → grouped by tier
+ */
+
+import React, { useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
+import { Camera, Upload, X, DollarSign, Loader2, ChevronDown, ChevronUp, Download, ArrowLeft, CheckCircle, AlertCircle, Edit2, Save, Plus } from 'lucide-react';
+import { createSale, addSaleItems } from '../lib/salesFirestore';
+
+// ─── Price tier buckets ───────────────────────────────────────────────────────
+const TIERS = [5, 10, 15, 20, 25, 50, 75, 100, 150, 200];
+
+function snapToTier(price) {
+  if (!price || price <= 0) return 5;
+  for (const t of TIERS) {
+    if (price <= t * 1.4) return t;
+  }
+  return 200;
+}
+
+// ─── Image helpers ────────────────────────────────────────────────────────────
+async function compressImage(file, maxWidth = 1200) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxWidth / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(resolve, 'image/jpeg', 0.75);
+    };
+    img.src = url;
+  });
+}
+
+async function toBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function detectMediaType(base64) {
+  try {
+    const header = atob(base64.substring(0, 16));
+    const b = [...header].map(c => c.charCodeAt(0));
+    if (b[0] === 0x89 && b[1] === 0x50) return 'image/png';
+    if (b[0] === 0xFF && b[1] === 0xD8) return 'image/jpeg';
+    if (b[0] === 0x47 && b[1] === 0x49) return 'image/gif';
+    if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57 && b[9] === 0x45) return 'image/webp';
+  } catch (_) {}
+  return 'image/jpeg';
+}
+
+// ─── Claude Vision call ───────────────────────────────────────────────────────
+const ESTATE_SALE_PROMPT = `You are an expert estate sale item pricer with deep knowledge of secondhand market values.
+
+Given a photo, respond with ONLY a JSON object (no markdown, no explanation):
+{
+  "itemName": "Brief descriptive name",
+  "category": "one of: furniture, kitchenware, collectibles, electronics, tools, clothing, books, art, jewelry, toys, outdoor, other",
+  "condition": "one of: excellent, good, fair, poor",
+  "priceLow": 5,
+  "priceMedium": 15,
+  "priceHigh": 25,
+  "confidence": 0.85,
+  "notes": "Optional brief note"
+}
+
+Pricing guidelines:
+- Low = garage sale / quick-sell
+- Medium = fair estate sale price (default display)
+- High = collector / antique shop retail
+- Round to nearest $5 for items under $50, nearest $10 for $50–200, nearest $25 over $200
+- confidence is 0.0–1.0`;
+
+async function priceOneImage(base64, mediaType) {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+  const response = await fetch(`${backendUrl}/api/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: ESTATE_SALE_PROMPT }
+          ]
+        }
+      ]
+    })
+  });
+  if (!response.ok) throw new Error('API error');
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '';
+  // Strip markdown code fences if present
+  const cleaned = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+  return JSON.parse(cleaned);
+}
+
+// ─── CSV export ───────────────────────────────────────────────────────────────
+function exportCSV(items) {
+  const header = 'Item Name,Description,Price,Category,Condition,Price Low,Price High\n';
+  const rows = items.map(item => {
+    const name = (item.itemName || '').replace(/"/g, '""');
+    const notes = (item.notes || '').replace(/"/g, '""');
+    const cat = item.category || '';
+    const cond = item.condition || '';
+    return `"${name}","${notes}",${item.aiPriceMedium || ''},${cat},${cond},${item.aiPriceLow || ''},${item.aiPriceHigh || ''}`;
+  });
+  const csv = header + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `estate-sale-prices-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── TierGroup component ──────────────────────────────────────────────────────
+function TierGroup({ tier, items, onEdit }) {
+  const [expanded, setExpanded] = useState(true);
+  const label = tier >= 200 ? '$200+' : `$${tier}`;
+  const tierColors = {
+    5:   'bg-gray-700 border-gray-500',
+    10:  'bg-blue-900 border-blue-600',
+    15:  'bg-blue-800 border-blue-500',
+    20:  'bg-indigo-900 border-indigo-600',
+    25:  'bg-purple-900 border-purple-600',
+    50:  'bg-emerald-900 border-emerald-600',
+    75:  'bg-yellow-900 border-yellow-600',
+    100: 'bg-orange-900 border-orange-500',
+    150: 'bg-red-900 border-red-500',
+    200: 'bg-pink-900 border-pink-500',
+  };
+  const colorClass = tierColors[tier] || 'bg-gray-800 border-gray-600';
+
+  return (
+    <div className={`rounded-xl border ${colorClass} mb-4 overflow-hidden`}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-bold text-white">{label}</span>
+          <span className="text-gray-300 text-sm">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+        </div>
+        {expanded ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-2">
+          {items.map(item => (
+            <ItemRow key={item.id} item={item} onEdit={onEdit} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ItemRow component ────────────────────────────────────────────────────────
+function ItemRow({ item, onEdit }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(item.itemName || '');
+  const [price, setPrice] = useState(String(item.aiPriceMedium || ''));
+
+  const save = () => {
+    onEdit(item.id, { itemName: name, aiPriceMedium: parseFloat(price) || item.aiPriceMedium });
+    setEditing(false);
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-black/20 rounded-lg px-3 py-2">
+      {item.previewUrl && (
+        <img src={item.previewUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+      )}
+      <div className="flex-1 min-w-0">
+        {editing ? (
+          <div className="flex gap-2 items-center">
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="flex-1 bg-gray-700 text-white text-sm rounded px-2 py-1 min-w-0"
+            />
+            <span className="text-gray-400 text-sm">$</span>
+            <input
+              type="number"
+              value={price}
+              onChange={e => setPrice(e.target.value)}
+              className="w-16 bg-gray-700 text-white text-sm rounded px-2 py-1"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-white text-sm truncate">{item.itemName || 'Unknown item'}</span>
+            <span className="text-green-400 font-bold text-sm flex-shrink-0">${item.aiPriceMedium}</span>
+          </div>
+        )}
+        {!editing && item.notes && (
+          <p className="text-gray-400 text-xs truncate mt-0.5">{item.notes}</p>
+        )}
+        {!editing && (
+          <p className="text-gray-500 text-xs">Range: ${item.aiPriceLow}–${item.aiPriceHigh}</p>
+        )}
+      </div>
+      {editing ? (
+        <button onClick={save} className="text-green-400 flex-shrink-0">
+          <Save size={18} />
+        </button>
+      ) : (
+        <button onClick={() => setEditing(true)} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
+          <Edit2 size={16} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+function StatusBadge({ status, label }) {
+  const colors = {
+    pending:    'bg-gray-700 text-gray-300',
+    processing: 'bg-blue-800 text-blue-200',
+    done:       'bg-green-800 text-green-200',
+    error:      'bg-red-800 text-red-200',
+  };
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full ${colors[status] || colors.pending}`}>
+      {label}
+    </span>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function BulkPricingPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  const [photos, setPhotos] = useState([]); // { id, file, previewUrl, status, result, error }
+  const [running, setRunning] = useState(false);
+  const [done, setDone] = useState(false);
+  const [items, setItems] = useState([]); // final priced items
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [saleName, setSaleName] = useState('');
+  const [savedSaleId, setSavedSaleId] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  // Add photos from file picker
+  const handleFiles = useCallback((files) => {
+    const newPhotos = Array.from(files).map(file => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: 'pending',
+      result: null,
+      error: null,
+    }));
+    setPhotos(prev => [...prev, ...newPhotos]);
+    setDone(false);
+  }, []);
+
+  const removePhoto = (id) => {
+    setPhotos(prev => {
+      const photo = prev.find(p => p.id === id);
+      if (photo) URL.revokeObjectURL(photo.previewUrl);
+      return prev.filter(p => p.id !== id);
+    });
+  };
+
+  // Price all photos concurrently (max 5 at a time to avoid rate limits)
+  const priceAll = async () => {
+    if (photos.length === 0) return;
+    setRunning(true);
+    setDone(false);
+    setProgress({ current: 0, total: photos.length });
+
+    const CONCURRENCY = 5;
+    const results = [];
+
+    // Reset all to pending
+    setPhotos(prev => prev.map(p => ({ ...p, status: 'pending', result: null, error: null })));
+
+    const queue = [...photos];
+    let completed = 0;
+
+    const processOne = async (photo) => {
+      setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, status: 'processing' } : p));
+      try {
+        const compressed = await compressImage(photo.file);
+        const base64 = await toBase64(compressed);
+        const mediaType = detectMediaType(base64);
+        const result = await priceOneImage(base64, mediaType);
+        const tier = snapToTier(result.priceMedium || result.aiPriceMedium || 15);
+        const item = {
+          id: photo.id,
+          previewUrl: photo.previewUrl,
+          itemName: result.itemName || 'Unknown item',
+          category: result.category || 'other',
+          condition: result.condition || 'good',
+          aiPriceLow: result.priceLow || result.aiPriceLow || 5,
+          aiPriceMedium: result.priceMedium || result.aiPriceMedium || 15,
+          aiPriceHigh: result.priceHigh || result.aiPriceHigh || 25,
+          aiConfidence: result.confidence || 0.7,
+          notes: result.notes || '',
+          suggestedTier: tier,
+        };
+        results.push(item);
+        setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, status: 'done', result: item } : p));
+      } catch (err) {
+        setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, status: 'error', error: err.message } : p));
+      }
+      completed++;
+      setProgress({ current: completed, total: photos.length });
+    };
+
+    // Batch process
+    for (let i = 0; i < queue.length; i += CONCURRENCY) {
+      const batch = queue.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(processOne));
+    }
+
+    results.sort((a, b) => a.suggestedTier - b.suggestedTier);
+    setItems(results);
+    setRunning(false);
+    setDone(true);
+  };
+
+  const editItem = (id, updates) => {
+    setItems(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      const updated = { ...item, ...updates };
+      // Re-snap tier if price changed
+      if (updates.aiPriceMedium !== undefined) {
+        updated.suggestedTier = snapToTier(updates.aiPriceMedium);
+      }
+      return updated;
+    }));
+  };
+
+  // Save to Firestore and go to review
+  const saveAndReview = async () => {
+    if (!user || items.length === 0) return;
+    setSaving(true);
+    try {
+      const saleId = await createSale(user.uid, saleName.trim() || undefined);
+      await addSaleItems(saleId, items);
+      setSavedSaleId(saleId);
+      navigate(`/app/sale/${saleId}/review`);
+    } catch (err) {
+      console.error('Save error:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Group items by tier
+  const byTier = items.reduce((acc, item) => {
+    const t = item.suggestedTier;
+    if (!acc[t]) acc[t] = [];
+    acc[t].push(item);
+    return acc;
+  }, {});
+  const sortedTiers = Object.keys(byTier).map(Number).sort((a, b) => a - b);
+
+  const totalValue = items.reduce((s, i) => s + (i.aiPriceMedium || 0), 0);
+
+  // ── Render: Upload phase ──
+  if (!done) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Header */}
+        <div className="flex items-center gap-3 p-4 border-b border-gray-800">
+          <button onClick={() => navigate('/app')} className="text-gray-400 hover:text-white">
+            <ArrowLeft size={22} />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold">Bulk Price Items</h1>
+            <p className="text-gray-400 text-sm">Photo → AI price, no typing needed</p>
+          </div>
+        </div>
+
+        <div className="p-4 max-w-2xl mx-auto space-y-5">
+          {/* Sale name */}
+          <div>
+            <label className="text-gray-400 text-sm block mb-1">Sale name (optional)</label>
+            <input
+              value={saleName}
+              onChange={e => setSaleName(e.target.value)}
+              placeholder="e.g. Johnson Estate – March 2026"
+              className="w-full bg-gray-800 text-white rounded-xl px-4 py-3 text-base border border-gray-700 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          {/* Photo grid */}
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map(photo => (
+                <div key={photo.id} className="relative aspect-square">
+                  <img
+                    src={photo.previewUrl}
+                    alt=""
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  {/* Status overlay */}
+                  {photo.status === 'processing' && (
+                    <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
+                      <Loader2 size={24} className="text-blue-400 animate-spin" />
+                    </div>
+                  )}
+                  {photo.status === 'done' && (
+                    <div className="absolute inset-0 bg-black/40 rounded-lg flex items-end p-1">
+                      <span className="bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                        ${photo.result?.aiPriceMedium}
+                      </span>
+                    </div>
+                  )}
+                  {photo.status === 'error' && (
+                    <div className="absolute inset-0 bg-red-900/60 rounded-lg flex items-center justify-center">
+                      <AlertCircle size={20} className="text-red-300" />
+                    </div>
+                  )}
+                  {/* Remove button (only when not running) */}
+                  {!running && (
+                    <button
+                      onClick={() => removePhoto(photo.id)}
+                      className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 text-white"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* Add more tile */}
+              {!running && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square rounded-lg border-2 border-dashed border-gray-600 flex items-center justify-center text-gray-500 hover:border-gray-400 hover:text-gray-300 transition-colors"
+                >
+                  <Plus size={28} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Progress bar */}
+          {running && (
+            <div>
+              <div className="flex justify-between text-sm text-gray-400 mb-1">
+                <span>Pricing items…</span>
+                <span>{progress.current} / {progress.total}</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-3">
+                <div
+                  className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${progress.total ? (progress.current / progress.total) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* CTA buttons */}
+          {photos.length === 0 ? (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xl py-5 rounded-2xl flex items-center justify-center gap-3 transition-colors"
+            >
+              <Camera size={28} />
+              Add Photos
+            </button>
+          ) : (
+            <div className="space-y-3">
+              {!running && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Upload size={20} />
+                  Add More Photos ({photos.length} selected)
+                </button>
+              )}
+              <button
+                onClick={priceAll}
+                disabled={running || photos.length === 0}
+                className="w-full bg-green-600 hover:bg-green-500 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xl py-5 rounded-2xl flex items-center justify-center gap-3 transition-colors"
+              >
+                {running ? (
+                  <>
+                    <Loader2 size={26} className="animate-spin" />
+                    Pricing {progress.current} of {progress.total}…
+                  </>
+                ) : (
+                  <>
+                    <DollarSign size={26} />
+                    Price All {photos.length} Items
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          capture="environment"
+          className="hidden"
+          onChange={e => handleFiles(e.target.files)}
+        />
+      </div>
+    );
+  }
+
+  // ── Render: Results phase ──
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 border-b border-gray-800">
+        <button onClick={() => setDone(false)} className="text-gray-400 hover:text-white">
+          <ArrowLeft size={22} />
+        </button>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold">Pricing Results</h1>
+          <p className="text-gray-400 text-sm">{items.length} items · Est. total ${totalValue}</p>
+        </div>
+      </div>
+
+      <div className="p-4 max-w-2xl mx-auto space-y-4">
+        {/* Summary strip */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-gray-800 rounded-xl p-3 text-center">
+            <div className="text-2xl font-bold text-white">{items.length}</div>
+            <div className="text-gray-400 text-xs">Items priced</div>
+          </div>
+          <div className="bg-gray-800 rounded-xl p-3 text-center">
+            <div className="text-2xl font-bold text-green-400">${totalValue}</div>
+            <div className="text-gray-400 text-xs">Est. value</div>
+          </div>
+          <div className="bg-gray-800 rounded-xl p-3 text-center">
+            <div className="text-2xl font-bold text-blue-400">{sortedTiers.length}</div>
+            <div className="text-gray-400 text-xs">Price tiers</div>
+          </div>
+        </div>
+
+        {/* Tier groups */}
+        {sortedTiers.map(tier => (
+          <TierGroup key={tier} tier={tier} items={byTier[tier]} onEdit={editItem} />
+        ))}
+
+        {/* Action buttons */}
+        <div className="space-y-3 pb-8">
+          <button
+            onClick={() => exportCSV(items)}
+            className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors"
+          >
+            <Download size={20} />
+            Export CSV (EstateSales.NET)
+          </button>
+
+          <button
+            onClick={saveAndReview}
+            disabled={saving}
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-lg py-5 rounded-2xl flex items-center justify-center gap-2 transition-colors"
+          >
+            {saving ? (
+              <><Loader2 size={22} className="animate-spin" /> Saving…</>
+            ) : (
+              <><CheckCircle size={22} /> Save Sale & Start Pricing Labels</>
+            )}
+          </button>
+
+          <p className="text-center text-gray-500 text-xs">
+            After the sale, open the review screen to log what sold and for how much.
+          </p>
+        </div>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        capture="environment"
+        className="hidden"
+        onChange={e => handleFiles(e.target.files)}
+      />
+    </div>
+  );
+}
