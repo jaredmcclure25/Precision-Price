@@ -115,7 +115,8 @@ function buildCSV(items) {
     const notes = (item.notes || '').replace(/"/g, '""');
     const cat = item.category || '';
     const cond = item.condition || '';
-    return `"${name}","${notes}",${item.aiPriceMedium || ''},${cat},${cond},${item.aiPriceLow || ''},${item.aiPriceHigh || ''}`;
+    const price = item.selectedPrice ?? item.aiPriceMedium ?? '';
+    return `"${name}","${notes}",${price},${cat},${cond},${item.aiPriceLow || ''},${item.aiPriceHigh || ''}`;
   });
   return header + rows.join('\n');
 }
@@ -181,11 +182,12 @@ function ItemRow({ item, onEdit }) {
   // Which tier is currently selected: 'low' | 'medium' | 'high'
   const [selectedTier, setSelectedTier] = useState('medium');
 
-  const tierPrice = {
+  // Freeze original AI prices on mount — never let parent overwrites affect them
+  const [prices] = useState({
     low:    item.aiPriceLow,
     medium: item.aiPriceMedium,
     high:   item.aiPriceHigh,
-  };
+  });
 
   const saveName = () => {
     onEdit(item.id, { itemName: name });
@@ -194,7 +196,8 @@ function ItemRow({ item, onEdit }) {
 
   const selectTier = (tier) => {
     setSelectedTier(tier);
-    onEdit(item.id, { aiPriceMedium: tierPrice[tier] });
+    // Write to selectedPrice — does NOT overwrite the original AI price fields
+    onEdit(item.id, { selectedPrice: prices[tier] });
   };
 
   const tierConfig = [
@@ -244,7 +247,7 @@ function ItemRow({ item, onEdit }) {
             className={`flex-1 rounded-lg py-2 text-center transition-all ${selectedTier === key ? active : color}`}
           >
             <div className="text-xs font-medium opacity-80">{label}</div>
-            <div className="text-base font-bold leading-tight">${tierPrice[key]}</div>
+            <div className="text-base font-bold leading-tight">${prices[key]}</div>
           </button>
         ))}
       </div>
@@ -367,12 +370,7 @@ export default function BulkPricingPage() {
   const editItem = (id, updates) => {
     setItems(prev => prev.map(item => {
       if (item.id !== id) return item;
-      const updated = { ...item, ...updates };
-      // Re-snap tier if price changed
-      if (updates.aiPriceMedium !== undefined) {
-        updated.suggestedTier = snapToTier(updates.aiPriceMedium);
-      }
-      return updated;
+      return { ...item, ...updates };
     }));
   };
 
@@ -390,7 +388,7 @@ export default function BulkPricingPage() {
         saveItemToHistory({
           itemName: item.itemName || 'Unknown item',
           condition: item.condition || 'good',
-          suggestedPrice: item.aiPriceMedium,
+          suggestedPrice: item.selectedPrice ?? item.aiPriceMedium,
           priceRange: { min: item.aiPriceLow, max: item.aiPriceHigh },
           category: item.category,
           notes: item.notes,
@@ -472,7 +470,7 @@ export default function BulkPricingPage() {
   }, {});
   const sortedTiers = Object.keys(byTier).map(Number).sort((a, b) => a - b);
 
-  const totalValue = items.reduce((s, i) => s + (i.aiPriceMedium || 0), 0);
+  const totalValue = items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
 
   // ── Render: Upload phase ──
   if (!done) {
