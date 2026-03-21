@@ -6,9 +6,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import { Camera, Upload, X, DollarSign, Loader2, ChevronDown, ChevronUp, Download, ArrowLeft, CheckCircle, AlertCircle, Edit2, Save, Plus, FileSpreadsheet } from 'lucide-react';
+import { Camera, Upload, X, DollarSign, Loader2, ChevronDown, ChevronUp, Download, ArrowLeft, CheckCircle, AlertCircle, Edit2, Save, Plus, FileSpreadsheet, LayoutGrid, Tag } from 'lucide-react';
 import { createSale, addSaleItems } from '../lib/salesFirestore';
 import JSZip from 'jszip';
+import * as XLSX from 'xlsx';
 
 // ─── Price tier buckets ───────────────────────────────────────────────────────
 const TIERS = [5, 10, 15, 20, 25, 50, 75, 100, 150, 200];
@@ -107,29 +108,118 @@ async function priceOneImage(base64, mediaType) {
   return JSON.parse(cleaned);
 }
 
-// ─── CSV export ───────────────────────────────────────────────────────────────
+// ─── Excel export ─────────────────────────────────────────────────────────────
+const CATEGORY_LABELS = {
+  furniture: 'Furniture', kitchenware: 'Kitchenware', collectibles: 'Collectibles',
+  electronics: 'Electronics', tools: 'Tools', clothing: 'Clothing',
+  books: 'Books', art: 'Art', jewelry: 'Jewelry', toys: 'Toys',
+  outdoor: 'Outdoor', other: 'Other',
+};
+
+function exportExcel(items, saleName) {
+  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const total   = items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
+
+  // Sort by category then price
+  const sorted = [...items].sort((a, b) => {
+    const catCmp = (a.category || '').localeCompare(b.category || '');
+    if (catCmp !== 0) return catCmp;
+    return (a.selectedPrice ?? a.aiPriceMedium ?? 0) - (b.selectedPrice ?? b.aiPriceMedium ?? 0);
+  });
+
+  const rows = sorted.map((item, i) => ({
+    '#':          i + 1,
+    'Item Name':  item.itemName || 'Unknown Item',
+    'Category':   CATEGORY_LABELS[item.category] || 'Other',
+    'Condition':  item.condition ? item.condition.charAt(0).toUpperCase() + item.condition.slice(1) : 'Good',
+    'Your Price': item.selectedPrice ?? item.aiPriceMedium ?? 0,
+    'Price Low':  item.aiPriceLow ?? 0,
+    'Price High': item.aiPriceHigh ?? 0,
+    'Notes':      item.notes || '',
+  }));
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([]);
+
+  // Title rows
+  XLSX.utils.sheet_add_aoa(ws, [
+    [saleName || 'Estate Sale Pricing Report'],
+    [`Generated ${dateStr}  ·  ${items.length} items  ·  Est. total $${total}`],
+    [],
+  ]);
+
+  // Data rows starting at row 4
+  XLSX.utils.sheet_add_json(ws, rows, { origin: 'A4' });
+
+  // Column widths
+  ws['!cols'] = [
+    { wch: 4 },   // #
+    { wch: 32 },  // Item Name
+    { wch: 14 },  // Category
+    { wch: 12 },  // Condition
+    { wch: 12 },  // Your Price
+    { wch: 10 },  // Price Low
+    { wch: 10 },  // Price High
+    { wch: 36 },  // Notes
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Items');
+  XLSX.writeFile(wb, `${(saleName || 'estate-sale').replace(/[^a-z0-9-_ ]/gi, '')}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+// Keep a plain CSV builder for the ZIP bundle (EstateSales.NET compatibility)
 function buildCSV(items) {
-  const header = 'Item Name,Description,Price,Category,Condition,Price Low,Price High\n';
+  const header = 'Item Name,Category,Condition,Your Price,Price Low,Price High,Notes\n';
   const rows = items.map(item => {
-    const name = (item.itemName || '').replace(/"/g, '""');
+    const name  = (item.itemName || '').replace(/"/g, '""');
     const notes = (item.notes || '').replace(/"/g, '""');
-    const cat = item.category || '';
-    const cond = item.condition || '';
+    const cat   = CATEGORY_LABELS[item.category] || 'Other';
+    const cond  = item.condition ? item.condition.charAt(0).toUpperCase() + item.condition.slice(1) : 'Good';
     const price = item.selectedPrice ?? item.aiPriceMedium ?? '';
-    return `"${name}","${notes}",${price},${cat},${cond},${item.aiPriceLow || ''},${item.aiPriceHigh || ''}`;
+    return `"${name}","${cat}","${cond}",${price},${item.aiPriceLow || ''},${item.aiPriceHigh || ''},"${notes}"`;
   });
   return header + rows.join('\n');
 }
 
-function exportCSV(items) {
-  const csv = buildCSV(items);
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `estate-sale-prices-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+// ─── Category meta ────────────────────────────────────────────────────────────
+const CATEGORY_ICONS = {
+  furniture: '🛋️', kitchenware: '🍳', collectibles: '🏺', electronics: '📱',
+  tools: '🔧', clothing: '👗', books: '📚', art: '🎨', jewelry: '💍',
+  toys: '🧸', outdoor: '🌿', other: '📦',
+};
+
+// ─── CategoryGroup component ──────────────────────────────────────────────────
+function CategoryGroup({ category, items, onEdit }) {
+  const [expanded, setExpanded] = useState(true);
+  const label = CATEGORY_LABELS[category] || 'Other';
+  const icon  = CATEGORY_ICONS[category] || '📦';
+  const catTotal = items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
+
+  return (
+    <div className="rounded-xl border border-gray-700 bg-gray-800 mb-4 overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xl">{icon}</span>
+          <span className="text-lg font-bold text-white">{label}</span>
+          <span className="text-gray-400 text-sm">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-green-400 font-semibold text-sm">${catTotal}</span>
+          {expanded ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+        </div>
+      </button>
+      {expanded && (
+        <div className="px-4 pb-4 space-y-2">
+          {items.map(item => (
+            <ItemRow key={item.id} item={item} onEdit={onEdit} showPriceBadge />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── TierGroup component ──────────────────────────────────────────────────────
@@ -175,7 +265,7 @@ function TierGroup({ tier, items, onEdit }) {
 }
 
 // ─── ItemRow component ────────────────────────────────────────────────────────
-function ItemRow({ item, onEdit }) {
+function ItemRow({ item, onEdit, showPriceBadge = false }) {
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(item.itemName || '');
 
@@ -236,6 +326,11 @@ function ItemRow({ item, onEdit }) {
           )}
           {item.notes && <p className="text-gray-500 text-xs truncate">{item.notes}</p>}
         </div>
+        {showPriceBadge && (
+          <span className="flex-shrink-0 bg-emerald-700 text-emerald-100 text-sm font-bold px-2 py-1 rounded-lg">
+            ${item.selectedPrice ?? item.aiPriceMedium}
+          </span>
+        )}
       </div>
 
       {/* Price tier selector */}
@@ -286,6 +381,8 @@ export default function BulkPricingPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [zipping, setZipping] = useState(false);
+  const [viewMode, setViewMode] = useState('price');       // 'price' | 'category'
+  const [catFilter, setCatFilter] = useState('all');       // 'all' | category key
 
   // Add photos from file picker
   const handleFiles = useCallback((files) => {
@@ -461,8 +558,16 @@ export default function BulkPricingPage() {
     }
   };
 
-  // Group items by tier
-  const byTier = items.reduce((acc, item) => {
+  const totalValue = items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
+
+  // All unique categories present in results
+  const allCategories = [...new Set(items.map(i => i.category || 'other'))].sort();
+
+  // Apply category filter
+  const visibleItems = catFilter === 'all' ? items : items.filter(i => (i.category || 'other') === catFilter);
+
+  // Group by price tier
+  const byTier = visibleItems.reduce((acc, item) => {
     const t = item.suggestedTier;
     if (!acc[t]) acc[t] = [];
     acc[t].push(item);
@@ -470,7 +575,14 @@ export default function BulkPricingPage() {
   }, {});
   const sortedTiers = Object.keys(byTier).map(Number).sort((a, b) => a - b);
 
-  const totalValue = items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
+  // Group by category
+  const byCategory = visibleItems.reduce((acc, item) => {
+    const c = item.category || 'other';
+    if (!acc[c]) acc[c] = [];
+    acc[c].push(item);
+    return acc;
+  }, {});
+  const sortedCategories = Object.keys(byCategory).sort();
 
   // ── Render: Upload phase ──
   if (!done) {
@@ -630,8 +742,8 @@ export default function BulkPricingPage() {
           <ArrowLeft size={22} />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">Pricing Results</h1>
-          <p className="text-gray-400 text-sm">{items.length} items · Est. total ${totalValue}</p>
+          <h1 className="text-xl font-bold">{saleName || 'Pricing Results'}</h1>
+          <p className="text-gray-400 text-sm">{items.length} items · ${totalValue} est.</p>
         </div>
       </div>
 
@@ -647,38 +759,79 @@ export default function BulkPricingPage() {
             <div className="text-gray-400 text-xs">Est. value</div>
           </div>
           <div className="bg-gray-800 rounded-xl p-3 text-center">
-            <div className="text-2xl font-bold text-blue-400">{sortedTiers.length}</div>
-            <div className="text-gray-400 text-xs">Price tiers</div>
+            <div className="text-2xl font-bold text-purple-400">{allCategories.length}</div>
+            <div className="text-gray-400 text-xs">Categories</div>
           </div>
         </div>
 
-        {/* Tier groups */}
-        {sortedTiers.map(tier => (
-          <TierGroup key={tier} tier={tier} items={byTier[tier]} onEdit={editItem} />
-        ))}
+        {/* View toggle */}
+        <div className="flex gap-2 bg-gray-800 rounded-xl p-1">
+          <button
+            onClick={() => setViewMode('price')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${viewMode === 'price' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            <Tag size={15} /> Price Tiers
+          </button>
+          <button
+            onClick={() => setViewMode('category')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${viewMode === 'category' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            <LayoutGrid size={15} /> By Category
+          </button>
+        </div>
+
+        {/* Category filter chips */}
+        {allCategories.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <button
+              onClick={() => setCatFilter('all')}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${catFilter === 'all' ? 'bg-white text-gray-900' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+            >
+              All ({items.length})
+            </button>
+            {allCategories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCatFilter(cat === catFilter ? 'all' : cat)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${catFilter === cat ? 'bg-white text-gray-900' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+              >
+                {CATEGORY_ICONS[cat]} {CATEGORY_LABELS[cat] || cat} ({items.filter(i => (i.category || 'other') === cat).length})
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Groups */}
+        {viewMode === 'price'
+          ? sortedTiers.map(tier => (
+              <TierGroup key={tier} tier={tier} items={byTier[tier]} onEdit={editItem} />
+            ))
+          : sortedCategories.map(cat => (
+              <CategoryGroup key={cat} category={cat} items={byCategory[cat]} onEdit={editItem} />
+            ))
+        }
 
         {/* Action buttons */}
         <div className="space-y-3 pb-8">
           <div className="flex gap-2">
             <button
-              onClick={() => exportCSV(items)}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors"
+              onClick={() => exportExcel(items, saleName)}
+              className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors"
             >
-              <Download size={18} />
-              CSV
+              <FileSpreadsheet size={18} /> Excel
             </button>
             <button
               onClick={exportZip}
               disabled={zipping}
               className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors"
             >
-              {zipping ? <Loader2 size={18} className="animate-spin" /> : <FileSpreadsheet size={18} />}
+              {zipping ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
               {zipping ? 'Zipping…' : 'ZIP + Photos'}
             </button>
           </div>
 
           <p className="text-center text-gray-400 text-xs -mt-1">
-            ZIP includes photos + CSV — ready to upload directly to EstateSales.NET
+            Excel: professional report · ZIP: photos + CSV for EstateSales.NET
           </p>
 
           {saveError && (
