@@ -3,11 +3,11 @@
  * Rapid-fire estate sale photo pricing: snap photos → AI prices all at once → grouped by tier
  */
 
-import React, { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { Camera, Upload, X, DollarSign, Loader2, ChevronDown, ChevronUp, Download, ArrowLeft, CheckCircle, AlertCircle, Edit2, Save, Plus, FileSpreadsheet, LayoutGrid, Tag } from 'lucide-react';
-import { createSale, addSaleItems } from '../lib/salesFirestore';
+import { createSale, addSaleItems, addRoomItems, getRoom, getSale } from '../lib/salesFirestore';
 import JSZip from 'jszip';
 import * as XLSX from 'xlsx';
 
@@ -370,6 +370,12 @@ export default function BulkPricingPage() {
   const { currentUser, saveItemToHistory } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const [searchParams] = useSearchParams();
+
+  // Room context — when navigated from RoomDetailPage
+  const contextSaleId = searchParams.get('saleId');
+  const contextRoomId = searchParams.get('roomId');
+  const isRoomMode = !!(contextSaleId && contextRoomId);
 
   const [photos, setPhotos] = useState([]); // { id, file, previewUrl, status, result, error }
   const [running, setRunning] = useState(false);
@@ -377,12 +383,24 @@ export default function BulkPricingPage() {
   const [items, setItems] = useState([]); // final priced items
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [saleName, setSaleName] = useState('');
+  const [roomName, setRoomName] = useState('');
   const [savedSaleId, setSavedSaleId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [zipping, setZipping] = useState(false);
   const [viewMode, setViewMode] = useState('price');       // 'price' | 'category'
   const [catFilter, setCatFilter] = useState('all');       // 'all' | category key
+
+  // Load room/sale name when in room mode
+  useEffect(() => {
+    if (!isRoomMode) return;
+    Promise.all([getSale(contextSaleId), getRoom(contextSaleId, contextRoomId)])
+      .then(([sale, room]) => {
+        if (sale) setSaleName(sale.saleName || '');
+        if (room) setRoomName(room.name || '');
+      })
+      .catch(() => {});
+  }, [isRoomMode, contextSaleId, contextRoomId]);
 
   // Add photos from file picker
   const handleFiles = useCallback((files) => {
@@ -471,16 +489,25 @@ export default function BulkPricingPage() {
     }));
   };
 
-  // Save to Firestore, write to listing history, then go to review
+  // Save to Firestore, then navigate appropriately
   const saveAndReview = async () => {
     if (!currentUser || items.length === 0) return;
     setSaving(true);
     setSaveError(null);
     try {
-      const saleId = await createSale(currentUser.uid, saleName.trim() || undefined);
-      await addSaleItems(saleId, items);
+      let targetSaleId;
 
-      // Also save each item into listing history so it shows in the History tab
+      if (isRoomMode) {
+        // Room context: save items into the existing sale + room
+        targetSaleId = contextSaleId;
+        await addRoomItems(contextSaleId, contextRoomId, items);
+      } else {
+        // Flat mode: create a new sale and save items
+        targetSaleId = await createSale(currentUser.uid, saleName.trim() || undefined);
+        await addSaleItems(targetSaleId, items);
+      }
+
+      // Save each item into listing history (History tab)
       await Promise.all(items.map(item =>
         saveItemToHistory({
           itemName: item.itemName || 'Unknown item',
@@ -490,12 +517,17 @@ export default function BulkPricingPage() {
           category: item.category,
           notes: item.notes,
           source: 'bulk',
-          saleId,
+          saleId: targetSaleId,
         })
       ));
 
-      setSavedSaleId(saleId);
-      navigate(`/app/sale/${saleId}/publish`);
+      setSavedSaleId(targetSaleId);
+      if (isRoomMode) {
+        // Go back to the room
+        navigate(`/app/sale/${contextSaleId}/room/${contextRoomId}`);
+      } else {
+        navigate(`/app/sale/${targetSaleId}/publish`);
+      }
     } catch (err) {
       console.error('Save error:', err);
       setSaveError('Could not save — check your connection and try again.');
@@ -590,12 +622,12 @@ export default function BulkPricingPage() {
       <div className="min-h-screen bg-gray-900 text-white">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-800">
-          <button onClick={() => navigate('/app')} className="text-gray-400 hover:text-white">
+          <button onClick={() => isRoomMode ? navigate(`/app/sale/${contextSaleId}/room/${contextRoomId}`) : navigate('/app')} className="text-gray-400 hover:text-white">
             <ArrowLeft size={22} />
           </button>
           <div>
-            <h1 className="text-xl font-bold">Bulk Price Items</h1>
-            <p className="text-gray-400 text-sm">Photo → AI price, no typing needed</p>
+            <h1 className="text-xl font-bold">{isRoomMode && roomName ? `Add to ${roomName}` : 'Bulk Price Items'}</h1>
+            <p className="text-gray-400 text-sm">{isRoomMode ? (saleName || 'Snap photos — AI prices everything') : 'Photo → AI price, no typing needed'}</p>
           </div>
         </div>
 
@@ -848,6 +880,8 @@ export default function BulkPricingPage() {
           >
             {saving ? (
               <><Loader2 size={22} className="animate-spin" /> Saving…</>
+            ) : isRoomMode ? (
+              <><CheckCircle size={22} /> Save {items.length} Items to {roomName || 'Room'}</>
             ) : (
               <><CheckCircle size={22} /> Save Sale & Publish</>
             )}

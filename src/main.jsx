@@ -29,6 +29,10 @@ import BulkPricingPage from './pages/BulkPricingPage.jsx'
 import SaleReviewPage from './pages/SaleReviewPage.jsx'
 import PublishSalePage from './pages/PublishSalePage.jsx'
 import SquareConnectPage from './pages/SquareConnectPage.jsx'
+import SalesListPage from './pages/SalesListPage.jsx'
+import CreateSalePage from './pages/CreateSalePage.jsx'
+import SaleAlbumPage from './pages/SaleAlbumPage.jsx'
+import RoomDetailPage from './pages/RoomDetailPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -66,6 +70,10 @@ createRoot(document.getElementById('root')).render(
                     <Route path="/marketplace" element={<MarketplacePage />} />
                     <Route path="/item/:listingId" element={<ListingPage />} />
                     <Route path="/bulk" element={<BulkPricingPage />} />
+                    <Route path="/sales" element={<SalesListPage />} />
+                    <Route path="/sale/new" element={<CreateSalePage />} />
+                    <Route path="/sale/:saleId" element={<SaleAlbumPage />} />
+                    <Route path="/sale/:saleId/room/:roomId" element={<RoomDetailPage />} />
                     <Route path="/sale/:saleId/publish" element={<PublishSalePage />} />
                     <Route path="/sale/:saleId/review" element={<SaleReviewPage />} />
                     <Route path="/settings/square" element={<SquareConnectPage />} />

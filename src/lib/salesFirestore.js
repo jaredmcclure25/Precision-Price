@@ -9,6 +9,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   addDoc,
   query,
   where,
@@ -18,21 +19,36 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function generateSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').slice(0, 50)
+    + '-' + Date.now().toString(36);
+}
+
 // ─── Sale Sessions ────────────────────────────────────────────────────────────
 
 /**
- * Create a new sale session
+ * Create a new sale session.
  * @param {string} userId
- * @param {string} saleName  e.g. "Johnson Estate – March 2026"
+ * @param {string|Object} nameOrOptions  String (legacy) or { saleName, description, saleDate, endDate, address }
  * @returns {Promise<string>} saleId
  */
-export const createSale = async (userId, saleName = '') => {
+export const createSale = async (userId, nameOrOptions = '') => {
+  const opts = typeof nameOrOptions === 'string' ? { saleName: nameOrOptions } : (nameOrOptions || {});
+  const name = opts.saleName || `Sale – ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
   const salesRef = collection(db, 'sales');
   const saleDoc = await addDoc(salesRef, {
     userId,
-    saleName: saleName || `Sale – ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
-    status: 'pricing',
+    saleName: name,
+    slug: generateSlug(name),
+    description: opts.description || '',
+    saleDate: opts.saleDate || '',
+    endDate: opts.endDate || '',
+    address: opts.address || '',
+    status: 'drafting',
     totalItems: 0,
+    totalRooms: 0,
     totalSold: 0,
     totalRevenue: 0,
     createdAt: serverTimestamp(),
@@ -194,4 +210,94 @@ export const getSaleSummary = async (saleId) => {
     avgAccuracy,
     sellThroughRate: reviewed.length ? (sold.length / reviewed.length) : 0,
   };
+};
+
+// ─── Rooms ────────────────────────────────────────────────────────────────────
+
+/** Add a room to a sale */
+export const addRoom = async (saleId, name, sortOrder = 0) => {
+  const roomsRef = collection(db, 'sales', saleId, 'rooms');
+  const roomDoc = await addDoc(roomsRef, {
+    name,
+    sortOrder,
+    itemCount: 0,
+    totalValue: 0,
+    createdAt: serverTimestamp(),
+  });
+  const saleRef = doc(db, 'sales', saleId);
+  const snap = await getDoc(saleRef);
+  await updateDoc(saleRef, { totalRooms: (snap.data()?.totalRooms || 0) + 1, updatedAt: serverTimestamp() });
+  return roomDoc.id;
+};
+
+/** Get all rooms for a sale, ordered by sortOrder */
+export const getRooms = async (saleId) => {
+  const q = query(collection(db, 'sales', saleId, 'rooms'), orderBy('sortOrder', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ ...d.data(), id: d.id }));
+};
+
+/** Get a single room */
+export const getRoom = async (saleId, roomId) => {
+  const snap = await getDoc(doc(db, 'sales', saleId, 'rooms', roomId));
+  return snap.exists() ? { ...snap.data(), id: snap.id } : null;
+};
+
+/** Update room fields (name, sortOrder, etc.) */
+export const updateRoom = async (saleId, roomId, updates) => {
+  await updateDoc(doc(db, 'sales', saleId, 'rooms', roomId), { ...updates, updatedAt: serverTimestamp() });
+};
+
+/** Delete a room and all its items */
+export const deleteRoom = async (saleId, roomId) => {
+  const items = await getRoomItems(saleId, roomId);
+  for (const item of items) {
+    await deleteDoc(doc(db, 'sales', saleId, 'items', item.id));
+  }
+  await deleteDoc(doc(db, 'sales', saleId, 'rooms', roomId));
+  const saleRef = doc(db, 'sales', saleId);
+  const snap = await getDoc(saleRef);
+  const current = snap.data()?.totalRooms || 1;
+  await updateDoc(saleRef, { totalRooms: Math.max(0, current - 1), updatedAt: serverTimestamp() });
+};
+
+/** Get items that belong to a specific room */
+export const getRoomItems = async (saleId, roomId) => {
+  const q = query(
+    collection(db, 'sales', saleId, 'items'),
+    where('roomId', '==', roomId),
+    orderBy('createdAt', 'asc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ ...d.data(), id: d.id, createdAt: d.data().createdAt?.toDate?.() || new Date() }));
+};
+
+/** Add a batch of priced items to a specific room within a sale */
+export const addRoomItems = async (saleId, roomId, items) => {
+  const itemIds = [];
+  for (const item of items) {
+    const itemRef = collection(db, 'sales', saleId, 'items');
+    const newDoc = await addDoc(itemRef, {
+      ...item,
+      roomId,
+      outcome: null,
+      soldPrice: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    itemIds.push(newDoc.id);
+  }
+  // Update room stats
+  const allRoomItems = await getRoomItems(saleId, roomId);
+  const roomValue = allRoomItems.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
+  await updateDoc(doc(db, 'sales', saleId, 'rooms', roomId), {
+    itemCount: allRoomItems.length,
+    totalValue: roomValue,
+    updatedAt: serverTimestamp(),
+  });
+  // Update sale total
+  const saleRef = doc(db, 'sales', saleId);
+  const snap = await getDoc(saleRef);
+  await updateDoc(saleRef, { totalItems: (snap.data()?.totalItems || 0) + items.length, updatedAt: serverTimestamp() });
+  return itemIds;
 };

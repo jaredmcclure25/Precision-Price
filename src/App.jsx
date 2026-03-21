@@ -1479,17 +1479,30 @@ Provide pricing analysis in this exact JSON structure:
       <div className="py-8 px-4 sm:px-6 lg:px-8 section-pattern">
         {view === 'pricing' && (
           <div className="max-w-7xl mx-auto fade-in">
-            {/* Estate Sale Bulk Pricing Banner */}
-            <div
-              onClick={() => navigate('/app/bulk')}
-              className="cursor-pointer mb-6 bg-gradient-to-r from-emerald-800 to-blue-800 hover:from-emerald-700 hover:to-blue-700 active:from-emerald-900 active:to-blue-900 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
-            >
-              <div className="text-4xl flex-shrink-0">📸</div>
-              <div className="flex-1 min-w-0">
-                <div className="text-white font-bold text-lg leading-tight">Bulk Price Items</div>
-                <div className="text-emerald-200 text-sm">Photo → AI price for entire estate sale. No typing needed.</div>
+            {/* Estate Sales Banner */}
+            <div className="mb-6 space-y-2">
+              <div
+                onClick={() => navigate('/app/sales')}
+                className="cursor-pointer bg-gradient-to-r from-blue-700 to-purple-700 hover:from-blue-600 hover:to-purple-600 active:from-blue-800 active:to-purple-800 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
+              >
+                <div className="text-4xl flex-shrink-0">🏠</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-bold text-lg leading-tight">Estate Sales</div>
+                  <div className="text-blue-200 text-sm">Room-by-room pricing · Labels · Square POS</div>
+                </div>
+                <div className="text-white/60 flex-shrink-0">→</div>
               </div>
-              <div className="text-white/60 flex-shrink-0">→</div>
+              <div
+                onClick={() => navigate('/app/bulk')}
+                className="cursor-pointer bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700 rounded-2xl p-3 flex items-center gap-3 transition-all"
+              >
+                <div className="text-2xl flex-shrink-0">📸</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-semibold text-sm leading-tight">Quick Bulk Price</div>
+                  <div className="text-emerald-200 text-xs">Snap photos → instant AI prices (no rooms)</div>
+                </div>
+                <div className="text-white/60 flex-shrink-0 text-sm">→</div>
+              </div>
             </div>
 
             {userProfile?.analysisCount === 0 && !result && !skipWelcome ? (
