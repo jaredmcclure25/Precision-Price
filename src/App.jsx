@@ -443,7 +443,7 @@ export default function MarketplacePricer() {
   const analyzePricing = async () => {
     // Validate inputs before API call
     if (images.length === 0 && !itemName.trim()) {
-      setError('Please provide either an image or item name');
+      setError('Please add a photo or enter an item name');
       return;
     }
 
@@ -4349,8 +4349,8 @@ function BulkAnalysis() {
       : '/api/analyze';
 
     for (const item of items) {
-      if (!item.itemName.trim()) {
-        updateItem(item.id, 'error', 'Item name required');
+      if (!item.itemName.trim() && item.images.length === 0) {
+        updateItem(item.id, 'error', 'Add a photo or enter an item name');
         continue;
       }
 
@@ -4400,7 +4400,7 @@ function BulkAnalysis() {
         let prompt = `You are a marketplace pricing expert. Analyze this item for accurate pricing.`;
         if (item.images.length > 0) prompt += `\n\nAnalyze the ${item.images.length} image(s).`;
 
-        prompt += `\n\nItem: ${item.itemName}\nCondition: ${item.condition}\nLocation: ${item.location || 'Not specified'}`;
+        prompt += `\n\nItem: ${item.itemName.trim() || 'Unknown — identify from the photo'}\nCondition: ${item.condition}\nLocation: ${item.location || 'Not specified'}`;
         prompt += `\n\nProvide ONLY valid JSON in this structure:\n{\n  "itemIdentification": {"name": "string", "category": "string"},\n  "suggestedPriceRange": {"min": number, "max": number, "optimal": number},\n  "pricingStrategy": {"listingPrice": number, "minimumAcceptable": number}\n}`;
 
         contentParts.push({ type: 'text', text: prompt });
