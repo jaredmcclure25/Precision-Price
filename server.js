@@ -799,7 +799,7 @@ const APP_URL             = process.env.APP_URL || 'https://precisionprices.com'
 
 app.get('/api/square/auth-url', (req, res) => {
   const { userId } = req.query;
-  if (!SQUARE_APP_ID) return res.status(500).json({ error: 'Square not configured' });
+  if (!SQUARE_APP_ID) return res.status(200).json({ error: 'Square app credentials are not configured on the server. Add SQUARE_APP_ID and SQUARE_APP_SECRET to Railway environment variables.' });
 
   const state = Buffer.from(JSON.stringify({ userId, ts: Date.now() })).toString('base64');
   const scopes = ['ITEMS_READ', 'ITEMS_WRITE', 'ORDERS_READ', 'PAYMENTS_READ'].join('+');
@@ -927,11 +927,12 @@ app.post('/api/square/push-catalog', async (req, res) => {
 
 app.post('/api/generate-labels', async (req, res) => {
   try {
-    const { items, saleName } = req.body;
+    const { items } = req.body;
     if (!items?.length) return res.status(400).json({ error: 'items required' });
 
-    // Sort by price tier
-    const sorted = [...items].sort((a, b) => (a.aiPriceMedium || 0) - (b.aiPriceMedium || 0));
+    // Normalise price field: client sends 'price', legacy may send 'aiPriceMedium'
+    const normalised = items.map(i => ({ ...i, price: i.price ?? i.aiPriceMedium ?? 5 }));
+    const sorted = [...normalised].sort((a, b) => (a.price || 0) - (b.price || 0));
 
     const pdfDoc   = await PDFDocument.create();
     const font     = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -967,7 +968,7 @@ app.post('/api/generate-labels', async (req, res) => {
       page.drawText(name, { x: x + 4, y: y + LH - 14, size: 8, font: fontReg, color: rgb(0.2, 0.2, 0.2), maxWidth: LW - 8 });
 
       // Price — large and bold
-      const priceStr = `$${item.aiPriceMedium}`;
+      const priceStr = `$${item.price}`;
       page.drawText(priceStr, { x: x + 4, y: y + LH - 30, size: 18, font, color: rgb(0.05, 0.05, 0.05) });
 
       // Barcode using bwip-js (CODE128)
@@ -998,6 +999,11 @@ app.post('/api/generate-labels', async (req, res) => {
 });
 
 // ── Square Webhook Receiver ───────────────────────────────────────────────────
+
+// GET handler: lets browsers/Square verify the endpoint is reachable
+app.get('/api/webhooks/square', (req, res) => {
+  res.status(200).json({ ok: true, message: 'PrecisionPrices Square webhook endpoint is active. Subscribe to order.completed via Square Developer Dashboard.' });
+});
 
 // Square sends raw body for signature verification — must parse manually
 app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), async (req, res) => {

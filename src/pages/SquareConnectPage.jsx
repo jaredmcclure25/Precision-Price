@@ -121,7 +121,7 @@ export default function SquareConnectPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="flex items-center gap-3 p-4 border-b border-gray-800">
-        <button onClick={() => navigate('/app')} className="text-gray-400 hover:text-white">
+        <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white">
           <ArrowLeft size={22} />
         </button>
         <div>
