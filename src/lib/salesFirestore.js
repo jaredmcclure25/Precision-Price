@@ -261,15 +261,17 @@ export const deleteRoom = async (saleId, roomId) => {
   await updateDoc(saleRef, { totalRooms: Math.max(0, current - 1), updatedAt: serverTimestamp() });
 };
 
-/** Get items that belong to a specific room */
+/** Get items that belong to a specific room.
+ *  Uses a single where() — no composite index required. */
 export const getRoomItems = async (saleId, roomId) => {
   const q = query(
     collection(db, 'sales', saleId, 'items'),
-    where('roomId', '==', roomId),
-    orderBy('createdAt', 'asc')
+    where('roomId', '==', roomId)
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ ...d.data(), id: d.id, createdAt: d.data().createdAt?.toDate?.() || new Date() }));
+  const docs = snap.docs.map(d => ({ ...d.data(), id: d.id, createdAt: d.data().createdAt?.toDate?.() || new Date() }));
+  // Sort client-side to avoid needing a composite index
+  return docs.sort((a, b) => a.createdAt - b.createdAt);
 };
 
 /** Add a batch of priced items to a specific room within a sale */
@@ -287,12 +289,15 @@ export const addRoomItems = async (saleId, roomId, items) => {
     });
     itemIds.push(newDoc.id);
   }
-  // Update room stats
-  const allRoomItems = await getRoomItems(saleId, roomId);
-  const roomValue = allRoomItems.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
+  // Update room stats using the room doc's existing counts + new batch size
+  // (avoids a compound query that would need a composite index)
+  const roomSnap = await getDoc(doc(db, 'sales', saleId, 'rooms', roomId));
+  const prevCount = roomSnap.data()?.itemCount || 0;
+  const prevValue = roomSnap.data()?.totalValue || 0;
+  const addedValue = items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
   await updateDoc(doc(db, 'sales', saleId, 'rooms', roomId), {
-    itemCount: allRoomItems.length,
-    totalValue: roomValue,
+    itemCount: prevCount + items.length,
+    totalValue: prevValue + addedValue,
     updatedAt: serverTimestamp(),
   });
   // Update sale total
