@@ -495,6 +495,9 @@ export default function GuidedResultsDisplay({
                     Post to FB
                   </button>
                 </div>
+
+                {/* EstateSales.NET Export */}
+                <EstateSalesExport result={result} itemDetails={itemDetails} />
               </div>
             )}
           </div>
@@ -551,6 +554,110 @@ export default function GuidedResultsDisplay({
           onClose={() => setShowTransactionModal(false)}
         />
       )}
+    </div>
+  );
+}
+
+// ─── EstateSales.NET Export Component ────────────────────────────────────────
+function EstateSalesExport({ result, itemDetails }) {
+  const [copied, setCopied] = useState(null);
+
+  if (!result) return null;
+
+  const name = result.itemIdentification?.name || itemDetails?.itemName || 'Item';
+  const price = result.suggestedPriceRange?.optimal || result.pricingStrategy?.listingPrice || 0;
+  const condition = itemDetails?.condition || 'good';
+  const category = result.itemIdentification?.category || '';
+  const notes = result.marketInsights?.sellingTips || '';
+
+  const conditionLabel = {
+    excellent: 'Excellent condition',
+    good: 'Good condition',
+    fair: 'Fair condition',
+    poor: 'Poor condition',
+  }[condition] || 'Good condition';
+
+  const description = [
+    conditionLabel + '.',
+    notes,
+    `AI-priced at $${price}.`,
+  ].filter(Boolean).join(' ');
+
+  const copyText = `${name}\n$${price}\n${description}`;
+
+  const copy = (text, key) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
+  return (
+    <div className="mt-4 border border-orange-200 rounded-xl overflow-hidden">
+      <div className="bg-orange-50 px-4 py-2 border-b border-orange-200 flex items-center justify-between">
+        <span className="text-sm font-semibold text-orange-800">EstateSales.NET</span>
+        <button
+          onClick={() => window.open('https://www.estatesales.net/account/company', '_blank')}
+          className="text-xs text-orange-600 hover:text-orange-800 flex items-center gap-1"
+        >
+          Open EstateSales.NET <ExternalLink className="w-3 h-3" />
+        </button>
+      </div>
+      <div className="p-4 space-y-3 bg-white">
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1">
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Title</span>
+            <p className="font-semibold text-gray-900">{name}</p>
+          </div>
+          <button onClick={() => copy(name, 'es-title')} className="text-gray-400 hover:text-orange-600 p-1 flex-shrink-0">
+            {copied === 'es-title' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Price row */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1">
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Price</span>
+            <p className="font-bold text-orange-700 text-lg">${price}</p>
+          </div>
+          <button onClick={() => copy(String(price), 'es-price')} className="text-gray-400 hover:text-orange-600 p-1 flex-shrink-0">
+            {copied === 'es-price' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Description row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Description</span>
+            <p className="text-gray-700 text-sm mt-0.5">{description}</p>
+          </div>
+          <button onClick={() => copy(description, 'es-desc')} className="text-gray-400 hover:text-orange-600 p-1 flex-shrink-0 mt-4">
+            {copied === 'es-desc' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Copy all + open */}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={() => copy(copyText, 'es-all')}
+            className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            {copied === 'es-all' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied === 'es-all' ? 'Copied!' : 'Copy All Fields'}
+          </button>
+          <button
+            onClick={() => window.open('https://www.estatesales.net/account/company', '_blank')}
+            className="flex-1 py-2.5 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Open & Paste
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 text-center">
+          Copy fields above, then paste into your EstateSales.NET listing form.
+        </p>
+      </div>
     </div>
   );
 }

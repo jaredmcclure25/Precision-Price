@@ -4491,10 +4491,11 @@ function BulkAnalysis() {
     const csv = [
       ['Item Name', 'Condition', 'Location', 'Low Price', 'Target Price', 'High Price', 'Status'].join(','),
       ...items.map(item => {
-        if (!item.result) return [item.itemName, item.condition, item.location, '', '', '', 'Not analyzed'].join(',');
+        const displayName = item.result?.itemIdentification?.name || item.itemName || 'Unknown Item';
+        if (!item.result) return [displayName, item.condition, item.location, '', '', '', 'Not analyzed'].join(',');
         const prices = item.result.pricing?.prices || [];
         return [
-          item.itemName,
+          displayName,
           item.condition,
           item.location,
           prices[0] || '',

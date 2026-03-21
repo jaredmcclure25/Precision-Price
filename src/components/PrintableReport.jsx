@@ -123,7 +123,7 @@ const PrintableReport = ({ items, onClose }) => {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <h3 className="text-lg font-bold text-gray-900">
-                          {index + 1}. {item.itemName || 'Unnamed Item'}
+                          {index + 1}. {item.result?.itemIdentification?.name || item.itemName || 'Unnamed Item'}
                         </h3>
                         <p className="text-sm text-gray-500">
                           Condition: <span className="capitalize">{item.condition}</span>
