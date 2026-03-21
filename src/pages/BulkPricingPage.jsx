@@ -400,7 +400,7 @@ export default function BulkPricingPage() {
       ));
 
       setSavedSaleId(saleId);
-      navigate(`/app/sale/${saleId}/review`);
+      navigate(`/app/sale/${saleId}/publish`);
     } catch (err) {
       console.error('Save error:', err);
       setSaveError('Could not save — check your connection and try again.');
@@ -698,12 +698,12 @@ export default function BulkPricingPage() {
             {saving ? (
               <><Loader2 size={22} className="animate-spin" /> Saving…</>
             ) : (
-              <><CheckCircle size={22} /> Save Sale & Start Post-Sale Review</>
+              <><CheckCircle size={22} /> Save Sale & Publish</>
             )}
           </button>
 
           <p className="text-center text-gray-500 text-xs">
-            After the sale, open the review screen to log what sold and for how much.
+            Next: push to Square catalog, print barcode labels, then run the sale.
           </p>
         </div>
       </div>

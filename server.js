@@ -778,6 +778,331 @@ app.post('/api/bulk-price', async (req, res) => {
   }
 });
 
+// ============================================================================
+// SQUARE INTEGRATION
+// ============================================================================
+
+import crypto from 'crypto';
+import bwipjs from 'bwip-js';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+
+const SQUARE_APP_ID       = process.env.SQUARE_APP_ID || '';
+const SQUARE_APP_SECRET   = process.env.SQUARE_APP_SECRET || '';
+const SQUARE_WEBHOOK_KEY  = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY || '';
+const SQUARE_ENV          = process.env.SQUARE_ENVIRONMENT || 'sandbox';
+const SQUARE_BASE         = SQUARE_ENV === 'production'
+  ? 'https://connect.squareup.com'
+  : 'https://connect.squareupsandbox.com';
+const APP_URL             = process.env.APP_URL || 'https://precisionprices.com';
+
+// ── Square OAuth ──────────────────────────────────────────────────────────────
+
+app.get('/api/square/auth-url', (req, res) => {
+  const { userId } = req.query;
+  if (!SQUARE_APP_ID) return res.status(500).json({ error: 'Square not configured' });
+
+  const state = Buffer.from(JSON.stringify({ userId, ts: Date.now() })).toString('base64');
+  const scopes = ['ITEMS_READ', 'ITEMS_WRITE', 'ORDERS_READ', 'PAYMENTS_READ'].join('+');
+  const url = `${SQUARE_BASE}/oauth2/authorize?client_id=${SQUARE_APP_ID}&scope=${scopes}&state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(APP_URL + '/api/square/oauth/callback')}`;
+  res.json({ url });
+});
+
+app.get('/api/square/oauth/callback', async (req, res) => {
+  const { code, state } = req.query;
+  if (!code) return res.redirect(`${APP_URL}/app/settings/square?error=no_code`);
+
+  try {
+    const { userId } = JSON.parse(Buffer.from(state, 'base64').toString());
+
+    const tokenRes = await fetch(`${SQUARE_BASE}/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Square-Version': '2024-01-18' },
+      body: JSON.stringify({
+        client_id: SQUARE_APP_ID,
+        client_secret: SQUARE_APP_SECRET,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: `${APP_URL}/api/square/oauth/callback`,
+      }),
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) throw new Error('No access token');
+
+    // Get merchant info for location
+    const merchantRes = await fetch(`${SQUARE_BASE}/v2/merchants/me`, {
+      headers: { Authorization: `Bearer ${tokenData.access_token}`, 'Square-Version': '2024-01-18' },
+    });
+    const merchantData = await merchantRes.json();
+    const merchantId = merchantData.merchant?.id || '';
+
+    // Get first location
+    const locRes = await fetch(`${SQUARE_BASE}/v2/locations`, {
+      headers: { Authorization: `Bearer ${tokenData.access_token}`, 'Square-Version': '2024-01-18' },
+    });
+    const locData = await locRes.json();
+    const locationId = locData.locations?.[0]?.id || '';
+
+    // Store in Firestore via Admin SDK would be ideal but we'll pass back to client
+    res.redirect(`${APP_URL}/app/settings/square?connected=1&merchantId=${merchantId}&locationId=${locationId}&token=${tokenData.access_token}&refresh=${tokenData.refresh_token || ''}&userId=${userId}`);
+  } catch (err) {
+    console.error('Square OAuth error:', err);
+    res.redirect(`${APP_URL}/app/settings/square?error=oauth_failed`);
+  }
+});
+
+// ── Square Catalog Push ───────────────────────────────────────────────────────
+
+app.post('/api/square/push-catalog', async (req, res) => {
+  try {
+    const { items, accessToken, locationId } = req.body;
+    if (!items?.length || !accessToken) {
+      return res.status(400).json({ error: 'items and accessToken required' });
+    }
+
+    const BATCH_SIZE = 100;
+    const results = [];
+
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+
+      const objects = batch.flatMap(item => {
+        const itemId = `#pp-${item.id}`;
+        const varId  = `#pp-${item.id}-var`;
+        return [{
+          type: 'ITEM',
+          id: itemId,
+          item_data: {
+            name: item.itemName || 'Estate Sale Item',
+            description: `Priced by PrecisionPrices | ${item.category || 'misc'}`,
+            variations: [{
+              type: 'ITEM_VARIATION',
+              id: varId,
+              item_variation_data: {
+                name: 'Regular',
+                sku: `PP-${item.id}`,
+                pricing_type: 'FIXED_PRICING',
+                price_money: { amount: Math.round((item.aiPriceMedium || 0) * 100), currency: 'USD' },
+              },
+            }],
+          },
+        }];
+      });
+
+      const squareRes = await fetch(`${SQUARE_BASE}/v2/catalog/batch-upsert`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Square-Version': '2024-01-18',
+        },
+        body: JSON.stringify({
+          idempotency_key: `pp-batch-${Date.now()}-${i}`,
+          batches: [{ objects }],
+        }),
+      });
+
+      const squareData = await squareRes.json();
+      if (squareData.errors?.length) {
+        console.error('Square catalog errors:', squareData.errors);
+      }
+
+      // Map temporary IDs to real Square IDs
+      const idMapping = squareData.id_mappings || [];
+      batch.forEach(item => {
+        const mapping = idMapping.find(m => m.client_object_id === `#pp-${item.id}`);
+        results.push({ ppId: item.id, squareId: mapping?.object_id || null, sku: `PP-${item.id}` });
+      });
+    }
+
+    console.log(`[SQUARE] Pushed ${results.length} items to catalog`);
+    res.json({ success: true, results });
+  } catch (err) {
+    console.error('Square catalog push error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Label PDF Generation ──────────────────────────────────────────────────────
+
+app.post('/api/generate-labels', async (req, res) => {
+  try {
+    const { items, saleName } = req.body;
+    if (!items?.length) return res.status(400).json({ error: 'items required' });
+
+    // Sort by price tier
+    const sorted = [...items].sort((a, b) => (a.aiPriceMedium || 0) - (b.aiPriceMedium || 0));
+
+    const pdfDoc   = await PDFDocument.create();
+    const font     = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg  = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // Label dimensions: 2.25" x 1.25" = 162pt x 90pt (72pt per inch)
+    const LW = 162, LH = 90;
+    // 4 labels per row, 8 rows per page on letter (612 x 792)
+    const COLS = 4, ROWS = 8;
+    const PAD_X = (612 - COLS * LW) / 2;
+    const PAD_Y = (792 - ROWS * LH) / 2;
+
+    let page, col = 0, row = 0;
+
+    const newPage = () => {
+      page = pdfDoc.addPage([612, 792]);
+      col = 0; row = 0;
+    };
+    newPage();
+
+    for (const item of sorted) {
+      if (col >= COLS) { col = 0; row++; }
+      if (row >= ROWS) newPage();
+
+      const x = PAD_X + col * LW;
+      const y = 792 - PAD_Y - (row + 1) * LH;
+
+      // Label border
+      page.drawRectangle({ x, y, width: LW, height: LH, borderWidth: 0.5, borderColor: rgb(0.8, 0.8, 0.8) });
+
+      // Item name (truncate to ~22 chars)
+      const name = (item.itemName || 'Item').slice(0, 24);
+      page.drawText(name, { x: x + 4, y: y + LH - 14, size: 8, font: fontReg, color: rgb(0.2, 0.2, 0.2), maxWidth: LW - 8 });
+
+      // Price — large and bold
+      const priceStr = `$${item.aiPriceMedium}`;
+      page.drawText(priceStr, { x: x + 4, y: y + LH - 30, size: 18, font, color: rgb(0.05, 0.05, 0.05) });
+
+      // Barcode using bwip-js (CODE128)
+      const sku = `PP-${item.id}`;
+      try {
+        const barcodePng = await bwipjs.toBuffer({
+          bcid: 'code128', text: sku,
+          scale: 2, height: 8, includetext: false, backgroundcolor: 'ffffff',
+        });
+        const barcodeImg = await pdfDoc.embedPng(barcodePng);
+        page.drawImage(barcodeImg, { x: x + 4, y: y + 6, width: LW - 8, height: 28 });
+      } catch (_) { /* barcode generation failed — skip */ }
+
+      // SKU text under barcode
+      page.drawText(sku, { x: x + 4, y: y + 2, size: 5, font: fontReg, color: rgb(0.5, 0.5, 0.5) });
+
+      col++;
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="labels-${Date.now()}.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    console.error('Label generation error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Square Webhook Receiver ───────────────────────────────────────────────────
+
+// Square sends raw body for signature verification — must parse manually
+app.post('/api/webhooks/square', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const signature = req.headers['x-square-hmacsha256-signature'];
+    const rawBody   = req.body;
+
+    // Verify signature
+    if (SQUARE_WEBHOOK_KEY && signature) {
+      const url   = `${APP_URL}/api/webhooks/square`;
+      const hmac  = crypto.createHmac('sha256', SQUARE_WEBHOOK_KEY);
+      hmac.update(url + rawBody.toString());
+      const expected = hmac.digest('base64');
+      if (signature !== expected) {
+        console.warn('[WEBHOOK] Invalid Square signature');
+        return res.status(401).send('Unauthorized');
+      }
+    }
+
+    const event = JSON.parse(rawBody.toString());
+    console.log(`[WEBHOOK] Square event: ${event.type}`);
+
+    if (event.type !== 'order.completed') {
+      return res.status(200).send('OK');
+    }
+
+    const orderId    = event.data?.object?.order_updated?.order_id || event.data?.id;
+    const merchantId = event.merchant_id;
+
+    // We need the access token to fetch order details.
+    // Look it up from Firestore via Admin SDK (if available) or skip token fetch.
+    // For now, extract line items from the event payload directly if present.
+    const lineItems = event.data?.object?.order?.line_items || [];
+
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
+    const { getFirestore: getAdminFirestore } = await import('firebase-admin/firestore');
+
+    let adminDb;
+    try {
+      if (!getApps().length) {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+        initializeApp({ credential: cert(serviceAccount) });
+      }
+      adminDb = getAdminFirestore();
+    } catch (_) {
+      console.warn('[WEBHOOK] Firebase Admin not configured — skipping Firestore update');
+      return res.status(200).send('OK');
+    }
+
+    for (const lineItem of lineItems) {
+      const sku = lineItem.catalog_object_id || lineItem.uid || '';
+      if (!sku.startsWith('PP-')) continue;
+
+      const ppItemId   = sku.replace('PP-', '');
+      const soldCents  = parseInt(lineItem.total_money?.amount || lineItem.base_price_money?.amount || '0');
+      const soldPrice  = soldCents / 100;
+
+      // Find the item across all sales (search by sku field)
+      const salesSnap = await adminDb.collection('sales').get();
+      for (const saleDoc of salesSnap.docs) {
+        const itemQuery = await adminDb
+          .collection('sales').doc(saleDoc.id)
+          .collection('items').where('id', '==', ppItemId).limit(1).get();
+
+        if (!itemQuery.empty) {
+          const itemRef = itemQuery.docs[0].ref;
+          const itemData = itemQuery.docs[0].data();
+
+          await itemRef.update({
+            outcome: 'sold',
+            soldPrice,
+            soldAt: new Date(),
+            squareOrderId: orderId,
+            wasDiscounted: soldPrice < (itemData.aiPriceMedium || soldPrice),
+            autoRecorded: true,
+          });
+
+          // Write to training_data for AI improvement
+          await adminDb.collection('training_data').add({
+            itemId:         ppItemId,
+            saleId:         saleDoc.id,
+            imageUrl:       itemData.imageUrl || null,
+            aiPriceMedium:  itemData.aiPriceMedium,
+            soldPrice,
+            category:       itemData.category,
+            condition:      itemData.condition,
+            delta:          soldPrice - (itemData.aiPriceMedium || 0),
+            accuracy:       itemData.aiPriceMedium ? soldPrice / itemData.aiPriceMedium : null,
+            autoRecorded:   true,
+            timestamp:      new Date(),
+          });
+
+          console.log(`[WEBHOOK] Item ${ppItemId} sold for $${soldPrice} — Firestore updated`);
+          break;
+        }
+      }
+    }
+
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('[WEBHOOK] Error:', err);
+    res.status(500).send('Error');
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`
 🚀 Precision Prices Backend Server Running!
