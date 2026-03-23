@@ -8,6 +8,7 @@
   "copyright": "Copyright © 2025 Jared McClure / PrecisionPrices.Com. All Rights Reserved.",
   "license": "UNLICENSED",
   "scripts": {
+    "start": "node server.js",
     "dev": "vite",
     "server": "node server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
