@@ -7,7 +7,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { addRoomItems } from '../lib/salesFirestore';
 import { useAuth } from '../AuthContext';
-import { Camera, X, Zap, ArrowLeft, AlertCircle, Plus, ScanLine } from 'lucide-react';
+import { Camera, X, Zap, ArrowLeft, AlertCircle, ScanLine, CheckCircle, Loader2 } from 'lucide-react';
 
 const MAX_PHOTOS = 4;
 const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
@@ -122,6 +122,8 @@ export default function RoomScanPage() {
   const [scanning, setScanning] = useState(false);
   const [scanStage, setScanStage] = useState(''); // status message during scan
   const [error, setError] = useState('');
+  const [scannedItems, setScannedItems] = useState(null); // null = not scanned yet
+  const [saving, setSaving] = useState(false);
 
   const handleFiles = useCallback((files) => {
     const incoming = Array.from(files).slice(0, MAX_PHOTOS - photos.length);
@@ -217,12 +219,10 @@ export default function RoomScanPage() {
         thumbnailDataUrl: thumbnailDataUrl || null,
       }));
 
-      // ── Step 5: save to room ──
-      setScanStage(`Saving ${items.length} items to room…`);
-      await addRoomItems(saleId, roomId, items);
-
-      // ── Done: back to room with scanned count ──
-      navigate(`/app/sale/${saleId}/room/${roomId}?scanned=${items.length}`, { replace: true });
+      // ── Step 5: show results for user review ──
+      setScanStage('Done!');
+      setScannedItems(items);
+      setScanning(false);
 
     } catch (err) {
       console.error('Room scan error:', err);
@@ -232,9 +232,111 @@ export default function RoomScanPage() {
     }
   };
 
+  const saveToRoom = async () => {
+    if (!scannedItems || saving) return;
+    setSaving(true);
+    try {
+      await addRoomItems(saleId, roomId, scannedItems);
+      navigate(`/app/sale/${saleId}/room/${roomId}?scanned=${scannedItems.length}`, { replace: true });
+    } catch (err) {
+      console.error('Save error:', err);
+      setSaving(false);
+    }
+  };
+
   const photoSlots = [...photos, ...Array(MAX_PHOTOS - photos.length).fill(null)];
   const canScan = photos.length > 0 && !scanning;
   const canAddMore = photos.length < MAX_PHOTOS && !scanning;
+
+  // ── Results screen ──
+  if (scannedItems) {
+    const CATEGORY_COLORS = {
+      furniture: 'bg-amber-900/60 text-amber-300', kitchenware: 'bg-orange-900/60 text-orange-300',
+      collectibles: 'bg-purple-900/60 text-purple-300', electronics: 'bg-blue-900/60 text-blue-300',
+      tools: 'bg-gray-700 text-gray-300', clothing: 'bg-pink-900/60 text-pink-300',
+      books: 'bg-green-900/60 text-green-300', art: 'bg-rose-900/60 text-rose-300',
+      jewelry: 'bg-yellow-900/60 text-yellow-300', toys: 'bg-lime-900/60 text-lime-300',
+      outdoor: 'bg-emerald-900/60 text-emerald-300', other: 'bg-gray-800 text-gray-400',
+    };
+    const total = scannedItems.reduce((s, i) => s + (i.aiPriceMedium || 0), 0);
+
+    return (
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Header */}
+        <div className="flex items-center gap-3 p-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+          <button onClick={() => setScannedItems(null)} className="text-gray-400 hover:text-white p-1">
+            <ArrowLeft size={22} />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold">AI Found {scannedItems.length} Items</h1>
+            <p className="text-gray-400 text-sm">Est. total value ~${total.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="p-4 max-w-lg mx-auto space-y-3 pb-32">
+          {/* Success callout */}
+          <div className="bg-green-900/40 border border-green-700/50 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <CheckCircle size={20} className="text-green-400 flex-shrink-0" />
+            <div>
+              <p className="text-green-200 font-semibold text-sm">Scan complete — review items below</p>
+              <p className="text-green-300/70 text-xs">Prices use Target tier. Tap Save to add to room.</p>
+            </div>
+          </div>
+
+          {/* Item list */}
+          {scannedItems.map((item, idx) => {
+            const cat = item.category || 'other';
+            const catColor = CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
+            return (
+              <div key={item.id} className="bg-gray-800 rounded-xl px-4 py-3 border border-gray-700 flex items-center gap-3">
+                {item.thumbnailDataUrl ? (
+                  <img src={item.thumbnailDataUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0 text-lg">📦</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{item.itemName}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${catColor}`}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </span>
+                    <span className="text-xs text-gray-500">{item.condition}</span>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-white font-bold">${item.aiPriceMedium}</div>
+                  <div className="text-xs text-gray-500">${item.aiPriceLow}–${item.aiPriceHigh}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Sticky save bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4">
+          <div className="max-w-lg mx-auto flex gap-2">
+            <button
+              onClick={() => setScannedItems(null)}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 px-5 rounded-2xl transition-colors text-sm"
+            >
+              Rescan
+            </button>
+            <button
+              onClick={saveToRoom}
+              disabled={saving}
+              className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-lg transition-colors"
+            >
+              {saving ? (
+                <><Loader2 size={20} className="animate-spin" /> Saving…</>
+              ) : (
+                <><CheckCircle size={20} /> Save {scannedItems.length} Items to Room</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Scanning overlay ──
   if (scanning) {
