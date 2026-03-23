@@ -797,6 +797,17 @@ const APP_URL             = process.env.APP_URL || 'https://precisionprices.com'
 
 // ── Square OAuth ──────────────────────────────────────────────────────────────
 
+app.get('/api/square/debug', (req, res) => {
+  res.json({
+    APP_URL,
+    SQUARE_ENV,
+    SQUARE_BASE,
+    hasAppId: !!SQUARE_APP_ID,
+    hasAppSecret: !!SQUARE_APP_SECRET,
+    redirectUri: APP_URL + '/api/square/oauth/callback',
+  });
+});
+
 app.get('/api/square/auth-url', (req, res) => {
   const { userId } = req.query;
   if (!SQUARE_APP_ID) return res.status(200).json({ error: 'Square app credentials are not configured on the server. Add SQUARE_APP_ID and SQUARE_APP_SECRET to Railway environment variables.' });
