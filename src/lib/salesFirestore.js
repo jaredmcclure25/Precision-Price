@@ -261,6 +261,14 @@ export const deleteRoom = async (saleId, roomId) => {
   await updateDoc(saleRef, { totalRooms: Math.max(0, current - 1), updatedAt: serverTimestamp() });
 };
 
+/** Update the selectedPrice on a single item (used by price tier selector) */
+export const updateItemPrice = async (saleId, itemId, selectedPrice) => {
+  await updateDoc(doc(db, 'sales', saleId, 'items', itemId), {
+    selectedPrice,
+    updatedAt: serverTimestamp(),
+  });
+};
+
 /** Get items that belong to a specific room.
  *  Uses a single where() — no composite index required. */
 export const getRoomItems = async (saleId, roomId) => {

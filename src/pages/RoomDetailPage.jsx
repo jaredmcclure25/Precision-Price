@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  getSale, getRoom, getRoomItems, updateRoom,
+  getSale, getRoom, getRoomItems, updateRoom, updateItemPrice,
 } from '../lib/salesFirestore';
 import {
   ArrowLeft, Camera, Loader2, Edit2, Save, X, ScanLine, CheckCircle,
@@ -25,6 +25,110 @@ const CATEGORY_COLORS = {
   outdoor:     'bg-emerald-900/60 text-emerald-300',
   other:       'bg-gray-800 text-gray-400',
 };
+
+// ─── Item card with tier selector ─────────────────────────────────────────────
+
+function ItemCard({ item, saleId, onPriceChange }) {
+  const cat      = item.category || item.aiCategory || 'other';
+  const catColor = CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
+  const isScan   = item.source === 'room-scan';
+
+  // Freeze AI prices on mount
+  const [prices] = React.useState({
+    low:    item.aiPriceLow    ?? null,
+    medium: item.aiPriceMedium ?? null,
+    high:   item.aiPriceHigh   ?? null,
+  });
+
+  const [selectedTier, setSelectedTier] = React.useState(() => {
+    if (item.selectedPrice == null) return 'medium';
+    if (item.selectedPrice === prices.low)    return 'low';
+    if (item.selectedPrice === prices.high)   return 'high';
+    return 'medium';
+  });
+
+  const displayPrice = item.selectedPrice ?? prices.medium ?? 0;
+
+  const selectTier = async (tier) => {
+    const tierPrice = { low: prices.low, medium: prices.medium, high: prices.high }[tier];
+    if (tierPrice == null) return;
+    setSelectedTier(tier);
+    onPriceChange(item.id, tierPrice);
+    try {
+      await updateItemPrice(saleId, item.id, tierPrice);
+    } catch (_) {}
+  };
+
+  const hasTiers = prices.low != null && prices.medium != null && prices.high != null;
+
+  return (
+    <div className="bg-gray-800 rounded-xl px-4 py-3 border border-gray-700 space-y-2">
+      <div className="flex items-center gap-3">
+        {/* Photo or icon */}
+        {(item.thumbnailDataUrl || item.previewUrl) ? (
+          <img
+            src={item.thumbnailDataUrl || item.previewUrl}
+            alt=""
+            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0 text-xl">
+            {isScan ? '🔍' : '📸'}
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <p className="text-white text-sm font-medium truncate">
+            {item.itemName || item.aiItemName || 'Unknown item'}
+          </p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className={`text-xs px-1.5 py-0.5 rounded ${catColor}`}>
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </span>
+            {item.condition && (
+              <span className="text-xs text-gray-500">{item.condition}</span>
+            )}
+            {isScan && (
+              <span className="text-xs text-blue-500/70 flex items-center gap-0.5">
+                <ScanLine size={10} /> scan
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="text-right flex-shrink-0">
+          <div className="text-white font-bold">${displayPrice}</div>
+        </div>
+      </div>
+
+      {/* Price tier buttons */}
+      {hasTiers && (
+        <div className="flex gap-1.5 pt-0.5">
+          {[
+            { tier: 'low',    label: 'Low',    price: prices.low },
+            { tier: 'medium', label: 'Target', price: prices.medium },
+            { tier: 'high',   label: 'High',   price: prices.high },
+          ].map(({ tier, label, price }) => (
+            <button
+              key={tier}
+              onClick={() => selectTier(tier)}
+              className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
+                selectedTier === tier
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white'
+              }`}
+            >
+              {label} <span className="opacity-70">${price}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function RoomDetailPage() {
   const { saleId, roomId } = useParams();
@@ -172,52 +276,16 @@ export default function RoomDetailPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {items.map(item => {
-              const cat      = item.category || item.aiCategory || 'other';
-              const catColor = CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
-              const price    = item.selectedPrice ?? item.aiPriceMedium ?? 0;
-              const isScan   = item.source === 'room-scan';
-              return (
-                <div key={item.id} className="bg-gray-800 rounded-xl px-4 py-3 flex items-center gap-3 border border-gray-700">
-                  {item.previewUrl && (
-                    <img
-                      src={item.previewUrl} alt=""
-                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                      onError={e => { e.target.style.display = 'none'; }}
-                    />
-                  )}
-                  {!item.previewUrl && (
-                    <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0 text-lg">
-                      {isScan ? '🔍' : '📸'}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">
-                      {item.itemName || item.aiItemName || 'Unknown item'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${catColor}`}>
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                      </span>
-                      {item.condition && (
-                        <span className="text-xs text-gray-500">{item.condition}</span>
-                      )}
-                      {isScan && (
-                        <span className="text-xs text-blue-500/70 flex items-center gap-0.5">
-                          <ScanLine size={10} /> scan
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-white font-bold">${price}</div>
-                    {item.aiPriceLow && item.aiPriceHigh && (
-                      <div className="text-xs text-gray-500">${item.aiPriceLow}–${item.aiPriceHigh}</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {items.map(item => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                saleId={saleId}
+                onPriceChange={(itemId, price) =>
+                  setItems(prev => prev.map(i => i.id === itemId ? { ...i, selectedPrice: price } : i))
+                }
+              />
+            ))}
           </div>
         )}
       </div>

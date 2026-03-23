@@ -39,6 +39,27 @@ async function toBase64(blob) {
   });
 }
 
+// Generate a small square thumbnail data URL (100×100 JPEG) from a File
+async function generateThumbnail(file, size = 100) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
 // ─── Room scan prompt ──────────────────────────────────────────────────────────
 function buildScanPrompt(photoCount) {
   return `You are an expert estate sale pricer analyzing ${photoCount} photo${photoCount > 1 ? 's' : ''} of the same room${photoCount > 1 ? ' from different angles' : ''}.
@@ -127,15 +148,18 @@ export default function RoomScanPage() {
     setError('');
 
     try {
-      // ── Step 1: compress all photos ──
+      // ── Step 1: compress all photos + generate thumbnail from first ──
       setScanStage(`Preparing ${photos.length} photo${photos.length > 1 ? 's' : ''}…`);
-      const imageBlocks = await Promise.all(
-        photos.map(async (photo) => {
-          const compressed = await compressImage(photo.file);
-          const base64 = await toBase64(compressed);
-          return { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } };
-        })
-      );
+      const [imageBlocks, thumbnailDataUrl] = await Promise.all([
+        Promise.all(
+          photos.map(async (photo) => {
+            const compressed = await compressImage(photo.file);
+            const base64 = await toBase64(compressed);
+            return { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } };
+          })
+        ),
+        generateThumbnail(photos[0].file),
+      ]);
 
       // ── Step 2: call Claude with ALL photos in one message ──
       setScanStage(`AI is scanning your room${photos.length > 1 ? ' from all angles' : ''}…`);
@@ -190,6 +214,7 @@ export default function RoomScanPage() {
         aiConfidence:  item.confidence  || 0.7,
         notes: item.notes || '',
         source: 'room-scan',
+        thumbnailDataUrl: thumbnailDataUrl || null,
       }));
 
       // ── Step 5: save to room ──
