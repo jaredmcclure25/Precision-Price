@@ -96,7 +96,7 @@ function SaleSummary({ summary, saleName, onDone }) {
             onClick={onDone}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg py-4 rounded-2xl"
           >
-            Back to App
+            Back to My Sales
           </button>
         </div>
 
@@ -120,7 +120,7 @@ function StatCard({ label, value, color = 'text-white' }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SaleReviewPage() {
   const { saleId } = useParams();
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [sale, setSale] = useState(null);
@@ -259,7 +259,7 @@ export default function SaleReviewPage() {
       <SaleSummary
         summary={summary}
         saleName={sale?.saleName}
-        onDone={() => navigate('/app')}
+        onDone={() => navigate('/app/sales')}
       />
     );
   }
@@ -271,7 +271,7 @@ export default function SaleReviewPage() {
         <CheckCircle size={56} className="text-green-400 mb-4" />
         <h2 className="text-2xl font-bold mb-2">All items reviewed!</h2>
         <p className="text-gray-400 mb-6">No pending items for this sale.</p>
-        <button onClick={() => navigate('/app')} className="bg-blue-600 text-white font-bold py-4 px-8 rounded-2xl">
+        <button onClick={() => navigate('/app/sales')} className="bg-blue-600 text-white font-bold py-4 px-8 rounded-2xl">
           Back to App
         </button>
       </div>
@@ -286,7 +286,7 @@ export default function SaleReviewPage() {
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-gray-800 flex-shrink-0">
-        <button onClick={() => navigate('/app')} className="text-gray-400 hover:text-white">
+        <button onClick={() => navigate(`/app/sale/${saleId}`)} className="text-gray-400 hover:text-white">
           <ArrowLeft size={22} />
         </button>
         <div className="flex-1">

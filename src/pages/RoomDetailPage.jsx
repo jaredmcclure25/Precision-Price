@@ -26,6 +26,81 @@ const CATEGORY_COLORS = {
   other:       'bg-gray-800 text-gray-400',
 };
 
+// ─── Price bucket grouping ────────────────────────────────────────────────────
+
+const PRICE_BUCKETS = [
+  { label: '$5',    min: 0,   max: 7    },
+  { label: '$10',   min: 8,   max: 12   },
+  { label: '$15',   min: 13,  max: 17   },
+  { label: '$20',   min: 18,  max: 22   },
+  { label: '$25',   min: 23,  max: 35   },
+  { label: '$50',   min: 36,  max: 65   },
+  { label: '$75',   min: 66,  max: 87   },
+  { label: '$100',  min: 88,  max: 125  },
+  { label: '$150',  min: 126, max: 175  },
+  { label: '$200+', min: 176, max: Infinity },
+];
+
+function PriceBucketView({ items, saleId, onPriceChange }) {
+  const bucketed = PRICE_BUCKETS.map(bucket => ({
+    ...bucket,
+    items: items.filter(i => {
+      const p = i.selectedPrice ?? i.aiPriceMedium ?? 0;
+      return p >= bucket.min && p <= bucket.max;
+    }),
+  })).filter(b => b.items.length > 0);
+
+  const totalValue = items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500 text-center">
+        Items grouped by price — great for labeling and tagging
+      </p>
+      {bucketed.map(bucket => (
+        <div key={bucket.label} className="bg-gray-800 rounded-2xl overflow-hidden border border-gray-700">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gray-750">
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold text-lg">{bucket.label}</span>
+              <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">
+                {bucket.items.length} item{bucket.items.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <span className="text-green-400 text-sm font-semibold">
+              ${bucket.items.reduce((s, i) => s + (i.selectedPrice ?? i.aiPriceMedium ?? 0), 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="divide-y divide-gray-700/50">
+            {bucket.items.map(item => (
+              <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
+                {(item.thumbnailDataUrl || item.previewUrl) ? (
+                  <img
+                    src={item.thumbnailDataUrl || item.previewUrl}
+                    alt=""
+                    className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-lg bg-gray-700 flex items-center justify-center text-sm flex-shrink-0">📦</div>
+                )}
+                <p className="flex-1 text-sm text-white truncate">
+                  {item.itemName || item.aiItemName || 'Unknown item'}
+                </p>
+                <span className="text-white font-bold text-sm flex-shrink-0">
+                  ${item.selectedPrice ?? item.aiPriceMedium ?? 0}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <p className="text-center text-gray-600 text-xs pt-1">
+        {items.length} items · Est. total ${totalValue.toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
 // ─── Item card with tier selector ─────────────────────────────────────────────
 
 function ItemCard({ item, saleId, onPriceChange }) {
@@ -142,6 +217,7 @@ export default function RoomDetailPage() {
   const [editingName, setEditingName] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [savingName, setSavingName]   = useState(false);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'price'
 
   // Success banner from room scan
   const scannedCount = searchParams.get('scanned');
@@ -275,18 +351,46 @@ export default function RoomDetailPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {items.map(item => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                saleId={saleId}
+          <>
+            {/* View toggle */}
+            <div className="flex gap-1 bg-gray-800 rounded-xl p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                All Items ({items.length})
+              </button>
+              <button
+                onClick={() => setViewMode('price')}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${viewMode === 'price' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                By Price
+              </button>
+            </div>
+
+            {viewMode === 'list' && (
+              <div className="space-y-2">
+                {items.map(item => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    saleId={saleId}
+                    onPriceChange={(itemId, price) =>
+                      setItems(prev => prev.map(i => i.id === itemId ? { ...i, selectedPrice: price } : i))
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            {viewMode === 'price' && (
+              <PriceBucketView items={items} saleId={saleId}
                 onPriceChange={(itemId, price) =>
                   setItems(prev => prev.map(i => i.id === itemId ? { ...i, selectedPrice: price } : i))
                 }
               />
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
