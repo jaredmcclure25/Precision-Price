@@ -13,7 +13,6 @@ import AuthPage from './AuthPage';
 import { db } from './firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { addListing as addListingToFirestore } from './lib/firestore';
-import { getUserSales } from './lib/salesFirestore';
 import './storage'; // Cross-browser storage wrapper
 import { parseLocation, getLocationDescription, getLocationPricingInsight } from './locationData';
 import BullseyePriceTarget from './components/BullseyePriceTarget';
@@ -121,7 +120,6 @@ export default function MarketplacePricer() {
   const navigate = useNavigate();
   const [view, setView] = useState('pricing');
   const [mainTab, setMainTab] = useState('home');
-  const [recentSale, setRecentSale] = useState(null);
   const [analysisMode, setAnalysisMode] = useState('single'); // 'single' or 'bulk'
   const [stats, setStats] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -163,15 +161,6 @@ export default function MarketplacePricer() {
     else if (['shipping', 'widget-submissions', 'competitive-intel'].includes(view)) setMainTab('tools');
     else if (view === 'subscription') setMainTab('subscription');
   }, [view]);
-
-  // Load most recent in-progress sale for home banner
-  useEffect(() => {
-    if (!currentUser) return;
-    getUserSales(currentUser.uid).then(sales => {
-      const active = sales.find(s => ['drafting','pricing','published','active'].includes(s.status));
-      setRecentSale(active || null);
-    }).catch(() => {});
-  }, [currentUser]);
 
   // Auto-close auth gate when user signs in
   useEffect(() => {
@@ -1492,25 +1481,6 @@ Provide pricing analysis in this exact JSON structure:
           <div className="max-w-7xl mx-auto fade-in">
             {/* Estate Sales Banner */}
             <div className="mb-6 space-y-2">
-              {/* Continue in-progress sale */}
-              {recentSale && (
-                <div
-                  onClick={() => navigate(`/app/sale/${recentSale.id}`)}
-                  className="cursor-pointer bg-gradient-to-r from-green-800 to-emerald-800 hover:from-green-700 hover:to-emerald-700 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg border border-green-700/50"
-                >
-                  <div className="text-3xl flex-shrink-0">🏠</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-green-200 text-xs font-semibold uppercase tracking-wide mb-0.5">Continue Sale</div>
-                    <div className="text-white font-bold leading-tight truncate">{recentSale.saleName}</div>
-                    <div className="text-green-300/70 text-xs mt-0.5">
-                      {recentSale.totalRooms || 0} rooms · {recentSale.totalItems || 0} items
-                    </div>
-                  </div>
-                  <div className="text-white/60 flex-shrink-0">→</div>
-                </div>
-              )}
-
-              {/* Estate Sales hub */}
               <div
                 onClick={() => navigate('/app/sales')}
                 className="cursor-pointer bg-gradient-to-r from-blue-700 to-purple-700 hover:from-blue-600 hover:to-purple-600 active:from-blue-800 active:to-purple-800 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
