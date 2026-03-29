@@ -1478,50 +1478,41 @@ Provide pricing analysis in this exact JSON structure:
 
       <div className="py-8 px-4 sm:px-6 lg:px-8 section-pattern">
         {view === 'pricing' && (
-          <div className="max-w-2xl mx-auto fade-in">
-            {/* Estate Sales — Primary Hero */}
-            <div
-              onClick={() => navigate('/app/sales')}
-              className="cursor-pointer mb-4 bg-gradient-to-br from-blue-700 to-purple-700 hover:from-blue-600 hover:to-purple-600 active:from-blue-800 active:to-purple-800 rounded-2xl p-6 transition-all shadow-xl"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="text-5xl">🏠</div>
-                <div>
-                  <div className="text-white font-bold text-2xl leading-tight">Estate Sales</div>
-                  <div className="text-blue-200 text-sm mt-0.5">Your full sale management tool</div>
+          <div className="max-w-7xl mx-auto fade-in">
+            {/* Estate Sales Banner */}
+            <div className="mb-6 space-y-2">
+              <div
+                onClick={() => navigate('/app/sales')}
+                className="cursor-pointer bg-gradient-to-r from-blue-700 to-purple-700 hover:from-blue-600 hover:to-purple-600 active:from-blue-800 active:to-purple-800 rounded-2xl p-4 flex items-center gap-4 transition-all shadow-lg"
+              >
+                <div className="text-4xl flex-shrink-0">🏠</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-bold text-lg leading-tight">Estate Sales</div>
+                  <div className="text-blue-200 text-sm">Room-by-room pricing · Labels · Square POS</div>
                 </div>
+                <div className="text-white/60 flex-shrink-0">→</div>
               </div>
-              <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                <div className="bg-white/10 rounded-xl py-2 px-1">
-                  <div className="text-white font-semibold text-sm">📸 Room Scan</div>
-                  <div className="text-blue-200 text-xs">AI prices every item</div>
+              <div
+                onClick={() => navigate('/app/bulk')}
+                className="cursor-pointer bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700 rounded-2xl p-3 flex items-center gap-3 transition-all"
+              >
+                <div className="text-2xl flex-shrink-0">📸</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-semibold text-sm leading-tight">Quick Bulk Price</div>
+                  <div className="text-emerald-200 text-xs">Snap photos → instant AI prices (no rooms)</div>
                 </div>
-                <div className="bg-white/10 rounded-xl py-2 px-1">
-                  <div className="text-white font-semibold text-sm">🏷️ Labels</div>
-                  <div className="text-blue-200 text-xs">Print price tags</div>
-                </div>
-                <div className="bg-white/10 rounded-xl py-2 px-1">
-                  <div className="text-white font-semibold text-sm">📊 Track</div>
-                  <div className="text-blue-200 text-xs">Sold vs unsold</div>
-                </div>
-              </div>
-              <div className="bg-white/20 hover:bg-white/30 rounded-xl py-3 text-center transition-colors">
-                <span className="text-white font-bold text-lg">Start New Estate Sale →</span>
+                <div className="text-white/60 flex-shrink-0 text-sm">→</div>
               </div>
             </div>
 
-            {/* Quick Price Check — Secondary */}
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-6">
-              <p className="text-slate-400 text-xs uppercase tracking-widest font-medium mb-3">Just need to price one item?</p>
-              {userProfile?.analysisCount === 0 && !result && !skipWelcome ? (
-                <WelcomeDashboard
-                  userProfile={userProfile}
-                  onStartAnalysis={() => setSkipWelcome(true)}
-                />
-              ) : (
-                <BulkAnalysis />
-              )}
-            </div>
+            {userProfile?.analysisCount === 0 && !result && !skipWelcome ? (
+              <WelcomeDashboard
+                userProfile={userProfile}
+                onStartAnalysis={() => setSkipWelcome(true)}
+              />
+            ) : (
+              <BulkAnalysis />
+            )}
           </div>
         )}
         {view === 'shipping' && <ShippingCalculator />}
