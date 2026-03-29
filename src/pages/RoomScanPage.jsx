@@ -39,8 +39,8 @@ async function toBase64(blob) {
   });
 }
 
-// Generate a small square thumbnail data URL (100×100 JPEG) from a File
-async function generateThumbnail(file, size = 100) {
+// Generate a small square thumbnail from the full photo (fallback when no bbox)
+async function generateThumbnail(file, size = 120) {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -53,7 +53,37 @@ async function generateThumbnail(file, size = 100) {
       canvas.height = size;
       canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg', 0.5));
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+// Crop a specific item's bounding box from a photo (normalized 0–1 coords)
+// Adds 8% padding on all sides so the item isn't cropped too tight
+async function cropBoundingBox(file, bbox, size = 120) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const pad = 0.08;
+      const rawX = bbox.x - bbox.width * pad;
+      const rawY = bbox.y - bbox.height * pad;
+      const rawW = bbox.width * (1 + 2 * pad);
+      const rawH = bbox.height * (1 + 2 * pad);
+
+      const sx = Math.max(0, rawX * img.width);
+      const sy = Math.max(0, rawY * img.height);
+      const sw = Math.min(img.width - sx, rawW * img.width);
+      const sh = Math.min(img.height - sy, rawH * img.height);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     img.src = url;
@@ -73,8 +103,8 @@ Identify EVERY distinct item visible that could be sold at an estate sale. Look 
 - Kitchenware: dishes, cookware, small appliances, glassware
 - Tools: power tools, hand tools, garden equipment
 - Clothing & Jewelry: visible clothing racks, jewelry boxes, accessories
-${photoCount > 1 ? '\nIf multiple photos show the same item, count it ONCE. Combine what you see across all angles into one comprehensive list.' : ''}
-For clustered items (shelf of figurines, set of dishes, box of records), list each type as its own entry.
+${photoCount > 1 ? '\nIf multiple photos show the same item, count it ONCE. Use photoIndex (0-based) for whichever photo shows it most clearly.' : ''}
+For clustered items (shelf of figurines, set of dishes), list each type as its own entry.
 
 Respond with ONLY a valid JSON array — no markdown, no explanation, no code fences:
 [
@@ -86,9 +116,14 @@ Respond with ONLY a valid JSON array — no markdown, no explanation, no code fe
     "priceMedium": 15,
     "priceHigh": 25,
     "confidence": 0.8,
-    "notes": ""
+    "notes": "",
+    "photoIndex": 0,
+    "boundingBox": { "x": 0.1, "y": 0.2, "width": 0.5, "height": 0.4 }
   }
 ]
+
+boundingBox uses normalized coordinates (0.0–1.0): x/y = top-left corner, width/height = size of the box.
+photoIndex is the 0-based index of which photo shows this item most clearly.
 
 Be comprehensive — identify every sellable item. Aim for 5–30 items depending on room density.
 Pricing tiers: Low = garage sale / quick-sell, Medium = fair estate price, High = retail/collector.
@@ -109,6 +144,13 @@ function ScanDots() {
       <style>{`@keyframes bounce { 0%,80%,100%{transform:scale(0.6);opacity:0.5} 40%{transform:scale(1);opacity:1} }`}</style>
     </div>
   );
+}
+
+// Confidence pill color
+function confidenceColor(score) {
+  if (score >= 0.8) return 'text-green-400';
+  if (score >= 0.6) return 'text-yellow-400';
+  return 'text-red-400';
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -144,24 +186,25 @@ export default function RoomScanPage() {
     });
   };
 
+  const removeScannedItem = (id) => {
+    setScannedItems(prev => prev.filter(item => item.id !== id));
+  };
+
   const scanRoom = async () => {
     if (photos.length === 0 || scanning) return;
     setScanning(true);
     setError('');
 
     try {
-      // ── Step 1: compress all photos + generate thumbnail from first ──
+      // ── Step 1: compress all photos ──
       setScanStage(`Preparing ${photos.length} photo${photos.length > 1 ? 's' : ''}…`);
-      const [imageBlocks, thumbnailDataUrl] = await Promise.all([
-        Promise.all(
-          photos.map(async (photo) => {
-            const compressed = await compressImage(photo.file);
-            const base64 = await toBase64(compressed);
-            return { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } };
-          })
-        ),
-        generateThumbnail(photos[0].file),
-      ]);
+      const imageBlocks = await Promise.all(
+        photos.map(async (photo) => {
+          const compressed = await compressImage(photo.file);
+          const base64 = await toBase64(compressed);
+          return { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } };
+        })
+      );
 
       // ── Step 2: call Claude with ALL photos in one message ──
       setScanStage(`AI is scanning your room${photos.length > 1 ? ' from all angles' : ''}…`);
@@ -187,14 +230,12 @@ export default function RoomScanPage() {
       setScanStage('Pricing items…');
       const cleaned = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
 
-      // Handle both array and single object responses
       let parsed;
       if (cleaned.startsWith('[')) {
         parsed = JSON.parse(cleaned);
       } else if (cleaned.startsWith('{')) {
-        parsed = [JSON.parse(cleaned)]; // single item edge case
+        parsed = [JSON.parse(cleaned)];
       } else {
-        // Try to extract array from somewhere in the string
         const match = cleaned.match(/\[[\s\S]*\]/);
         if (!match) throw new Error('AI did not return a valid item list');
         parsed = JSON.parse(match[0]);
@@ -204,19 +245,41 @@ export default function RoomScanPage() {
         throw new Error('No items identified — try a clearer photo or different angle');
       }
 
-      // ── Step 4: normalise items ──
-      const items = parsed.map(item => ({
-        id: `scan-${Date.now()}-${Math.random()}`,
-        itemName: item.itemName || 'Unknown item',
-        category: item.category || 'other',
-        condition: item.condition || 'good',
-        aiPriceLow:    item.priceLow    || item.aiPriceLow    || 5,
-        aiPriceMedium: item.priceMedium || item.aiPriceMedium || 15,
-        aiPriceHigh:   item.priceHigh   || item.aiPriceHigh   || 25,
-        aiConfidence:  item.confidence  || 0.7,
-        notes: item.notes || '',
-        source: 'room-scan',
-        thumbnailDataUrl: thumbnailDataUrl || null,
+      // ── Step 4: crop item thumbnails from bounding boxes ──
+      setScanStage('Cropping item thumbnails…');
+      const items = await Promise.all(parsed.map(async (item) => {
+        const photoIdx = typeof item.photoIndex === 'number' ? item.photoIndex : 0;
+        const sourcePhoto = photos[Math.min(photoIdx, photos.length - 1)];
+        let thumbnailDataUrl = null;
+
+        if (item.boundingBox &&
+            typeof item.boundingBox.x === 'number' &&
+            typeof item.boundingBox.y === 'number' &&
+            typeof item.boundingBox.width === 'number' &&
+            typeof item.boundingBox.height === 'number' &&
+            item.boundingBox.width > 0.01 &&
+            item.boundingBox.height > 0.01) {
+          thumbnailDataUrl = await cropBoundingBox(sourcePhoto.file, item.boundingBox);
+        }
+
+        // Fall back to a center-crop of the source photo if bbox crop failed
+        if (!thumbnailDataUrl) {
+          thumbnailDataUrl = await generateThumbnail(sourcePhoto.file);
+        }
+
+        return {
+          id: `scan-${Date.now()}-${Math.random()}`,
+          itemName: item.itemName || 'Unknown item',
+          category: item.category || 'other',
+          condition: item.condition || 'good',
+          aiPriceLow:    item.priceLow    || item.aiPriceLow    || 5,
+          aiPriceMedium: item.priceMedium || item.aiPriceMedium || 15,
+          aiPriceHigh:   item.priceHigh   || item.aiPriceHigh   || 25,
+          aiConfidence:  item.confidence  || 0.7,
+          notes: item.notes || '',
+          source: 'room-scan',
+          thumbnailDataUrl,
+        };
       }));
 
       // ── Step 5: show results for user review ──
@@ -279,14 +342,21 @@ export default function RoomScanPage() {
             <CheckCircle size={20} className="text-green-400 flex-shrink-0" />
             <div>
               <p className="text-green-200 font-semibold text-sm">Scan complete — review items below</p>
-              <p className="text-green-300/70 text-xs">Prices use Target tier. Tap Save to add to room.</p>
+              <p className="text-green-300/70 text-xs">Tap × to remove items you don't want. Tap Save when ready.</p>
             </div>
           </div>
 
+          {scannedItems.length === 0 && (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              All items removed. Tap Rescan to start over.
+            </div>
+          )}
+
           {/* Item list */}
-          {scannedItems.map((item, idx) => {
+          {scannedItems.map((item) => {
             const cat = item.category || 'other';
             const catColor = CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
+            const confScore = item.aiConfidence || 0.7;
             return (
               <div key={item.id} className="bg-gray-800 rounded-xl px-4 py-3 border border-gray-700 flex items-center gap-3">
                 {item.thumbnailDataUrl ? (
@@ -296,17 +366,27 @@ export default function RoomScanPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium truncate">{item.itemName}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className={`text-xs px-1.5 py-0.5 rounded ${catColor}`}>
                       {cat.charAt(0).toUpperCase() + cat.slice(1)}
                     </span>
                     <span className="text-xs text-gray-500">{item.condition}</span>
+                    <span className={`text-xs font-medium ${confidenceColor(confScore)}`}>
+                      {Math.round(confScore * 100)}% confident
+                    </span>
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0">
+                <div className="text-right flex-shrink-0 mr-1">
                   <div className="text-white font-bold">${item.aiPriceMedium}</div>
                   <div className="text-xs text-gray-500">${item.aiPriceLow}–${item.aiPriceHigh}</div>
                 </div>
+                <button
+                  onClick={() => removeScannedItem(item.id)}
+                  className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0 p-1"
+                  aria-label="Remove item"
+                >
+                  <X size={16} />
+                </button>
               </div>
             );
           })}
@@ -323,7 +403,7 @@ export default function RoomScanPage() {
             </button>
             <button
               onClick={saveToRoom}
-              disabled={saving}
+              disabled={saving || scannedItems.length === 0}
               className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-lg transition-colors"
             >
               {saving ? (
@@ -346,7 +426,6 @@ export default function RoomScanPage() {
           <div className="w-24 h-24 rounded-3xl bg-blue-600/20 border-2 border-blue-500/40 flex items-center justify-center">
             <ScanLine size={40} className="text-blue-400" style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
           </div>
-          {/* Rotating ring */}
           <div
             className="absolute inset-0 rounded-3xl border-2 border-transparent border-t-blue-400"
             style={{ animation: 'spin 1s linear infinite' }}
@@ -360,7 +439,6 @@ export default function RoomScanPage() {
           <ScanDots />
         </div>
 
-        {/* Photo thumbnails during scan */}
         <div className="flex gap-2">
           {photos.map(p => (
             <img key={p.id} src={p.previewUrl} alt="" className="w-14 h-14 rounded-xl object-cover opacity-60" />
@@ -398,7 +476,7 @@ export default function RoomScanPage() {
             <li>📸 Take up to 4 photos — wide shots or shelf/table close-ups</li>
             <li>🧠 AI identifies every visible sellable item across all your photos</li>
             <li>💰 Each item gets priced with Low, Target, and High ranges</li>
-            <li>✅ Everything auto-saves to this room — edit prices in the room view</li>
+            <li>✅ Review the list, remove items you don't want, then save</li>
           </ul>
           <p className="text-blue-400/80 text-xs pt-1">
             More photos = better coverage. Try a doorway shot + close-ups of shelves or tables.
@@ -466,7 +544,6 @@ export default function RoomScanPage() {
           ))}
         </div>
 
-        {/* Hint text below grid */}
         {photos.length > 0 && photos.length < MAX_PHOTOS && (
           <p className="text-center text-blue-400/70 text-xs -mt-2">
             Add {MAX_PHOTOS - photos.length} more photo{MAX_PHOTOS - photos.length > 1 ? 's' : ''} for better AI coverage
@@ -486,7 +563,6 @@ export default function RoomScanPage() {
           </div>
         )}
 
-        {/* Add photos button (when grid isn't the only CTA) */}
         {photos.length === 0 && (
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -513,8 +589,7 @@ export default function RoomScanPage() {
         </button>
 
         <p className="text-center text-gray-500 text-xs pb-4">
-          AI will identify and price every sellable item it can see.
-          Results auto-save — you can edit prices in the room view.
+          AI identifies and prices every visible item. Review results before saving.
         </p>
       </div>
 
